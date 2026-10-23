@@ -29,7 +29,7 @@ test('the grid and the data', () => {
   assert.equal(munsellBase.reflectances.length, 40);
 });
 
-test('Wpt matrices and whites for 21 conditions match Python', () => {
+test('Wpt matrices and whites for 28 conditions match Python', () => {
   for (const [key, m] of Object.entries(V.matrices) as [string, number[][]][]) {
     const [o, ill] = key.split('/') as [ObserverName, IlluminantName];
     const n = wptNormalization(o, ill);
@@ -63,6 +63,7 @@ test('MATs and CATs match Python', () => {
   const nA = wptNormalization('cie1931', 'A'), nD = wptNormalization('cie1931', 'D65');
   close(flat(mat(nA, nD)), flat(V.mat['cie1931/A->cie1931/D65']), 1e-9, 'MAT A to D65');
   close(flat(mat(wptNormalization('cie2015', 'D65'), nD)), flat(V.mat['cie2015/D65->cie1931/D65']), 1e-9, 'MAT 2015 to 1931');
+  close(flat(mat(wptNormalization('cie2015_10', 'D65'), nD)), flat(V.mat['cie2015_10/D65->cie1931/D65']), 1e-9, 'MAT 2015 10° to 1931');
   close(mulMV(mat(nA, nD), nA.white), nD.white, 1e-9, 'MAT maps white exactly');
   for (const m of ['bradford', 'cat02', 'xyz'] as const) close(flat(cat(nA.white, nD.white, m)), flat(V.cat[m]), 1e-10, `CAT ${m}`);
 });

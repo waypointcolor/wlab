@@ -22,7 +22,7 @@ const LIGHTS: Record<string, Spectrum> = {
   'Made-up white LED': resample(madeUpLed.nm, madeUpLed.values),
 };
 const LIGHT_OF_MATCH: Record<string, string> = { D50: 'D50 (graphic arts booth)', D65: 'D65 (daylight)' };
-const OBSERVERS: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)' };
+const OBSERVERS: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)' };
 const PAIRS = pairs.map((p) => ({ ...p, ra: resample(p.a.nm, p.a.values), rb: resample(p.b.nm, p.b.values) }));
 const nm = Array.from({ length: 71 }, (_, i) => 380 + 5 * i);    // 380 to 730 nm for the plot
 

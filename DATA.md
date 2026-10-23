@@ -2,7 +2,8 @@
 
 `src/data.ts` holds, on one grid (380 to 780 nm in 5 nm steps):
 
-- the CIE 1931 (2°), CIE 1964 (10°) and CIE 2015 (2°, cone-fundamental-based) color-matching functions;
+- the CIE 1931 (2°), CIE 1964 (10°), CIE 2015 (2°) and CIE 2015 (10°) color-matching functions (the 2015 ones
+  cone-fundamental-based);
 - the CIE illuminants A, C, D50, D65, E, F2 and F11 (D50 computed from the CIE daylight components at 5000 K, as in
   the original Wpt code, rather than at the CIE's 5003 K);
 - the 40 Munsell colors of Value 5 and Chroma 6 that carry the Wpt normalization, and their reference p and t
@@ -24,6 +25,7 @@ International License (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa
 - CIE 2019, Colour-matching functions of CIE 1931 standard colorimetric observer, CIE, Vienna, AT, DOI [10.25039/CIE.DS.xvudnb9b](https://doi.org/10.25039/CIE.DS.xvudnb9b)
 - CIE 2019, CIE 1964 colour-matching functions, 10 degree observer, CIE, Vienna, AT, DOI [10.25039/CIE.DS.sqksu2n5](https://doi.org/10.25039/CIE.DS.sqksu2n5)
 - CIE 2015, CIE cone-fundamental-based spectral tristimulus values for 2° field size, CIE, Vienna, AT, DOI [10.25039/CIE.DS.548rw69q](https://doi.org/10.25039/CIE.DS.548rw69q)
+- CIE 2015, CIE cone-fundamental-based spectral tristimulus values for 10° field size, CIE, Vienna, AT, DOI [10.25039/CIE.DS.dm6qiig7](https://doi.org/10.25039/CIE.DS.dm6qiig7)
 - CIE 2018, CIE standard illuminant A - 1 nm, CIE, Vienna, AT, DOI [10.25039/CIE.DS.8jsxjrsn](https://doi.org/10.25039/CIE.DS.8jsxjrsn)
 - CIE 2018, Relative spectral power distributions of CIE illuminant C, CIE, Vienna, AT, DOI [10.25039/CIE.DS.mjdd2enu](https://doi.org/10.25039/CIE.DS.mjdd2enu)
 - CIE 2019, CIE standard illuminant D65, CIE, Vienna, AT, DOI [10.25039/CIE.DS.hjfjmt59](https://doi.org/10.25039/CIE.DS.hjfjmt59)

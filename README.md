@@ -51,7 +51,7 @@ const m = mat(wptNormalization('cie1931', 'A'), wptNormalization('cie1931', 'D65
 | `xyzToLab`, `labToXyz`, `deltaEab`, `deltaE00` | CIELAB and its color differences, for comparison |
 | `rgbToWlab(rgb, space)`, `wlabToRgb(wlab, space)`, `rgbToXyz`, `xyzToRgb`, `inGamut` | Display colors in `srgb`, `display-p3`, `a98-rgb` (Adobe RGB) or `rec2020` (the CSS Color 4 names), through the D65 Wpt normalization: WLab of the material that would give the same XYZ under D65 for the CIE 1931 observer |
 | `resample(nm, values)` | Any spectrum onto the 380–780 nm, 5 nm grid (linear, ends held) |
-| `observers`, `illuminants`, `munsellBase`, `wavelengths` | CIE 1931, 1964 and 2015 observers; illuminants A, C, D50, D65, E, F2, F11; the 40 Munsell base samples |
+| `observers`, `illuminants`, `munsellBase`, `wavelengths` | CIE 1931 (2°), 1964 (10°), 2015 (2°) and 2015 (10°) observers; illuminants A, C, D50, D65, E, F2, F11; the 40 Munsell base samples |
 
 Observers can be custom: `{ name, curves: [c1, c2, c3] }`, each curve 81 values (color-matching functions, cone
 fundamentals or camera sensors). Lights are any 81-value spectrum or the name of a CIE illuminant.

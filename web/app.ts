@@ -11,7 +11,7 @@ interface Condition { label: string; observer: ObserverName; light: Spectrum; li
 interface Lights { [name: string]: Spectrum }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const OBSERVER_LABEL: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)' };
+const OBSERVER_LABEL: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)' };
 const LIGHT_LABEL: Record<IlluminantName, string> = {
   D50: 'D50 booth', D65: 'D65 daylight', A: 'A, home incandescent', F2: 'F2, cool white fluorescent',
   F11: 'F11, tri-band store fluorescent', C: 'C, older daylight', E: 'E, equal energy',
@@ -92,15 +92,66 @@ function parseTable(text: string): { names: string[]; nm: number[]; columns: num
   return { names, nm, columns };
 }
 
-function readSpectra(): { names: string[]; spectra: Spectrum[]; note: string } {
+function readSpectra(): { names: string[]; spectra: Spectrum[]; note: string; nm: number[]; values: number[][] } {
   const t = parseTable($<HTMLTextAreaElement>('spectra').value);
   if (t.columns.length < 2) throw new Error('give a standard and at least one sample');
   const max = Math.max(...t.columns.flat());
   const percent = max > 1.5;
-  const spectra = t.columns.map((c) => resample(t.nm, percent ? c.map((x) => x / 100) : c));
+  const values = percent ? t.columns.map((c) => c.map((x) => x / 100)) : t.columns;
+  const spectra = values.map((c) => resample(t.nm, c));
   const note = `${t.columns.length - 1} sample${t.columns.length > 2 ? 's' : ''}, ${t.nm[0]}–${t.nm[t.nm.length - 1]} nm`
     + (percent ? ', read as percent' : '');
-  return { names: t.names, spectra, note };
+  return { names: t.names, spectra, note, nm: t.nm, values };
+}
+
+// Line colors of the samples (the standard is drawn in the text color), then dash patterns once they run out.
+const LINE_COLORS = ['#c2570c', '#1f8a5b', '#7a3fb0', '#c0306a', '#2f74c0', '#8a6d00'];
+const DASHES = ['', '6 4', '2 3'];
+const RAINBOW = [[0, '#4b0063'], [0.057, '#7a00c4'], [0.143, '#3f00ff'], [0.229, '#0046ff'], [0.314, '#00c0ff'], [0.371, '#00ff6a'],
+  [0.457, '#7fff00'], [0.543, '#e6ff00'], [0.571, '#ffef00'], [0.629, '#ff9b00'], [0.714, '#ff3000'], [0.8, '#ff0000'], [0.914, '#b30000'],
+  [1, '#6e0000']] as const;
+
+/** The reflectances as given (not resampled), the standard first; the rainbow bar runs from 380 to 730 nm. */
+function plotSpectra(names: string[], nm: number[], values: number[][], spectra: Spectrum[]): void {
+  const W = 720, H = 270, l0 = 46, top = 14, pw = 650, ph = 190;
+  const lo = nm[0], hi = nm[nm.length - 1];
+  const X = (v: number) => l0 + ((v - lo) / (hi - lo)) * pw;
+  const ymax = Math.max(0.2, Math.ceil(Math.max(...values.flat()) * 10) / 10);
+  const step = ymax <= 0.5 ? 0.1 : ymax <= 1 ? 0.2 : 0.25;
+  const Y = (v: number) => top + ph - (v / ymax) * ph;
+  const ticks = Array.from({ length: Math.floor(ymax / step + 1e-9) + 1 }, (_, i) => +(i * step).toFixed(2));
+  const xt = [400, 450, 500, 550, 600, 650, 700, 750].filter((t) => t >= lo && t <= hi);
+  // the bar's colors belong to wavelengths, so it is placed by wavelength and clipped to the plotted range
+  const bx0 = X(380), bx1 = X(730);
+  const stops = RAINBOW.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
+  const style = (k: number) => k === 0
+    ? { color: 'var(--ink)', width: 2.75, dash: '' }
+    : { color: LINE_COLORS[(k - 1) % LINE_COLORS.length], width: 2, dash: DASHES[Math.floor((k - 1) / LINE_COLORS.length) % DASHES.length] };
+  const lines = values.map((v, k) => {
+    const s = style(k);
+    const d = v.map((y, i) => `${i ? 'L' : 'M'}${X(nm[i]).toFixed(1)} ${Y(y).toFixed(1)}`).join('');
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-dasharray="${s.dash}" stroke-linejoin="round"/>`;
+  });
+  const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Spectral reflectance of the standard and the samples">
+    <defs><linearGradient id="rainbow" gradientUnits="userSpaceOnUse" x1="${bx0}" x2="${bx1}">${stops}</linearGradient>
+      <clipPath id="plotArea"><rect x="${l0}" y="0" width="${pw}" height="${H}"/></clipPath></defs>
+    ${ticks.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${t}</text>`).join('')}
+    <rect x="${l0}" y="${top + ph + 6}" width="${pw}" height="9" fill="url(#rainbow)" clip-path="url(#plotArea)"/>
+    ${xt.map((t) => `<text x="${X(t)}" y="${top + ph + 30}" text-anchor="middle">${t}</text>`).join('')}
+    <text x="${l0 + pw / 2}" y="${top + ph + 48}" text-anchor="middle">wavelength (nm)</text>
+    ${lines.slice(1).join('')}${lines[0]}
+  </svg>`;
+  const legend = names.map((n, k) => {
+    const s = style(k);
+    return `<span class="key"><svg width="26" height="10" aria-hidden="true"><line x1="1" x2="25" y1="5" y2="5" stroke="${s.color}"
+      stroke-width="${s.width}" stroke-dasharray="${s.dash}"/></svg><span class="chip" style="background:${chip(spectra[k])}"></span>`
+      + `${escapeHtml(n)}${k === 0 ? ' (standard)' : ''}</span>`;
+  }).join('');
+  $('reflPlot').innerHTML = svg + `<div class="legend">${legend}</div>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 }
 
 /** sRGB of a reflectance under D65, CIE 1931, for the chips. */
@@ -175,10 +226,13 @@ function run(): void {
 
 function status(): void {
   const s = $('spectraStatus');
+  $('reflPlot').replaceChildren();
   try {
     if (!$<HTMLTextAreaElement>('spectra').value.trim()) { s.textContent = ''; return; }
+    const r = readSpectra();
     s.className = 'note';
-    s.textContent = readSpectra().note;
+    s.textContent = r.note;
+    plotSpectra(r.names, r.nm, r.values, r.spectra);
   } catch (e) {
     s.className = 'error';
     s.textContent = (e as Error).message;

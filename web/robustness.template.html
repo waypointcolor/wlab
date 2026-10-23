@@ -44,6 +44,10 @@
   tr.de00 td { color: var(--quiet); }
   .chip { display: inline-block; width: 28px; height: 18px; border-radius: 4px; border: 1px solid var(--line); vertical-align: middle; }
   details { margin-top: 8px; }
+  #reflPlot svg text { fill: var(--quiet); font-size: 11px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 4px; font-size: 0.9rem; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .chip { width: 18px; height: 14px; }
   summary { cursor: pointer; color: var(--accent); }
   footer { margin-top: 36px; color: var(--quiet); font-size: 0.85rem; }
   a { color: var(--accent); }
@@ -67,6 +71,10 @@
       <button id="example">Load the guide's example</button>
       <span id="spectraStatus" class="note"></span>
     </div>
+    <details id="reflDetails">
+      <summary>Show the reflectances</summary>
+      <div id="reflPlot"><p class="note">Paste or load spectra to see them here.</p></div>
+    </details>
   </div>
 
   <h2>2. Lights and observers</h2>
