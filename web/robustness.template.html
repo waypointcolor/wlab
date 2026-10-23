@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WLab Robustness Report</title>
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f6f7f8; --ink: #1d2125; --quiet: #5c636b; --line: #d9dde1;
+    --accent: #0b4f7a; --accent-soft: #e3edf4; --warn: #9a3b00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15181b; --surface: #1e2226; --ink: #e8eaec; --quiet: #a3abb3; --line: #343a40;
+            --accent: #7cb7de; --accent-soft: #1f3341; --warn: #f0a46c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--accent); }
+  h2 { font-size: 1.1rem; margin: 28px 0 8px; color: var(--accent); }
+  p { margin: 6px 0; }
+  .lead { color: var(--quiet); max-width: 70ch; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  textarea { width: 100%; min-height: 150px; font: 13px/1.4 ui-monospace, Consolas, monospace; color: var(--ink);
+             background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; resize: vertical; }
+  button, select, input[type=text] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+             border-radius: 8px; padding: 6px 12px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { button.primary { color: #0e1215; } }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .note { color: var(--quiet); font-size: 0.9rem; }
+  .error { color: var(--warn); font-weight: 600; }
+  ul.conditions { list-style: none; padding: 0; margin: 8px 0; }
+  ul.conditions li { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  ul.conditions li .first { color: var(--accent); font-size: 0.85rem; }
+  ul.conditions li button { padding: 2px 8px; font-size: 0.85rem; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { border-bottom: 2px solid var(--ink); vertical-align: bottom; }
+  tr.de00 td { color: var(--quiet); }
+  .chip { display: inline-block; width: 28px; height: 18px; border-radius: 4px; border: 1px solid var(--line); vertical-align: middle; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--accent); }
+  footer { margin-top: 36px; color: var(--quiet); font-size: 0.85rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>WLab robustness report</h1>
+  <p class="lead">Will a match hold where the product is actually seen? Paste the spectral reflectance of a standard and
+  its samples, choose the lights (and observers) that matter, and read how far each sample is from the standard under
+  each one, as ΔE<sub>WLab</sub>. Everything runs in this page; nothing is sent anywhere.</p>
+
+  <h2>1. Spectra</h2>
+  <div class="card">
+    <p>First column wavelength in nm, then one column per material; <b>the first material is the standard</b>. Comma,
+    tab or semicolon separated, with or without a header row. Any range and interval from 380 to 780 nm; reflectance as
+    0–1 or in percent.</p>
+    <textarea id="spectra" spellcheck="false" placeholder="nm, Standard, Sample 1, Sample 2&#10;380, 0.118, 0.118, 0.118&#10;390, 0.129, 0.135, 0.223&#10;…"></textarea>
+    <div class="row">
+      <label><input type="file" id="spectraFile" accept=".csv,.txt,.tsv"> </label>
+      <button id="example">Load the guide's example</button>
+      <span id="spectraStatus" class="note"></span>
+    </div>
+  </div>
+
+  <h2>2. Lights and observers</h2>
+  <div class="card">
+    <p>The first condition is the reference (normally the viewing booth); the report also gives ΔE<sub>00</sub> under it.</p>
+    <ul class="conditions" id="conditions"></ul>
+    <div class="row">
+      <select id="addObserver"></select>
+      <select id="addLight"></select>
+      <button id="add">Add condition</button>
+    </div>
+    <details>
+      <summary>Add your own light (a measured spectrum)</summary>
+      <p class="note">Two columns: wavelength in nm and relative power, any scale. Any range and interval from 380 to 780 nm.</p>
+      <div class="row"><input type="text" id="lightName" placeholder="Name, e.g. Store LED"></div>
+      <textarea id="lightSpectrum" spellcheck="false" placeholder="380, 2.1&#10;385, 2.3&#10;…"></textarea>
+      <div class="row"><button id="addLightBtn">Add this light</button><span id="lightStatus" class="note"></span></div>
+    </details>
+  </div>
+
+  <h2>3. Report</h2>
+  <div class="row"><button class="primary" id="run">Make the report</button><button id="download" disabled>Download CSV</button></div>
+  <div id="report" class="table-wrap"></div>
+  <p class="note" id="reportNote"></p>
+
+  <footer>
+    <p>ΔE<sub>WLab</sub> predicts the color difference the reference observer (CIE 1931, under illuminant C) would see
+    between two materials, whatever light and observer they were measured under, in units that behave like familiar ΔE
+    units. No tolerances are built in: as with ΔE<sub>00</sub>, experience with your own products should set the limits.
+    Chips are approximate sRGB renderings under D65.</p>
+    <p>Method: <i>WLab and Wpt: Color Without the Fine Print</i> (M. W. Derhak) and the Wpt and WLab papers
+    (Derhak and Berns, <i>Color Research &amp; Application</i> 2015). Built on the <code>wlab</code> package. CIE data
+    CC BY-SA 4.0.</p>
+  </footer>
+</main>
+<!--APP-->
+</body>
+</html>

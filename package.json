@@ -1,0 +1,48 @@
+{
+  "name": "wlab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wpt (Waypoint), WLab (Waypoint Lab) and material adjustment transforms (MATs): material color equivalency for any light and observer.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "DATA.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test \"test/*.test.ts\"",
+    "check": "tsc --noEmit && tsc --noEmit -p tsconfig.web.json && node --test \"test/*.test.ts\"",
+    "build:web": "node scripts/build-web.mjs"
+  },
+  "keywords": [
+    "color",
+    "colour",
+    "WLab",
+    "Wpt",
+    "Waypoint",
+    "CIELAB",
+    "color difference",
+    "metamerism",
+    "observer",
+    "illuminant",
+    "MAT",
+    "CAT"
+  ],
+  "author": "Maxim W. Derhak (PhD)",
+  "license": "(BSD-3-Clause AND CC-BY-SA-4.0)",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
