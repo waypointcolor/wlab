@@ -10,7 +10,9 @@ materials, wherever they were measured. A Wpt MAT carries measurements from one 
 way of the material.
 
 The method is explained, without math, in the guide *WLab and Wpt: Color Without the Fine Print*, whose Technical
-annex gives every equation; this package implements that annex and reproduces the guide's numbers.
+annex gives every equation; this package implements that annex and reproduces the guide's numbers. The guide, its
+companion package and the web pages built on `wlab` are at [github.com/maxderhak/wpt-onramp](https://github.com/maxderhak/wpt-onramp), and the pages
+are online at [maxderhak.github.io/wpt-onramp](https://maxderhak.github.io/wpt-onramp/).
 
 ## Use
 
