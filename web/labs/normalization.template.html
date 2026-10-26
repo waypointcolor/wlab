@@ -68,8 +68,14 @@
       <button id="downloadCsv">Download per material (CSV)</button>
     </div>
     <div id="testPasteBox" hidden>
-      <p class="note">Wavelength in nm, then one reflectance per column (0 to 1 or percent), header row optional.</p>
-      <textarea id="testPaste" spellcheck="false" placeholder="nm, Sample 1, Sample 2&#10;380, 0.118, 0.121&#10;…"></textarea>
+      <div class="row">
+        <label>One material per <select id="testOrient" autocomplete="off">
+          <option value="rows" selected>row: a header row of wavelengths, then a row per material, its name first</option>
+          <option value="columns">column: a column of wavelengths, then a column per material, names in a header row</option></select></label>
+      </div>
+      <p class="note">Reflectances from 0 to 1, or percent; names optional; any wavelength grid covering at least 420
+      to 680 nm.</p>
+      <textarea id="testPaste" spellcheck="false" placeholder="name, 380, 390, 400, …&#10;Sample 1, 0.118, 0.129, 0.146, …&#10;Sample 2, 0.121, 0.135, 0.150, …"></textarea>
     </div>
     <p id="testStatus" class="note"></p>
     <div id="matStats"></div>

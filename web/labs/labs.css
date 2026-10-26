@@ -65,6 +65,19 @@
   .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.88rem; }
   .legend .key { display: inline-flex; align-items: center; gap: 6px; }
   .chip { display: inline-block; width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 3px; }
+  .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
+  .checks label { display: flex; gap: 6px; align-items: baseline; }
+  canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
+  canvas.cloud.flat { cursor: default; }
+  .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
+  .multiples figure { margin: 0; }
+  .multiples figcaption { font-size: 0.85rem; color: var(--ink); margin-bottom: 4px; display: flex; gap: 6px; align-items: center; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  table.entries td { vertical-align: middle; }
+  table.entries input[type=range] { width: 120px; }
+  table.entries td.name { text-align: left; white-space: normal; min-width: 12em; }
+  td.where { text-align: left; white-space: normal; min-width: 14em; }
+  .count { font-weight: 600; margin-top: 12px; }
   details { margin-top: 8px; }
   summary { cursor: pointer; color: var(--accent); }
   footer { margin-top: 44px; color: var(--quiet); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 12px; }

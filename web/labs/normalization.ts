@@ -3,13 +3,14 @@
 // Bundled into labs/normalization.html by scripts/build-web.mjs.
 
 import {
-  cat, deltaEWlab, mat, mulMV, munsell1600, munsellBase, observers, resample, responses, sensorResponses, wptNormalization,
+  cat, deltaEWlab, mat, mulMV, munsell1600, munsellBase, observers, responses, sensorResponses, wptNormalization,
   wptNormalizationN, wptToWlab, type Mat3, type SampleSet, type WptNormalization, type WptNormalizationN,
 } from '../../src/index.ts';
 import {
-  $, conditionPicker, copy, download, escapeHtml, formatMatrix, histogram, matrixTable, MATRIX_FORMATS, parseTable, scatter,
+  $, conditionPicker, copy, download, escapeHtml, formatMatrix, histogram, matrixTable, MATRIX_FORMATS, scatter,
   type Condition, type MatrixFormat,
 } from './kit.ts';
+import { readReflectances, type Layout } from './shifts.ts';
 
 const fmtSel = $<HTMLSelectElement>('fmt');
 fmtSel.replaceChildren(...MATRIX_FORMATS.map(([k, l]) => new Option(l, k)));
@@ -168,11 +169,10 @@ function testSet(): SampleSet & { label: string } {
   const which = $<HTMLSelectElement>('testSet').value;
   if (which === 'base') return { ...munsellBase, label: 'the 40 base colors' };
   if (which === 'paste') {
-    const t = parseTable($<HTMLTextAreaElement>('testPaste').value, 1);
-    const percent = Math.max(...t.columns.flat()) > 1.5;
+    const { materials, percent } = readReflectances($<HTMLTextAreaElement>('testPaste').value, $<HTMLSelectElement>('testOrient').value as Layout);
     return {
-      names: t.names, reflectances: t.columns.map((c) => resample(t.nm, percent ? c.map((x) => x / 100) : c)),
-      label: `your ${t.columns.length} reflectance${t.columns.length > 1 ? 's' : ''}${percent ? ' (read as percent)' : ''}`,
+      names: materials.map((m) => m.name), reflectances: materials.map((m) => m.reflectance),
+      label: `your ${materials.length} reflectance${materials.length > 1 ? 's' : ''}${percent ? ' (read as percent)' : ''}`,
     };
   }
   return { ...munsell1600(true), label: '1,560 Munsell colors' };
@@ -228,6 +228,7 @@ function evaluate(na: WptNormalization, nb: WptNormalization, M: Mat3, reverse: 
 $('direction').addEventListener('change', schedule);
 $('testSet').addEventListener('change', () => { $('testPasteBox').hidden = $<HTMLSelectElement>('testSet').value !== 'paste'; schedule(); });
 $('testPaste').addEventListener('input', schedule);
+$('testOrient').addEventListener('change', schedule);
 $('downloadCsv').addEventListener('click', () => { if (lastCsv) download('mat-evaluation.csv', lastCsv, 'text/csv'); });
 
 document.querySelectorAll<HTMLButtonElement>('button[data-copy]').forEach((b) => b.addEventListener('click', () => {

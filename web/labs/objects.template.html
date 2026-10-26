@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WLab Objects Lab</title>
+<!--FAVICON-->
+<meta name="description" content="Materials given by their reflectances, measured under many lights and observers at once: how far each moves in Wpt and WLab (its Wpt shift manifold), and pairs compared condition by condition.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Objects</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Materials across lights and observers</h1></div>
+  <p class="lead">A material's reflectance gives its measurement under any light, for any observer, and each
+  measurement turns into Wpt and WLab through its condition's Wpt normalization. For most materials the result barely
+  moves from condition to condition; how far and which way it does move is the material's own behavior. Measured under
+  many conditions, one material makes a small cloud of points, its Wpt shift manifold. Choose the materials and the
+  lights and observers, and see each material's cloud and how pairs compare in every condition.</p>
+
+  <h2>1. The materials</h2>
+  <div class="card">
+    <div class="row">
+      <label>One material per <select id="orient" autocomplete="off">
+        <option value="rows" selected>row: a header row of wavelengths, then a row per material, its name first</option>
+        <option value="columns">column: a column of wavelengths, then a column per material, names in a header row</option></select></label>
+    </div>
+    <p class="note">Names are optional. Any wavelength grid covering at least 420 to 680 nm; values from 0 to 1, or
+    percent. Changing the layout rewrites what is in the box.</p>
+    <textarea id="materials" class="lines" spellcheck="false" placeholder="name, 380, 390, 400, …&#10;Brand red, 0.118, 0.129, 0.146, …&#10;Submission 1, 0.118, 0.135, 0.150, …"></textarea>
+    <div class="row">
+      <label>Import a file <input type="file" id="importFile" accept=".csv,.txt,.tsv"></label>
+    </div>
+    <div class="row">
+      <button data-example="smurf">Example: PMCC Smurf and a twin</button>
+      <button data-example="ublue">Example: PMCC Unitary Blue and a twin</button>
+      <button data-example="red">Example: a brand red and two submissions</button>
+      <button data-example="munsell">Example: ten Munsell colors of Value 5, Chroma 6</button>
+      <button data-example="plane">Example: one spectral hue plane (Munsell 5PB 5/8, scaled and shifted copies)</button>
+    </div>
+    <h3>The materials in use</h3>
+    <p class="note">Each reflectance given above, and any copies of it. Copy a material, then scale or shift the copy:
+    scaling multiplies its reflectance at every wavelength, shifting adds the same amount at every wavelength (never
+    going below 0). Materials made this way from one reflectance belong to one spectral hue plane. Scaling a reflectance
+    scales its Wpt shifts by the same factor, so its shift manifold keeps its shape and only its size changes; shifting
+    it adds the same Wpt in every condition (white is W = 100, p = t = 0 in all of them), so its Wpt shifts do not change
+    at all. WLab is not linear, so its shifts change a little in both cases.</p>
+    <div id="entries" class="table-wrap"></div>
+    <div id="spectra"></div>
+    <p id="materialsStatus" class="note"></p>
+  </div>
+
+  <h2>2. The lights and observers</h2>
+  <div class="card">
+    <div class="cols">
+      <div>
+        <h3>Lights</h3>
+        <div id="lights" class="checks"></div>
+        <div class="row"><button data-all="lights">All</button><button data-none="lights">None</button></div>
+        <div id="lightPasteBox" hidden>
+          <p class="note">Your light: wavelength in nm and relative power, any scale.</p>
+          <textarea id="lightPaste" spellcheck="false" placeholder="380, 2.1&#10;385, 2.3&#10;…"></textarea>
+        </div>
+      </div>
+      <div>
+        <h3>Observers</h3>
+        <div id="observers" class="checks"></div>
+        <div class="row">
+          <label>Categorical observers' field size <input type="number" id="catField" min="1" max="10" step="0.5" value="2">°</label>
+        </div>
+        <div class="row">
+          <label>CIE 2006 sweep: ages 20 to 80 in steps of <select id="ageStep" autocomplete="off">
+            <option value="20">20 years</option><option value="10" selected>10 years</option><option value="5">5 years</option><option value="1">1 year</option></select></label>
+          <label>field sizes <select id="fieldSet" autocomplete="off">
+            <option value="2,10" selected>2° and 10°</option><option value="1,2,3,4,5,6,7,8,9,10">1° to 10° in steps of 1°</option>
+            <option value="1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10">1° to 10° in steps of 0.5°</option></select></label>
+        </div>
+        <div class="row"><button data-all="observers">All</button><button data-none="observers">None</button></div>
+        <div id="obsPasteBox" hidden>
+          <p class="note">Your observer: wavelength in nm, then three or more sensitivity curves, any scale.</p>
+          <textarea id="obsPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
+        </div>
+      </div>
+    </div>
+    <h3>The reference condition</h3>
+    <div class="row">
+      <label>Observer <select id="refObserver" autocomplete="off"></select></label>
+      <label>Light <select id="refLight" autocomplete="off"></select></label>
+    </div>
+    <p class="note">The shifts are measured from the reference condition. WLab's own reference is CIE 1931 under
+    illuminant C; under a light in everyday use, such as D65, the shifts read as "compared with daylight".</p>
+    <p id="count" class="count"></p>
+    <div class="row"><button id="compute" class="primary" hidden>Compute</button><span id="progress" class="note"></span></div>
+  </div>
+
+  <h2>3. How far each material moves</h2>
+  <div class="card">
+    <p id="summary"></p>
+    <div class="row"><button id="downloadPoints">Download every point (CSV)</button></div>
+    <div id="table" class="table-wrap"></div>
+    <p class="note">ΔE<sub>WLab</sub> from the reference: the WLab difference between the material in each condition and
+    the same material in the reference condition. Small for most materials; larger for those whose color depends more
+    on the light and the observer (color inconstancy). The chips show each material in the reference condition, as the
+    display color (sRGB) of its WLab, clipped where outside sRGB.</p>
+  </div>
+
+  <h2>4. The Wpt shift manifolds</h2>
+  <div class="card">
+    <div class="row">
+      <label>Views <select id="layout" autocomplete="off"><option value="one" selected>one view, every material</option><option value="each">side by side, one view per material</option></select></label>
+      <label id="viewScaleBox" hidden>Scale <select id="viewScale" autocomplete="off"><option value="own" selected>each view its own</option><option value="same">the same in every view</option></select></label>
+      <label>Coordinates <select id="space" autocomplete="off"><option value="wpt" selected>Wpt (W, p, t)</option><option value="wlab">WLab (Lw, aw, bw)</option></select></label>
+    </div>
+    <div id="each3d" hidden>
+      <div id="multiples" class="multiples"></div>
+      <p class="note">Turning one view turns them all. Each view on its own scale shows the shapes: the materials of one
+      spectral hue plane (one reflectance scaled and shifted) make the same shape. The same scale in every view shows
+      how large each manifold is.</p>
+    </div>
+    <div class="cols wide">
+      <div id="one3d"><h3>The shifts in three dimensions</h3><canvas id="plot3d" class="cloud" aria-label="The shifts of each material from the reference condition, in three dimensions; drag to turn"></canvas>
+        <p class="note">Drag to turn the view (or focus it and use the arrow keys). Each point is one condition: the
+        material's shift from the reference. Lightness (W or L<sub>w</sub>) is up.</p></div>
+      <div><h3>The shifts seen from above</h3><div id="plotPlane"></div></div>
+    </div>
+    <div class="row"><label><input type="checkbox" id="positions"> Show where the materials are instead of their shifts (the clouds around each reference point, a ring)</label></div>
+    <div id="plotPositions"></div>
+    <p class="note" id="plotNote"></p>
+  </div>
+
+  <h2>5. Pairs, condition by condition</h2>
+  <div class="card">
+    <div class="row">
+      <label>Compare <select id="pairMode" autocomplete="off">
+        <option value="first" selected>each material with the first</option>
+        <option value="consecutive">materials in pairs: 1 with 2, 3 with 4, …</option>
+        <option value="all">every pair</option></select></label>
+    </div>
+    <p id="pairsSummary"></p>
+    <div class="row"><button id="downloadPairs">Download the pairs in every condition (CSV)</button></div>
+    <div id="pairsTable" class="table-wrap"></div>
+    <div class="cols wide">
+      <div><h3>How large the differences are, over the conditions</h3><div id="pairsHist"></div></div>
+    </div>
+    <p class="note">ΔE<sub>WLab</sub> between the two materials in each condition. With one light and one observer
+    chosen beside the reference, this is a simple index of metamerism: a pair that matches in the reference condition
+    and how far apart it is in the other. With many, it shows how the pair holds up across all of them, and where it
+    holds up least.</p>
+  </div>
+
+  <footer>
+    <p>Wpt, WLab and ΔE<sub>WLab</sub>: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and
+    Wpt: Color Without the Fine Print</i></a>; Wpt shift manifolds: Derhak, Luo and Berns, <i>Color Research &amp;
+    Application</i> 45(3), 2020. Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>.
+    Everything runs in this page; nothing is sent anywhere. PMCC patches: Luo, <i>Color Research &amp; Application</i>
+    49(6), 2024, measured by Maxim W. Derhak. CIE data CC BY-SA 4.0. Categorical observers of Asano and Fairchild,
+    used with permission. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL
+    database) come from Psychtoolbox-3, MIT license (its notice is in this page's source and in <code>wlab</code>'s
+    LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>

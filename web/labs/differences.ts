@@ -141,7 +141,7 @@ function render(): void {
 // ---------------------------------------------------------------------------------------------------------------
 // Examples, made from the Munsell colors in the condition chosen above
 
-function example(kind: 'chroma' | 'value'): void {
+function example(kind: 'chroma' | 'value' | 'hue'): void {
   let c1: Condition;
   try { c1 = pick1.get(); } catch (e) { $('pairsStatus').className = 'error'; $('pairsStatus').textContent = message(e); return; }
   const { names, reflectances } = munsell1600(true);
@@ -149,19 +149,37 @@ function example(kind: 'chroma' | 'value'): void {
   const lab = labInput(), white = sensorWhiteOf(c1.observer, c1.light) as Vec3;
   if (lab && !CIE_CMFS.includes(c1.observer)) { $('pairsStatus').className = 'error'; $('pairsStatus').textContent = 'CIELAB values need one of the CIE color-matching observers: CIE 1931 (2°), CIE 1964 (10°), CIE 2015 (2° or 10°).'; return; }
   // the examples are written in the form chosen: CIELAB with the condition's white, or responses at the chosen scale
-  const fmt = (v: readonly number[]) => (lab ? xyzToLab(v as Vec3, white).map((x) => x.toFixed(4)) : v.map((x) => (x / scale).toPrecision(6))).join(', ');
+  // (CIELAB to two decimals, as instruments report it)
+  const fmt = (v: readonly number[]) => (lab ? xyzToLab(v as Vec3, white).map((x) => x.toFixed(2)) : v.map((x) => (x / scale).toPrecision(6))).join(', ');
   const rows: { name: string; first: string; second: string }[] = [];
-  // a color and the next Chroma (or Value) step of the same hue
+  // a color and the next Chroma (or Value) step of the same hue, or the next Hue step (2.5) at the same Value and Chroma
   const index = new Map(names.map((n, i) => [n, i]));
   for (let i = 0; i < names.length && rows.length < 24; i += 29) {
     const m = names[i].match(/^(\S+) ([\d.]+)\/([\d.]+)$/);
     if (!m) continue;
-    const next = kind === 'chroma' ? `${m[1]} ${m[2]}/${Number(m[3]) + 2}` : `${m[1]} ${Number(m[2]) + 1}/${m[3]}`;
+    const next = kind === 'chroma' ? `${m[1]} ${m[2]}/${Number(m[3]) + 2}` : kind === 'value' ? `${m[1]} ${Number(m[2]) + 1}/${m[3]}` : `${nextHue(m[1])} ${m[2]}/${m[3]}`;
     const j = index.get(next);
     if (j === undefined) continue;
     rows.push({ name: `${names[i]} → ${next}`, first: fmt(sensorResponses(reflectances[i], c1.observer, c1.light)), second: fmt(sensorResponses(reflectances[j], c1.observer, c1.light)) });
   }
   fill(rows.map((r) => r.name), rows.map((r) => r.first), rows.map((r) => r.second));
+}
+
+const HUES = ['R', 'YR', 'Y', 'GY', 'G', 'BG', 'B', 'PB', 'P', 'RP'];
+/** The Munsell hue one step (2.5) on: 7.5R → 10R → 2.5YR, and 10RP → 2.5R. */
+function nextHue(hue: string): string {
+  const m = hue.match(/^([\d.]+)([A-Z]+)$/);
+  if (!m) return '';
+  const h = Number(m[1]) + 2.5;
+  return h <= 10 ? `${h}${m[2]}` : `2.5${HUES[(HUES.indexOf(m[2]) + 1) % HUES.length]}`;
+}
+
+/** The CIELAB example: what an instrument reports (CIE 1931 under D50), for Munsell colors one Hue step apart. */
+function cielabExample(): void {
+  $<HTMLSelectElement>('valueType').value = 'cielab';
+  pick1.set('cie1931', 'D50');
+  syncValueType();
+  example('hue');
 }
 
 /** Puts names and colors (one line each) into the three boxes. */
@@ -195,6 +213,7 @@ boxes.forEach((b) => {
 
 $('exChroma').addEventListener('click', () => example('chroma'));
 $('exValue').addEventListener('click', () => example('value'));
+$('exLab').addEventListener('click', cielabExample);
 $('scale').addEventListener('change', schedule);
 function syncValueType(): void {
   const lab = labInput();

@@ -6,7 +6,7 @@
 import { baseNames, baseReferencePT, baseReflectances } from './data.ts';
 import { inv3, solve, type Mat3, type Vec3 } from './linalg.ts';
 import {
-  lightOf, observerOf, sensorResponses, sensorWhiteOf,
+  lightOf, observerOf, ones, responder,
   type IlluminantName, type Observer, type ObserverName, type Spectrum,
 } from './spectra.ts';
 import { wptToWlab } from './wlab.ts';
@@ -54,8 +54,17 @@ export interface WptNormalization extends WptNormalizationN {
   readonly steps: { readonly rotation: Mat3; readonly scale: number; readonly level: Vec3; readonly fit: readonly [readonly [number, number], readonly [number, number]] };
 }
 
-const dot = (a: readonly number[], b: readonly number[]) => a.reduce((s, v, i) => s + v * b[i], 0);
-const times = (m: readonly (readonly number[])[], v: readonly number[]) => m.map((r) => dot(r, v));
+// plain loops: these run for every one of the N observers × M lights a set of conditions can hold
+function dot(a: readonly number[], b: readonly number[]): number {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
+}
+function times(m: readonly (readonly number[])[], v: readonly number[]): number[] {
+  const out = new Array<number>(m.length);
+  for (let r = 0; r < m.length; r++) out[r] = dot(m[r], v);
+  return out;
+}
 
 /**
  * Build the Wpt normalization of an observing condition with any number of sensors N ≥ 3 (Technical annex A.3, and
@@ -70,8 +79,11 @@ export function wptNormalizationN(
   const obs = observerOf(observer);
   const ill = lightOf(light);
   const n = obs.curves.length;
-  const white = sensorWhiteOf(obs, ill);
-  const resp = base.reflectances.map((r) => sensorResponses(r, obs, ill));
+  // every response of this condition (white, the base samples, each material) is one sum per sensor over the curves
+  // weighted by the light, computed once here: a normalization is built for each of N observers × M lights
+  const respond = responder(obs, ill);
+  const white = respond(ones);
+  const resp = base.reflectances.map(respond);
 
   // 1. rotate white onto the first axis, one plane at a time (axes n−2 and n−1, …, then 0 and 1)
   let am: number[][] = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
@@ -105,12 +117,13 @@ export function wptNormalizationN(
   am[0] = am[0].map((v, j) => v - level.slice(0, n - 1).reduce((s, a, k) => s + a * am[k + 1][j], 0));
 
   // 4. fit p and t from the other n − 1 channels: F = P Qᵀ (Q Qᵀ)⁻¹, a 2 × (n − 1) regression (square for n = 3)
-  const q = resp.map((x) => times(am.slice(1), x));
+  const others = am.slice(1);
+  const q = resp.map((x) => times(others, x));
   const qqt = Array.from({ length: n - 1 }, (_, i) => Array.from({ length: n - 1 }, (_, j) => q.reduce((s, v) => s + v[i] * v[j], 0)));
   const fit = [0, 1].map((k) => solve(qqt.map((r) => [...r]), Array.from({ length: n - 1 }, (_, i) => q.reduce((s, v, j) => s + base.referencePT[j][k] * v[i], 0))));
   const toWpt = [am[0], ...fit.map((f) => Array.from({ length: n }, (_, c) => f.reduce((s, a, k) => s + a * am[k + 1][c], 0)))];
 
-  const wptOf = (reflectance: Spectrum): Vec3 => times(toWpt, sensorResponses(reflectance, obs, ill)) as Vec3;
+  const wptOf = (reflectance: Spectrum): Vec3 => times(toWpt, respond(reflectance)) as Vec3;
   return {
     observer: obs, light: ill, sensors: n, white, toWpt, wptOf, wlabOf: (r) => wptToWlab(wptOf(r)),
     steps: { rotation, scale, level, fit },

@@ -93,7 +93,38 @@ export function responses(reflectance: Spectrum, observer: Observer, light: Spec
   return sensorResponses(reflectance, observer, light) as Vec3;
 }
 
-const ones: Spectrum = new Array(N).fill(1);
+/** A perfect white: reflectance 1 everywhere. */
+export const ones: Spectrum = new Array(N).fill(1);
+
+/**
+ * The sensor responses of one observing condition as a function of reflectance, the same as `sensorResponses` but
+ * with the curves weighted by the light (and scaled so that white's second response is 100) once, not on every call:
+ * for building many normalizations and evaluating many materials.
+ */
+export function responder(observer: Observer, light: Spectrum): (reflectance: Spectrum) => number[] {
+  check(light, 'a light');
+  const curves = observer.curves;
+  if (curves.length < 3) throw new Error('wlab: an observer needs at least three sensors');
+  let k = 0;
+  for (let i = 0; i < N; i++) k += curves[1][i] * light[i];
+  k = 100 / k;
+  const weights = curves.map((c) => {
+    const w = new Float64Array(N);
+    for (let i = 0; i < N; i++) w[i] = c[i] * light[i] * k;
+    return w;
+  });
+  return (reflectance) => {
+    check(reflectance, 'a reflectance');
+    const out = new Array<number>(weights.length);
+    for (let c = 0; c < weights.length; c++) {
+      const w = weights[c];
+      let s = 0;
+      for (let i = 0; i < N; i++) s += w[i] * reflectance[i];
+      out[c] = s;
+    }
+    return out;
+  };
+}
 
 /** Responses of a perfect white (reflectance 1 everywhere): the condition's white, Y = 100 (three sensors). */
 export const whiteOf = (observer: Observer, light: Spectrum): Vec3 => responses(ones, observer, light);

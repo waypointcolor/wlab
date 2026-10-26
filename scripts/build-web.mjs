@@ -5,6 +5,7 @@
 //   web/labs/index.html                                         the Waypoint Labs hub
 //   web/labs/normalization.html    (web/labs/normalization.ts)  Lab A: Wpt normalization and MATs
 //   web/labs/differences.html      (web/labs/differences.ts)    Lab B: WLab and color differences
+//   web/labs/objects.html          (web/labs/objects.ts)        Lab C: materials across lights and observers
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
 // <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables). Every
@@ -23,6 +24,7 @@ const pages = [
   { template: 'web/labs/index.template.html', out: 'web/labs/index.html' },
   { entry: 'web/labs/normalization.ts', template: 'web/labs/normalization.template.html', out: 'web/labs/normalization.html' },
   { entry: 'web/labs/differences.ts', template: 'web/labs/differences.template.html', out: 'web/labs/differences.html' },
+  { entry: 'web/labs/objects.ts', template: 'web/labs/objects.template.html', out: 'web/labs/objects.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();

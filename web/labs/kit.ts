@@ -41,11 +41,11 @@ export function parseTable(text: string, minColumns = 1): { names: string[]; nm:
 
 export interface Condition { readonly observer: Observer; readonly light: Spectrum; readonly label: string; readonly lightLabel: string }
 
-const OBSERVER_LABEL: Record<ObserverName, string> = {
+export const OBSERVER_LABEL: Record<ObserverName, string> = {
   cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)',
   cie2006_2: 'CIE 2006 cone fundamentals (2°)', cie2006_10: 'CIE 2006 cone fundamentals (10°)',
 };
-const LIGHT_LABEL: Record<IlluminantName, string> = {
+export const LIGHT_LABEL: Record<IlluminantName, string> = {
   A: 'A (incandescent)', C: 'C (older daylight)', D50: 'D50 (graphic arts booth)', D65: 'D65 (daylight)', E: 'E (equal energy)',
   F2: 'F2 (cool white fluorescent)', F11: 'F11 (tri-band fluorescent)',
   'LED-B1': 'LED-B1 (blue-pumped phosphor white, about 2700 K)',
@@ -81,9 +81,10 @@ export function conditionPlots(cond: Condition): string {
  * A condition picker: sensors (a CIE observer, CIE 2006 cone fundamentals for any age and field size, Asano's
  * categorical observers for any field size, or three pasted curves) and a light (a CIE illuminant, daylight
  * or a Planckian radiator at a chosen temperature, or a pasted spectrum), with an option to plot both. `get()`
- * returns the condition or throws.
+ * returns the condition or throws; `set()` chooses a built-in observer and light.
  */
-export function conditionPicker(host: HTMLElement, start: { observer: ObserverName; light: IlluminantName }, onChange: () => void): { get(): Condition } {
+export function conditionPicker(host: HTMLElement, start: { observer: ObserverName; light: IlluminantName }, onChange: () => void):
+  { get(): Condition; set(observer: ObserverName, light: IlluminantName): void } {
   host.innerHTML = `
     <div class="row">
       <label>Sensors <select data-k="obs"></select></label>
@@ -199,6 +200,11 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
         el('plots').replaceChildren();
         throw e;
       }
+    },
+    set(observer: ObserverName, lightName: IlluminantName): void {
+      obs.value = observer;
+      light.value = lightName;
+      sync();
     },
   };
 }
@@ -346,4 +352,80 @@ export function scatter(o: {
     <text x="${l0 + 4}" y="${top + 12}">${escapeHtml(o.yLabel)}</text>
     <defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--quiet)"/></marker></defs>
     ${links}${dots}</svg><div class="legend">${legend}</div>`;
+}
+
+/** Views that turn together: turning one turns every view drawn with the group. */
+export interface ViewGroup { yaw: number; pitch: number; draws: Set<() => void> }
+export const viewGroup = (from?: { yaw: number; pitch: number }): ViewGroup => ({ yaw: from?.yaw ?? -0.6, pitch: from?.pitch ?? 0.45, draws: new Set() });
+
+/**
+ * Points in three dimensions on a canvas, turned by dragging (or with the arrow keys): one color per set, axes through
+ * the origin, the same scale on every axis so that shapes are true. The view's angles stay on the canvas between
+ * redraws, or are shared by a group of views.
+ */
+export function cloud3d(canvas: HTMLCanvasElement, o: {
+  sets: { pts: number[][]; color: string }[]; axes: [string, string, string];
+  /** a view that does not turn (for example straight down, { yaw: 0, pitch: π/2 }): many points drawn fast */
+  fixed?: { yaw: number; pitch: number };
+  /** views that turn together */
+  group?: ViewGroup;
+  /** the extent of every axis (the same for views to be compared at one scale); by default the points' own */
+  range?: number;
+}): void {
+  const c = canvas as HTMLCanvasElement & { view?: { yaw: number; pitch: number }; data?: typeof o; bound?: boolean };
+  c.view = o.fixed ?? o.group ?? c.view ?? { yaw: -0.6, pitch: 0.45 };
+  c.data = o;
+  const draw = () => {
+    const d = c.data!, v = c.view!;
+    const css = getComputedStyle(document.documentElement);
+    const ink = css.getPropertyValue('--quiet').trim() || '#5c636b', line = css.getPropertyValue('--line').trim() || '#d9dde1';
+    const w = c.clientWidth || 440, h = Math.round(w * 0.8), dpr = window.devicePixelRatio || 1;
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const g = c.getContext('2d')!;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const R = d.range ?? Math.max(1e-9, ...d.sets.flatMap((s) => s.pts.flatMap((p) => p.map(Math.abs))));
+    const k = (0.4 * Math.min(w, h)) / R, cx = w / 2, cy = h / 2;
+    const cy0 = Math.cos(v.yaw), sy0 = Math.sin(v.yaw), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch);
+    // x and y lie in the horizontal plane, z points up
+    const project = (x: number, y: number, z: number) => {
+      const x1 = x * cy0 - y * sy0, y1 = x * sy0 + y * cy0;
+      return { sx: cx + k * x1, sy: cy - k * (z * cp + y1 * sp), depth: y1 * cp - z * sp };
+    };
+    g.lineWidth = 1;
+    g.font = '11px system-ui, sans-serif';
+    ([[1, 0, 0], [0, 1, 0], [0, 0, 1]] as const).forEach((a, i) => {
+      const p0 = project(-a[0] * R, -a[1] * R, -a[2] * R), p1 = project(a[0] * R, a[1] * R, a[2] * R);
+      g.strokeStyle = line;
+      g.beginPath(); g.moveTo(p0.sx, p0.sy); g.lineTo(p1.sx, p1.sy); g.stroke();
+      g.fillStyle = ink;
+      g.fillText(d.axes[i], p1.sx + 4, p1.sy - 4);
+    });
+    const dots = d.sets.flatMap((s) => s.pts.map((p) => ({ ...project(p[0], p[1], p[2]), color: s.color })));
+    dots.sort((a, b) => b.depth - a.depth);
+    for (const p of dots) { g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, 2.4, 0, 2 * Math.PI); g.fill(); }
+    g.fillStyle = ink;
+    g.fillText(`each axis ±${fmtTick(R)}`, 6, h - 6);
+  };
+  if (!c.bound && !o.fixed) {
+    c.bound = true;
+    c.tabIndex = 0;
+    let last: { x: number; y: number } | undefined;
+    const turn = (dx: number, dy: number) => {
+      c.view!.yaw += dx * 0.01;
+      c.view!.pitch = Math.max(-1.5, Math.min(1.5, c.view!.pitch + dy * 0.01));
+      const group = c.data!.group;
+      if (group) group.draws.forEach((d) => d()); else draw();
+    };
+    c.addEventListener('pointerdown', (e) => { last = { x: e.clientX, y: e.clientY }; c.setPointerCapture(e.pointerId); });
+    c.addEventListener('pointermove', (e) => { if (!last) return; turn(e.clientX - last.x, e.clientY - last.y); last = { x: e.clientX, y: e.clientY }; });
+    c.addEventListener('pointerup', () => { last = undefined; });
+    c.addEventListener('keydown', (e) => {
+      const step: Record<string, [number, number]> = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] };
+      if (step[e.key]) { e.preventDefault(); turn(...step[e.key]); }
+    });
+    window.addEventListener('resize', () => { if (c.isConnected) draw(); });
+  }
+  o.group?.draws.add(draw);
+  draw();
 }

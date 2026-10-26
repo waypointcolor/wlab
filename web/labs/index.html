@@ -74,6 +74,19 @@
   .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.88rem; }
   .legend .key { display: inline-flex; align-items: center; gap: 6px; }
   .chip { display: inline-block; width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 3px; }
+  .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
+  .checks label { display: flex; gap: 6px; align-items: baseline; }
+  canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
+  canvas.cloud.flat { cursor: default; }
+  .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
+  .multiples figure { margin: 0; }
+  .multiples figcaption { font-size: 0.85rem; color: var(--ink); margin-bottom: 4px; display: flex; gap: 6px; align-items: center; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  table.entries td { vertical-align: middle; }
+  table.entries input[type=range] { width: 120px; }
+  table.entries td.name { text-align: left; white-space: normal; min-width: 12em; }
+  td.where { text-align: left; white-space: normal; min-width: 14em; }
+  .count { font-weight: 600; margin-top: 12px; }
   details { margin-top: 8px; }
   summary { cursor: pointer; color: var(--accent); }
   footer { margin-top: 44px; color: var(--quiet); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 12px; }
@@ -162,7 +175,7 @@
 </g>
 </svg><h1>Waypoint Labs</h1></div>
   <p class="lead">A place to work with the ideas of Waypoint color on your own data: build a Wpt normalization for any
-  sensors and light, carry colors between observing conditions with material adjustment transforms (MATs), and see
+  observer and light, carry colors between observing conditions with material adjustment transforms (MATs), and see
   how materials, observers and lights behave in WLab. Every lab runs in this browser; nothing you enter is sent
   anywhere.</p>
   <p>Bring your own observers: custom cone fundamentals and color-matching functions are an active area of research,
@@ -190,12 +203,13 @@
       differ.</p>
       <span class="status">Open the lab →</span>
     </a>
-    <div class="card">
+    <a class="card" href="objects.html">
       <h3>Objects</h3>
-      <p>Reflectances in WLab under every light and observer of the libraries: pairs compared, WLab shift manifolds
-      drawn, and what scaling or shifting a reflectance does to them.</p>
-      <span class="status">In preparation</span>
-    </div>
+      <p>Reflectances measured under any set of lights and observers you choose: how far each material moves from a
+      reference condition (its Wpt shift manifold, drawn in 3D), pairs compared condition by condition (one light and
+      one observer give a simple index of metamerism), and what scaling or shifting a reflectance does.</p>
+      <span class="status">Open the lab →</span>
+    </a>
     <div class="card">
       <h3>Observers</h3>
       <p>Apply a MAT to sensor curves to get a modified observer, compare observers over libraries of lights and
