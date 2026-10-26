@@ -101,3 +101,35 @@ const V2 = JSON.parse((await import('node:fs')).readFileSync(new URL('./vectors.
 function close2(actual: readonly (readonly number[])[], expected: readonly number[][], tol: number, what: string): void {
   actual.forEach((c, k) => assert.ok(maxRel(c, expected[k]) < tol, `${what} ${'LMS'[k]}: ${maxRel(c, expected[k])}`));
 }
+
+test('Wpt normalization for more than three sensors: a 3 × N matrix, equal to a second way of computing it', async () => {
+  const { wptNormalizationN, wptNormalization, observers, illuminants, munsellBase } = await import('../src/index.ts');
+  const V3 = JSON.parse((await import('node:fs')).readFileSync(new URL('./vectors.json', import.meta.url), 'utf8')).nSensors;
+  const c = observers.cie1931.curves;
+  const four = { name: 'four', curves: [...c, V3.s4] }, five = { name: 'five', curves: [...c, V3.s4, V3.s5] };
+  for (const [o, l, key] of [[four, 'D65', 'four/D65'], [four, 'A', 'four/A'], [five, 'F11', 'five/F11']] as const) {
+    const n = wptNormalizationN(o, l);
+    assert.equal(n.toWpt.length, 3);
+    assert.equal(n.toWpt[0].length, o.curves.length);
+    assert.ok(maxRel(n.toWpt.flat(), V3[key].flat()) < 1e-9, key);
+    const w = n.toWpt.map((r) => r.reduce((s, v, i) => s + v * n.white[i], 0));
+    assert.ok(Math.abs(w[0] - 100) < 1e-9 && Math.abs(w[1]) < 1e-9 && Math.abs(w[2]) < 1e-9, 'white is (100, 0, 0)');
+    assert.equal(n.wlabOf(new Array(81).fill(1))[0], n.wlabOf(new Array(81).fill(1))[0]);
+  }
+  // three sensors: the general computation is the 3 × 3 one
+  assert.ok(maxRel(wptNormalizationN('cie1931', 'D65').toWpt.flat(), wptNormalization('cie1931', 'D65').toWpt.flat()) < 1e-12);
+  assert.ok(maxRel(wptNormalization('cie1931', 'D65').toWpt.flat(), V3['three/D65'].flat()) < 1e-9);
+  assert.throws(() => wptNormalization(four, 'D65'), /three sensors/);
+  void illuminants; void munsellBase;
+});
+
+test("the built-in cones-plus-rods observer (CIE 2006 10° and V'(λ)): four sensors, equal to a second way of computing it", async () => {
+  const { observersN, wptNormalizationN, scotopic } = await import('../src/index.ts');
+  const V4 = JSON.parse((await import('node:fs')).readFileSync(new URL('./vectors.json', import.meta.url), 'utf8')).nSensors;
+  const o = observersN.cie2006_10_rods;
+  assert.equal(o.curves.length, 4);
+  assert.ok(Math.max(...scotopic) > 0.99, 'peak near 1 (506 nm is between the 5 nm samples)');
+  for (const l of ['D65', 'LED-B3'] as const) {
+    assert.ok(maxRel(wptNormalizationN(o, l).toWpt.flat(), V4[`rods/${l}`].flat()) < 1e-9, l);
+  }
+});

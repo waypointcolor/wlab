@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WLab Differences Lab</title>
+<meta name="description" content="Colors from any sensors and light in WLab: values, color differences between pairs across observing conditions, and plots of where they sit and how they differ.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › WLab and color differences</nav>
+  <h1>WLab and color differences</h1>
+  <p class="lead">Every value here is a measurement of a material's color: the responses of some sensors to the
+  material under some light (XYZ for a CIE observer, cone or camera responses for others). The condition's Wpt
+  normalization turns each measurement into WLab, a description of the material, and ΔE<sub>WLab</sub> is the
+  difference between two materials, in units that behave like familiar ΔE units. It reads the same way for every
+  observing condition: a difference of 2 means the same for a camera's measurements as for the CIE 1931 observer's.
+  Comparing materials across different lights or observers needs their spectra; that is the Objects lab.</p>
+
+  <h2>1. The observing condition</h2>
+  <div class="card"><div id="cond1"></div><p id="status1" class="note"></p></div>
+
+  <h2>2. The colors</h2>
+  <div class="card">
+    <div class="row">
+      <label>The values are <select id="valueType" autocomplete="off">
+        <option value="responses" selected>responses (XYZ for a CIE observer), one per sensor</option>
+        <option value="cielab">CIELAB: L*, a*, b*</option></select></label>
+      <label id="scaleBox">scaled so that white's second value is <select id="scale" autocomplete="off">
+        <option value="100" selected>100</option><option value="1">1</option></select></label>
+    </div>
+    <p class="note" id="cielabNote" hidden>CIELAB values are turned into XYZ with the white of the observing condition
+    above, so choose the condition they were measured in (for a D50 viewing booth: CIE 1931 under D50). CIELAB is
+    defined on XYZ, so this needs one of the CIE color-matching observers: CIE 1931 (2°), CIE 1964 (10°), or CIE 2015
+    (2° or 10°), whose functions are made from the CIE 2006 cone fundamentals.</p>
+    <p>Line n of each box belongs together: a name (optional), the first color's values and the second color's. Where a
+    second color is left out (an empty line, or no line), the first is a single color, shown in WLab only. Values
+    separated by commas, tabs, semicolons or spaces; a header line is skipped. Columns pasted from a spreadsheet keep
+    their lines.</p>
+    <div class="inputs3">
+      <label class="stack">Names<textarea id="names" class="lines" spellcheck="false" placeholder="Brand red&#10;Submission 1&#10;…"></textarea></label>
+      <label class="stack"><span id="colors1Label">First colors</span><textarea id="colors1" class="lines" spellcheck="false" placeholder="21.1, 12.9, 4.80&#10;…"></textarea></label>
+      <label class="stack"><span id="colors2Label">Second colors</span><textarea id="colors2" class="lines" spellcheck="false" placeholder="21.6, 13.0, 4.62&#10;…"></textarea></label>
+    </div>
+    <div class="row">
+      <label>Import a file <input type="file" id="importFile" accept=".csv,.txt,.tsv"></label>
+      <span class="note">one row per color or pair: a name (optional), then one or two colors' values</span>
+    </div>
+    <div class="row">
+      <button id="exChroma">Example: Munsell colors one Chroma step apart</button>
+      <button id="exValue">Example: Munsell colors one Value step apart</button>
+    </div>
+    <p id="pairsStatus" class="note"></p>
+  </div>
+
+  <h2>3. WLab and the differences</h2>
+  <div class="card">
+    <p id="summary"></p>
+    <div class="row"><button id="downloadCsv">Download the table (CSV)</button></div>
+    <div id="table" class="table-wrap"></div>
+    <p class="note">L<sub>w</sub>, a<sub>w</sub>, b<sub>w</sub> are WLab coordinates, c<sub>w</sub> and h<sub>w</sub> its
+    chroma and hue angle. The chips show each color as the display color (sRGB) of its material under D65, from
+    WLab, approximately, and clipped where they are outside sRGB. </p>
+    <p class="note"><b>About ΔE<sub>00</sub> here.</b> For the CIE color-matching observers, ΔE<sub>00</sub> is the
+    familiar one: from the CIELAB of the measurements in the observing condition above, with that condition's white,
+    as a spectrophotometer or colorimeter reports it. ΔE<sub>WLab</sub> is the difference between the measured
+    materials as WLab's reference observer (CIE 1931, under illuminant C) would see them, whatever the measuring
+    condition. The two answer the same question only in that reference condition, where they should be close; under
+    other lights or observers they can differ, and the gap shows how much the measuring condition changes the
+    answer.</p>
+  </div>
+
+  <h2>4. Where the colors sit and how they differ</h2>
+  <div class="cols wide">
+    <div class="card"><h3>The a<sub>w</sub>–b<sub>w</sub> plane</h3><div id="plotAB"></div></div>
+    <div class="card"><h3>Lightness against chroma</h3><div id="plotLC"></div></div>
+    <div class="card"><h3>How large the differences are</h3><div id="plotHist"></div></div>
+    <div class="card" id="cmpCard"><h3>ΔE<sub>WLab</sub> against ΔE<sub>00</sub> (this condition)</h3><div id="plotCmp"></div></div>
+  </div>
+  <p class="note">Each pair is an arrow from its first color to its second.</p>
+
+  <footer>
+    <p>WLab and ΔE<sub>WLab</sub>: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt:
+    Color Without the Fine Print</i></a> (A.5, A.6) and the WLab paper (Derhak and Berns, <i>Color Research &amp;
+    Application</i> 40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>.
+    Everything runs in this page; nothing is sent anywhere. CIE data CC BY-SA 4.0. The tables of the CIE 2006 model
+    (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL database) come from Psychtoolbox-3, MIT license (its notice
+    is in this page's source and in <code>wlab</code>'s LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>

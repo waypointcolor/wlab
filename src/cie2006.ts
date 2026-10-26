@@ -6,6 +6,7 @@
  */
 
 import { categoricalObserverData, cie2006TableData, wavelengths } from './data.ts';
+import { solve } from './linalg.ts';
 import type { Observer, Spectrum } from './spectra.ts';
 
 /**
@@ -125,28 +126,4 @@ function notAKnotSpline(x: readonly number[], y: readonly number[]): (t: number)
     const hi = h[i], a = x[i + 1] - t, d = t - x[i];
     return (m[i] * a ** 3 + m[i + 1] * d ** 3) / (6 * hi) + (y[i] / hi - (m[i] * hi) / 6) * a + (y[i + 1] / hi - (m[i + 1] * hi) / 6) * d;
   };
-}
-
-/** Gaussian elimination with partial pivoting (the spline's systems are small). */
-function solve(A: number[][], b: number[]): number[] {
-  const n = b.length;
-  for (let c = 0; c < n; c++) {
-    let p = c;
-    for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
-    [A[c], A[p]] = [A[p], A[c]];
-    [b[c], b[p]] = [b[p], b[c]];
-    for (let r = c + 1; r < n; r++) {
-      const f = A[r][c] / A[c][c];
-      if (f === 0) continue;
-      for (let k = c; k < n; k++) A[r][k] -= f * A[c][k];
-      b[r] -= f * b[c];
-    }
-  }
-  const x = new Array<number>(n).fill(0);
-  for (let r = n - 1; r >= 0; r--) {
-    let s = b[r];
-    for (let k = r + 1; k < n; k++) s -= A[r][k] * x[k];
-    x[r] = s / A[r][r];
-  }
-  return x;
 }

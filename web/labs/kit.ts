@@ -2,7 +2,7 @@
 // light), plotting spectra, and writing matrices in the formats people paste into their own code.
 
 import {
-  categoricalObserver, categoricalObserverAges, cie2006, daylight, illuminants, observers, planckian,
+  categoricalObserver, categoricalObserverAges, cie2006, daylight, illuminants, observers, observersN, planckian,
   resample, wavelengths, type IlluminantName, type Mat3, type Observer, type ObserverName, type Spectrum,
 } from '../../src/index.ts';
 
@@ -59,20 +59,21 @@ const LIGHT_LABEL: Record<IlluminantName, string> = {
   'LED-V2': 'LED-V2 (violet-pumped phosphor white, about 4100 K)',
 };
 
-const SENSOR_COLORS = ['#c0306a', '#1f8a5b', '#2f74c0'];
+const SENSOR_COLORS = ['#c0306a', '#1f8a5b', '#2f74c0', '#8a6d00', '#7a3fb0', '#c2570c', '#2f8f9f'];
 
 /** Names for the three curves of an observer: x̄ ȳ z̄ for CIE color-matching functions, l̄ m̄ s̄ for cone fundamentals. */
 function curveNames(o: Observer): string[] {
+  if (/cones plus rods/.test(o.name)) return ['l̄', 'm̄', 's̄', 'V′ (rods)'];
   if (/^(CIE 2006|Categorical)/.test(o.name)) return ['l̄', 'm̄', 's̄'];
   if (o.name.startsWith('CIE')) return ['x̄', 'ȳ', 'z̄'];
-  return ['sensor 1', 'sensor 2', 'sensor 3'];
+  return o.curves.map((_, i) => `sensor ${i + 1}`);
 }
 
 /** The sensors and the light of a condition, side by side. */
 export function conditionPlots(cond: Condition): string {
   const names = curveNames(cond.observer);
   const k = 100 / cond.light[36];
-  return `<div>${spectrumPlot('Sensors', cond.observer.curves.map((c, i) => ({ values: c, color: SENSOR_COLORS[i], label: names[i] })))}</div>`
+  return `<div>${spectrumPlot('Sensors', cond.observer.curves.map((c, i) => ({ values: c, color: SENSOR_COLORS[i % SENSOR_COLORS.length], label: names[i] })))}</div>`
     + `<div>${spectrumPlot('Light (560 nm = 100)', [{ values: cond.light.map((v) => v * k), color: 'var(--accent2)', label: cond.lightLabel }])}</div>`;
 }
 
@@ -105,9 +106,10 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
     scaled to an area of 100.</p>
     <p class="note" data-k="kelvinNote" hidden></p>
     <div data-k="obsPasteBox" hidden>
-      <p class="note">Wavelength in nm, then three sensitivity curves (color-matching functions, cone fundamentals,
-      for example an individual's from a custom-observer measurement platform, or a camera's sensors), any scale; comma,
-      tab or space separated, header row optional, at least 420 to 680 nm.</p>
+      <p class="note">Wavelength in nm, then three or more sensitivity curves (color-matching functions, cone
+      fundamentals, for example an individual's from a custom-observer measurement platform, a camera's sensors, or cones
+      plus rods for mesopic vision), any scale; comma, tab or space separated, header row optional, at least 420 to 680
+      nm. More than three sensors give a 3 × N normalization to Wpt and no MAT.</p>
       <textarea data-k="obsPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
     </div>
     <div data-k="lightPasteBox" hidden>
@@ -118,10 +120,11 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
   const el = <T extends HTMLElement>(k: string) => host.querySelector(`[data-k="${k}"]`) as T;
   const obs = el<HTMLSelectElement>('obs'), light = el<HTMLSelectElement>('light'), show = el<HTMLInputElement>('show');
   obs.replaceChildren(...(Object.keys(OBSERVER_LABEL) as ObserverName[]).map((k) => new Option(OBSERVER_LABEL[k], k)),
-    new Option('CIE 2006 for any age and field size…', 'cie2006'),
+    new Option('CIE 2006 for any age and field size…', 'cie2006'), new Option('CIE 2006 (10°) cones plus rods, for mesopic vision (4 sensors)', 'rods'),
     new Option('Categorical observer (category, field size)…', 'categorical'), new Option('Your own sensors (paste)…', 'paste'));
   el<HTMLSelectElement>('cat').replaceChildren(...categoricalObserverAges.map((age, i) => new Option(`${i + 1} (${age} years)`, String(i + 1))));
   light.replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)),
+    new Option('Candlelight (Planckian, 1850 K), for mesopic viewing', 'candle'),
     new Option('Daylight at a temperature…', 'daylight'), new Option('Planckian at a temperature…', 'planckian'),
     new Option('Your own light (paste)…', 'paste'));
   obs.value = start.observer;
@@ -142,7 +145,7 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
       k.min = day ? '4000' : '1000';
       el('kelvinNote').textContent = day
         ? 'CIE daylight for this CCT, from 4000 to 25000 K: its white lies near that of a blackbody at that temperature (5000 K gives D50).'
-        : 'A blackbody (Planckian) radiator at this temperature; about 2700 K is a household incandescent bulb, 2856 K is CIE illuminant A.';
+        : 'A blackbody (Planckian) radiator at this temperature; about 2700 K is a household incandescent bulb, 2856 K is CIE illuminant A, about 1850 K a candle.';
     }
     el('plots').hidden = !show.checked;
     onChange();
@@ -155,8 +158,9 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
     const field = Number(el<HTMLInputElement>('field').value);
     if (obs.value === 'paste') {
       const t = parseTable(el<HTMLTextAreaElement>('obsPaste').value, 3);
-      if (t.columns.length !== 3) throw new Error('give exactly three sensor curves (more than three is not supported yet)');
       observer = { name: 'Your sensors', curves: t.columns.map((c) => resample(t.nm, c)) as unknown as Observer['curves'] };
+    } else if (obs.value === 'rods') {
+      observer = observersN.cie2006_10_rods;
     } else if (obs.value === 'cie2006') {
       observer = cie2006(field, Number(el<HTMLInputElement>('age').value));
     } else if (obs.value === 'categorical') {
@@ -171,6 +175,10 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
     } else if (light.value === 'daylight') {
       spd = daylight(kelvin);
       lightLabel = `daylight at ${kelvin} K`;
+    } else if (light.value === 'candle') {
+      // a candle flame is close to a blackbody at about 1850 K: dim, warm light where rods join the cones
+      spd = planckian(1850);
+      lightLabel = 'candlelight (1850 K)';
     } else if (light.value === 'planckian') {
       spd = planckian(kelvin);
       lightLabel = `Planckian at ${kelvin} K`;
@@ -205,20 +213,20 @@ export const MATRIX_FORMATS: [MatrixFormat, string][] = [
 
 const num = (v: number) => (Object.is(v, -0) ? 0 : v).toPrecision(12).replace(/\.?0+(e|$)/, '$1');
 
-/** A 3 x 3 matrix as text in one of the formats. */
-export function formatMatrix(m: Mat3, name: string, format: MatrixFormat): string {
+/** A matrix (3 × 3, or 3 × N for N sensors) as text in one of the formats. */
+export function formatMatrix(m: readonly (readonly number[])[], name: string, format: MatrixFormat): string {
   const rows = m.map((r) => r.map(num));
   switch (format) {
     case 'octave': return `${name} = [${rows.map((r) => r.join(' ')).join('; ...\n  ')}];`;
     case 'python': return `${name} = np.array([\n${rows.map((r) => `    [${r.join(', ')}],`).join('\n')}\n])`;
-    case 'typescript': return `const ${name}: Mat3 = [\n${rows.map((r) => `  [${r.join(', ')}],`).join('\n')}\n];`;
+    case 'typescript': return `const ${name}: number[][] = [\n${rows.map((r) => `  [${r.join(', ')}],`).join('\n')}\n];`;
     case 'json': return JSON.stringify({ [name]: m });
     default: return rows.map((r) => r.join('\t')).join('\n');
   }
 }
 
-/** A 3 x 3 matrix as an HTML table, rounded for reading. */
-export function matrixTable(m: Mat3, digits = 6): string {
+/** A matrix as an HTML table, rounded for reading. */
+export function matrixTable(m: readonly (readonly number[])[], digits = 6): string {
   return `<table class="matrix"><tbody>${m.map((r) => `<tr>${r.map((v) => `<td>${v.toFixed(digits)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
 
@@ -278,4 +286,64 @@ export function niceStep(raw: number): number {
 
 export function fmtTick(v: number): string {
   return Math.abs(v) >= 1000 || v === 0 ? String(Math.round(v)) : String(+v.toPrecision(3));
+}
+
+/** Overlaid histograms of sorted values, one color per set. */
+export function histogram(sets: number[][], labels: string[], colors: string[],
+  o: { xLabel?: string; yLabel?: string } = {}): string {
+  const W = 440, H = 230, l0 = 40, top = 12, pw = W - l0 - 12, ph = H - top - 46;
+  const hi = Math.max(...sets.map((v) => v[Math.min(v.length - 1, Math.round(0.98 * (v.length - 1)))])) || 1;
+  const width = niceStep(hi / 12), bins = Math.ceil(hi / width) + 1;
+  const counts = sets.map((v) => { const c = new Array<number>(bins).fill(0); for (const x of v) c[Math.min(bins - 1, Math.floor(x / width))]++; return c; });
+  const cmax = Math.max(...counts.flat()) || 1;
+  const X = (b: number) => l0 + (b / bins) * pw, Y = (c: number) => top + ph - (c / cmax) * ph;
+  const bw = pw / bins;
+  const bars = counts.map((c, s) => c.map((n, b) => n ? `<rect x="${(X(b) + (s * bw) / sets.length).toFixed(1)}" y="${Y(n).toFixed(1)}"
+    width="${(bw / sets.length - 1).toFixed(1)}" height="${(top + ph - Y(n)).toFixed(1)}" fill="${colors[s]}"/>` : '').join('')).join('');
+  const yt = niceStep(cmax / 4);
+  const ticks = []; for (let t = 0; t <= cmax; t += yt) ticks.push(t);
+  const xt = []; for (let b = 0; b <= bins; b += Math.max(1, Math.round(bins / 6))) xt.push(b);
+  const legend = labels.map((l, s) => `<span class="key"><svg width="12" height="12" aria-hidden="true"><rect width="12" height="12" fill="${colors[s]}"/></svg>${l}</span>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Histogram">
+    ${ticks.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${t}</text>`).join('')}
+    ${bars}
+    ${xt.map((b) => `<text x="${X(b)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(b * width)}</text>`).join('')}
+    <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel ?? 'ΔE_WLab (the last bin holds everything above)')}</text>
+    <text x="${l0 + 4}" y="${top + 10}">${escapeHtml(o.yLabel ?? 'materials')}</text></svg><div class="legend">${legend}</div>`;
+}
+
+/** Points (dots or rings) on two axes, with optional lines or arrows between pairs of points. */
+export function scatter(o: {
+  xLabel: string; yLabel: string; x: [number, number]; y?: [number, number]; xTicks?: number[]; square?: boolean;
+  sets: { pts: number[][]; color: string; label: string; ring?: boolean; titles?: string[] }[]; links?: number[][]; arrows?: boolean;
+}): string {
+  const W = 440, H = o.square ? 400 : 250, l0 = 46, top = 10, pw = W - l0 - 12, ph = H - top - 44;
+  const ys = o.sets.flatMap((s) => s.pts.map((p) => p[1]));
+  let [y0, y1] = o.y ?? [Math.min(...ys), Math.max(...ys)];
+  if (!o.y) { const pad = (y1 - y0) * 0.08 || 0.5; y0 -= pad; y1 += pad; }
+  const X = (v: number) => l0 + ((v - o.x[0]) / (o.x[1] - o.x[0])) * pw;
+  const Y = (v: number) => top + ph - ((v - y0) / (y1 - y0)) * ph;
+  const ystep = niceStep((y1 - y0) / 4);
+  const yt = []; for (let t = Math.ceil(y0 / ystep) * ystep; t <= y1 + 1e-9; t += ystep) yt.push(+t.toFixed(10));
+  const xstep = niceStep((o.x[1] - o.x[0]) / 4);
+  const xt = o.xTicks ?? (() => { const a = []; for (let t = Math.ceil(o.x[0] / xstep) * xstep; t <= o.x[1] + 1e-9; t += xstep) a.push(+t.toFixed(10)); return a; })();
+  // a point's hover text is its title; a ring takes the pointer over its whole circle, not only its outline
+  const tip = (s: { titles?: string[] }, i: number) => (s.titles?.[i] ? `<title>${escapeHtml(s.titles[i])}</title>` : '');
+  // points with hover text are drawn last, on top, so that the others never hide them
+  const drawOrder = [...o.sets.filter((s) => !s.titles), ...o.sets.filter((s) => s.titles)];
+  const dots = drawOrder.map((s) => s.pts.map(([x, y], i) => s.ring
+    ? `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="4" fill="#fff" fill-opacity="0" stroke="${s.color}" stroke-width="1.3">${tip(s, i)}</circle>`
+    : `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="2.8" fill="${s.color}">${tip(s, i)}</circle>`).join('')).join('');
+  const id = `arrow${++plotId}`;
+  const links = (o.links ?? []).map(([a, b, c, d]) => `<line x1="${X(a).toFixed(1)}" y1="${Y(b).toFixed(1)}" x2="${X(c).toFixed(1)}" y2="${Y(d).toFixed(1)}"
+    stroke="var(--quiet)" stroke-opacity="0.7"${o.arrows ? ` marker-end="url(#${id})"` : ''}/>`).join('');
+  const legend = o.sets.map((s) => `<span class="key"><svg width="12" height="12" aria-hidden="true">${s.ring
+    ? `<circle cx="6" cy="6" r="4" fill="none" stroke="${s.color}" stroke-width="1.3"/>` : `<circle cx="6" cy="6" r="3" fill="${s.color}"/>`}</svg>${escapeHtml(s.label)}</span>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.yLabel)} against ${escapeHtml(o.xLabel)}">
+    ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
+    ${xt.map((t) => `<line x1="${X(t)}" x2="${X(t)}" y1="${top}" y2="${top + ph}" stroke="var(--line)" stroke-opacity="0.6"/><text x="${X(t)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(t)}</text>`).join('')}
+    <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel)}</text>
+    <text x="${l0 + 4}" y="${top + 12}">${escapeHtml(o.yLabel)}</text>
+    <defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--quiet)"/></marker></defs>
+    ${links}${dots}</svg><div class="legend">${legend}</div>`;
 }

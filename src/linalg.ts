@@ -1,4 +1,4 @@
-/** Three-component vectors and 3 × 3 matrices (row-major), the only linear algebra the package needs. */
+/** Three-component vectors and 3 × 3 matrices (row-major), and a small linear solver for the rest. */
 
 export type Vec3 = [number, number, number];
 export type Mat3 = [Vec3, Vec3, Vec3];
@@ -35,3 +35,27 @@ export function inv3(m: Mat3): Mat3 {
 export const identity3 = (): Mat3 => [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 
 export const diag3 = (v: Vec3): Mat3 => [[v[0], 0, 0], [0, v[1], 0], [0, 0, v[2]]];
+
+/** Solves A x = b by Gaussian elimination with partial pivoting (small systems); A and b are overwritten. */
+export function solve(A: number[][], b: number[]): number[] {
+  const n = b.length;
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]];
+    [b[c], b[p]] = [b[p], b[c]];
+    for (let r = c + 1; r < n; r++) {
+      const f = A[r][c] / A[c][c];
+      if (f === 0) continue;
+      for (let k = c; k < n; k++) A[r][k] -= f * A[c][k];
+      b[r] -= f * b[c];
+    }
+  }
+  const x = new Array<number>(n).fill(0);
+  for (let r = n - 1; r >= 0; r--) {
+    let s = b[r];
+    for (let k = r + 1; k < n; k++) s -= A[r][k] * x[k];
+    x[r] = s / A[r][r];
+  }
+  return x;
+}

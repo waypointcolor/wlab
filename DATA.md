@@ -25,6 +25,9 @@
   model," *PLoS ONE* (2016). Used with the permission of Yuta Asano (October 2026). At 2° the model gives exactly
   the ten categorical observers Asano published (`YutaCatCF_380-780-5nm.mat`); other field sizes come from the same
   model;
+- the CIE scotopic luminous efficiency function V′(λ), the rods' sensitivity (CIE 018:2019, Table 2), from an unchanged
+  copy of the CIE's file sampled at 5 nm; with the CIE 2006 10° cones it makes the four-sensor observer for mesopic
+  vision (`observersN.cie2006_10_rods`);
 - the CIE illuminants A, C, D50, D65, E, F2 and F11 (D50 computed from the CIE daylight components at 5000 K, as in
   the original Wpt code, rather than at the CIE's 5003 K);
 - the CIE illuminants representing typical LED lamps (LED-B1 to LED-B5, LED-BH1, LED-RGB1, LED-V1 and LED-V2; CIE
@@ -55,6 +58,7 @@ International License (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa
 - CIE 2018, Components of the relative spectral distribution of daylight used in the calculation of relative spectral power distributions of CIE daylight illuminants of different correlated colour temperatures, CIE, Vienna, AT, DOI [10.25039/CIE.DS.w7zunnny](https://doi.org/10.25039/CIE.DS.w7zunnny)
 - CIE 2018, Relative spectral power distributions of illuminants representing typical fluorescent lamps, CIE, Vienna, AT, DOI [10.25039/CIE.DS.ukaymjdn](https://doi.org/10.25039/CIE.DS.ukaymjdn)
 - CIE 2018, Relative spectral power distributions of illuminants representing typical LED lamps, CIE, Vienna, AT, DOI [10.25039/CIE.DS.vgssnyfg](https://doi.org/10.25039/CIE.DS.vgssnyfg)
+- CIE 2019, CIE spectral luminous efficiency for scotopic vision, CIE, Vienna, AT, DOI [10.25039/CIE.DS.gr6w4b5g](https://doi.org/10.25039/CIE.DS.gr6w4b5g)
 - CIE 2006, CIE 2006 LMS cone fundamentals for 2° field size in terms of energy, CIE, Vienna, AT, DOI [10.25039/CIE.DS.tijidesg](https://doi.org/10.25039/CIE.DS.tijidesg)
 - CIE 2006, CIE 2006 LMS cone fundamentals for 10° field size in terms of energy, CIE, Vienna, AT, DOI [10.25039/CIE.DS.nxsqeri8](https://doi.org/10.25039/CIE.DS.nxsqeri8)
 

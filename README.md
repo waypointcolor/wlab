@@ -42,6 +42,7 @@ const m = mat(wptNormalization('cie1931', 'A'), wptNormalization('cie1931', 'D65
 | Function | What it does |
 | --- | --- |
 | `wptNormalization(observer, light, base?)` | The Wpt normalization of an observing condition: `toWpt`, `fromWpt` (3 × 3), `white`, `wptOf(reflectance)`, `wlabOf(reflectance)` |
+| `wptNormalizationN(observer, light)`, `sensorResponses()`, `sensorWhiteOf()` | Wpt normalization for N ≥ 3 sensors (cones plus rods for mesopic vision, a multispectral camera): a 3 × N matrix from the N responses to Wpt, with its steps; the last step, the fit of p and t, is a non-square regression. Extra channels give better material color equivalency; there is no way back to the responses and no MAT |
 | `wptToWlab(wpt)`, `wlabToWpt(wlab)` | WLab from Wpt and back (exact inverse) |
 | `toPolar(v)`, `fromPolar(v)` | Lightness, chroma, hue angle (degrees) and back; WLab keeps the Wpt hue angle |
 | `deltaEWlab(a, b)` | ΔE<sub>WLab</sub> (ΔE<sub>w</sub> in the WLab paper) |

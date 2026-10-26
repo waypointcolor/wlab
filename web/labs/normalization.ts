@@ -1,21 +1,22 @@
-// Lab A: the Wpt normalization of any sensors and light, its four steps, and the MAT to another condition.
+// Lab A: the Wpt normalization of any sensors (three or more) and light, the MAT to another condition (three
+// sensors), how well it predicts, and the normalization's four steps.
 // Bundled into labs/normalization.html by scripts/build-web.mjs.
 
 import {
-  cat, deltaEWlab, mat, mulMV, munsell1600, munsellBase, observers, resample, responses, wptNormalization, wptToWlab,
-  type Mat3, type SampleSet, type Vec3, type WptNormalization,
+  cat, deltaEWlab, mat, mulMV, munsell1600, munsellBase, observers, resample, responses, sensorResponses, wptNormalization,
+  wptNormalizationN, wptToWlab, type Mat3, type SampleSet, type WptNormalization, type WptNormalizationN,
 } from '../../src/index.ts';
 import {
-  $, conditionPicker, copy, download, escapeHtml, fmtTick, formatMatrix, matrixTable, MATRIX_FORMATS, niceStep, parseTable,
+  $, conditionPicker, copy, download, escapeHtml, formatMatrix, histogram, matrixTable, MATRIX_FORMATS, parseTable, scatter,
   type Condition, type MatrixFormat,
 } from './kit.ts';
 
 const fmtSel = $<HTMLSelectElement>('fmt');
 fmtSel.replaceChildren(...MATRIX_FORMATS.map(([k, l]) => new Option(l, k)));
 
-let source: { cond: Condition; n: WptNormalization } | undefined;
+let source: { cond: Condition; n: WptNormalizationN; n3?: WptNormalization } | undefined;
 let destination: { cond: Condition; mat: Mat3; reverse: Mat3 } | undefined;
-const matrices: Record<string, { m: Mat3; name: string } | undefined> = {};
+const matrices: Record<string, { m: readonly (readonly number[])[]; name: string } | undefined> = {};
 
 // one render for a burst of changes (a timer rather than an animation frame, which never comes in a hidden tab)
 let pending: ReturnType<typeof setTimeout> | undefined;
@@ -23,8 +24,9 @@ const schedule = () => { clearTimeout(pending); pending = setTimeout(render, 0);
 const pickA = conditionPicker($('condA'), { observer: 'cie1931', light: 'D65' }, schedule);
 const pickB = conditionPicker($('condB'), { observer: 'cie1931', light: 'A' }, schedule);
 
-const fmt3 = (v: readonly number[], d = 3) => `(${v.map((x) => x.toFixed(d)).join(', ')})`;
+const fmtV = (v: readonly number[], d = 3) => `(${v.map((x) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d)).join(', ')})`;
 const message = (e: unknown) => (e as Error).message;
+const times = (m: readonly (readonly number[])[], v: readonly number[]) => m.map((r) => r.reduce((s, a, i) => s + a * v[i], 0));
 
 function render(): void {
   for (const k of Object.keys(matrices)) matrices[k] = undefined;
@@ -32,9 +34,10 @@ function render(): void {
   const status = $('statusA');
   try {
     const cond = pickA.get();
-    source = { cond, n: wptNormalization(cond.observer, cond.light) };
+    const n = wptNormalizationN(cond.observer, cond.light);
+    source = { cond, n, n3: n.sensors === 3 ? wptNormalization(cond.observer, cond.light) : undefined };
     status.className = 'note';
-    status.textContent = `Building the normalization of ${cond.label}.`;
+    status.textContent = `Building the normalization of ${cond.label}${n.sensors === 3 ? '' : ` (${n.sensors} sensors)`}.`;
   } catch (e) {
     status.className = 'error';
     status.textContent = `Cannot build the normalization: ${message(e)}.`;
@@ -42,57 +45,65 @@ function render(): void {
     renderMat();
     return;
   }
-  const { cond, n } = source;
+  const { cond, n, n3 } = source;
   matrices.toWpt = { m: n.toWpt, name: 'toWpt' };
-  matrices.fromWpt = { m: n.fromWpt, name: 'fromWpt' };
   $('toWpt').innerHTML = matrixTable(n.toWpt);
-  $('fromWpt').innerHTML = matrixTable(n.fromWpt);
-  $('white').textContent = `White, the responses of a perfect white scaled so that the second is 100: ${fmt3(n.white, 4)}. `
+  if (n3) {
+    matrices.fromWpt = { m: n3.fromWpt, name: 'fromWpt' };
+    $('fromWpt').innerHTML = matrixTable(n3.fromWpt);
+  } else {
+    $('fromWpt').innerHTML = `<p class="note">With ${n.sensors} sensors the normalization goes one way, from the ${n.sensors}
+      responses to Wpt's three coordinates (a 3 × ${n.sensors} matrix): there is no way back to the responses, and no MAT.
+      The extra sensors are what make the material color equivalency better.</p>`;
+  }
+  $('white').textContent = `White, the responses of a perfect white scaled so that the second is 100: ${fmtV(n.white, 4)}. `
     + 'In Wpt it is (100, 0, 0) for every condition.';
 
   drawSteps(cond, n);
   renderMat();
 }
 
-function drawSteps(cond: Condition, n: WptNormalization): void {
+function drawSteps(cond: Condition, n: WptNormalizationN): void {
   const { rotation, scale, level, fit } = n.steps;
-  const w1 = mulMV(rotation, n.white);
-  $('step1').innerHTML = `<p>A rotation turns white, ${fmt3(n.white)}, into ${fmt3(w1)}: all of white on the first
-    axis, so the other two axes carry only color.</p>${matrixTable(rotation)}`;
+  const N = n.sensors, others = N - 1;
+  $('step1').innerHTML = `<p>A rotation turns white, ${fmtV(n.white)}, into ${fmtV(times(rotation, n.white))}: all of white
+    on the first axis, so the other ${others} axes carry only color.</p>${matrixTable(rotation)}`;
   $('step2').innerHTML = `<p>The first axis is scaled by ${scale.toPrecision(6)}, so that white is W = 100 in every
     condition: (100, 0, 0).</p>`;
 
-  // the base set after steps 1 and 2: u along white, v and z across it
-  const resp = munsellBase.reflectances.map((r) => responses(r, cond.observer, cond.light));
-  const turned = resp.map((c) => { const [u, v, z] = mulMV(rotation, c); return [u * scale, v, z] as Vec3; });
-  const hue = turned.map(([, v, z]) => ((Math.atan2(z, v) * 180) / Math.PI + 360) % 360);
-  const before = turned.map(([u]) => u);
-  const after = turned.map(([u, v, z]) => u - level[0] * v - level[1] * z);
+  // the base set after steps 1 and 2 (u along white, the others across it), and in Wpt
+  const resp = munsellBase.reflectances.map((r) => sensorResponses(r, cond.observer, cond.light));
+  const turned = resp.map((c) => times(rotation, c));
+  const wpt = resp.map((c) => times(n.toWpt, c));
+  const hue = wpt.map(([, p, t]) => ((Math.atan2(t, p) * 180) / Math.PI + 360) % 360);
+  const before = turned.map((r) => r[0] * scale);
+  const after = wpt.map((w) => w[0]);
   const spread = (a: number[]) => Math.max(...a) - Math.min(...a);
+  const plane = `${level.slice(0, others).map((a, k) => `${a.toFixed(4)} c${k + 2}`).join(' + ')} + ${level[others].toFixed(3)}`;
   $('step3').innerHTML = `<p>The 40 base colors share one Munsell Value, so they should share one W. Here they spread
-    over ${spread(before).toFixed(2)} in W; a shear along the plane W = ${level[0].toFixed(4)} v + ${level[1].toFixed(4)} z
-    + ${level[2].toFixed(3)} levels them to a spread of ${spread(after).toFixed(2)}.</p>`
+    over ${spread(before).toFixed(2)} in W; a shear along W = ${plane} (c2 … c${N} the other axes) levels them to a
+    spread of ${spread(after).toFixed(2)}.</p>`
     + scatter({
-      xLabel: 'hue angle in the plane across white (°)', yLabel: 'W', x: [0, 360], xTicks: [0, 90, 180, 270, 360],
+      xLabel: 'hue angle in Wpt (°)', yLabel: 'W', x: [0, 360], xTicks: [0, 90, 180, 270, 360],
       sets: [
-        { pts: before.map((u, i) => [hue[i], u]), color: 'var(--accent2)', label: 'before leveling' },
-        { pts: after.map((u, i) => [hue[i], u]), color: 'var(--accent)', label: 'after leveling' },
+        { pts: before.map((u, i) => [hue[i], u]), color: 'var(--accent2)', label: 'before leveling', titles: munsellBase.names.map((nm, i) => nm + ': W ' + before[i].toFixed(2)) },
+        { pts: after.map((u, i) => [hue[i], u]), color: 'var(--accent)', label: 'after leveling', titles: munsellBase.names.map((nm, i) => nm + ': W ' + after[i].toFixed(2)) },
       ],
     });
 
-  const fitted = turned.map(([, v, z]) => [fit[0][0] * v + fit[0][1] * z, fit[1][0] * v + fit[1][1] * z]);
+  const fitted = wpt.map((w) => [w[1], w[2]]);
   const ref = munsellBase.referencePT.map(([p, t]) => [p, t]);
   const rms = Math.sqrt(fitted.reduce((s, [p, t], i) => s + (p - ref[i][0]) ** 2 + (t - ref[i][1]) ** 2, 0) / fitted.length);
   const lim = Math.max(...[...fitted, ...ref].flat().map(Math.abs)) * 1.1;
-  $('step4').innerHTML = `<p>A 2 × 2 fit turns the other two axes into Wpt's p and t, matching the base colors' reference
-    p, t (CIE 1931 observer under illuminant C) as closely as one linear map can: they land within ${rms.toFixed(3)}
-    (root mean square) of the reference.</p>${matrixTable(fit.map((r) => [...r]) as unknown as Mat3, 6)}`
+  $('step4').innerHTML = `<p>A 2 × ${others} fit turns the other ${others} axes into Wpt's p and t${N > 3 ? ' (a non-square regression)' : ''},
+    matching the base colors' reference p, t (CIE 1931 observer under illuminant C) as closely as one linear map can:
+    they land within ${rms.toFixed(3)} (root mean square) of the reference.</p>${matrixTable(fit, 6)}`
     + scatter({
       xLabel: 'p', yLabel: 't', x: [-lim, lim], y: [-lim, lim], square: true,
       links: fitted.map(([p, t], i) => [p, t, ref[i][0], ref[i][1]]),
       sets: [
-        { pts: ref, color: 'var(--quiet)', label: 'reference', ring: true },
-        { pts: fitted, color: 'var(--accent)', label: 'this condition' },
+        { pts: ref, color: 'var(--quiet)', label: 'reference', ring: true, titles: munsellBase.names.map((nm) => nm + ', reference') },
+        { pts: fitted, color: 'var(--accent)', label: 'this condition', titles: munsellBase.names.map((nm, i) => nm + ': p ' + fitted[i][0].toFixed(2) + ', t ' + fitted[i][1].toFixed(2)) },
       ],
     });
 }
@@ -103,9 +114,16 @@ function renderMat(): void {
   const status = $('statusB');
   const clear = () => { for (const id of ['mat', 'matReverse', 'matStats', 'matHist', 'matWorst']) $(id).replaceChildren(); lastCsv = ''; };
   if (!source) { clear(); status.textContent = ''; return; }
+  if (!source.n3) {
+    clear();
+    status.className = 'note';
+    status.textContent = `A MAT needs three sensors in both conditions; the condition above has ${source.n.sensors}.`;
+    return;
+  }
   let cond: Condition, nb: WptNormalization;
   try {
     cond = pickB.get();
+    if (cond.observer.curves.length !== 3) throw new Error(`a MAT needs three sensors in both conditions; this one has ${cond.observer.curves.length}`);
     nb = wptNormalization(cond.observer, cond.light);
   } catch (e) {
     status.className = 'error';
@@ -113,7 +131,7 @@ function renderMat(): void {
     clear();
     return;
   }
-  const na = source.n;
+  const na = source.n3;
   const M = mat(na, nb);
   const reverse = mat(nb, na);
   destination = { cond, mat: M, reverse };
@@ -207,61 +225,10 @@ function evaluate(na: WptNormalization, nb: WptNormalization, M: Mat3, reverse: 
     .map((r) => r.map((c) => (/[",]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
 }
 
-/** Overlaid histograms of sorted values, one color per set. */
-function histogram(sets: number[][], labels: string[], colors: string[]): string {
-  const W = 440, H = 230, l0 = 40, top = 12, pw = W - l0 - 12, ph = H - top - 46;
-  const hi = Math.max(...sets.map((v) => v[Math.min(v.length - 1, Math.round(0.98 * (v.length - 1)))])) || 1;
-  const width = niceStep(hi / 12), bins = Math.ceil(hi / width) + 1;
-  const counts = sets.map((v) => { const c = new Array<number>(bins).fill(0); for (const x of v) c[Math.min(bins - 1, Math.floor(x / width))]++; return c; });
-  const cmax = Math.max(...counts.flat()) || 1;
-  const X = (b: number) => l0 + (b / bins) * pw, Y = (c: number) => top + ph - (c / cmax) * ph;
-  const bw = pw / bins;
-  const bars = counts.map((c, s) => c.map((n, b) => n ? `<rect x="${(X(b) + (s * bw) / sets.length).toFixed(1)}" y="${Y(n).toFixed(1)}"
-    width="${(bw / sets.length - 1).toFixed(1)}" height="${(top + ph - Y(n)).toFixed(1)}" fill="${colors[s]}"/>` : '').join('')).join('');
-  const yt = niceStep(cmax / 4);
-  const ticks = []; for (let t = 0; t <= cmax; t += yt) ticks.push(t);
-  const xt = []; for (let b = 0; b <= bins; b += Math.max(1, Math.round(bins / 6))) xt.push(b);
-  const legend = labels.map((l, s) => `<span class="key"><svg width="12" height="12" aria-hidden="true"><rect width="12" height="12" fill="${colors[s]}"/></svg>${l}</span>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Histogram of the prediction errors">
-    ${ticks.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${t}</text>`).join('')}
-    ${bars}
-    ${xt.map((b) => `<text x="${X(b)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(b * width)}</text>`).join('')}
-    <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">ΔE_WLab (the last bin holds everything above)</text>
-    <text x="${l0 + 4}" y="${top + 10}">materials</text></svg><div class="legend">${legend}</div>`;
-}
-
 $('direction').addEventListener('change', schedule);
 $('testSet').addEventListener('change', () => { $('testPasteBox').hidden = $<HTMLSelectElement>('testSet').value !== 'paste'; schedule(); });
 $('testPaste').addEventListener('input', schedule);
 $('downloadCsv').addEventListener('click', () => { if (lastCsv) download('mat-evaluation.csv', lastCsv, 'text/csv'); });
-
-function scatter(o: {
-  xLabel: string; yLabel: string; x: [number, number]; y?: [number, number]; xTicks?: number[]; square?: boolean;
-  sets: { pts: number[][]; color: string; label: string; ring?: boolean }[]; links?: number[][];
-}): string {
-  const W = 440, H = o.square ? 400 : 250, l0 = 46, top = 10, pw = W - l0 - 12, ph = H - top - 44;
-  const ys = o.sets.flatMap((s) => s.pts.map((p) => p[1]));
-  let [y0, y1] = o.y ?? [Math.min(...ys), Math.max(...ys)];
-  if (!o.y) { const pad = (y1 - y0) * 0.08 || 0.5; y0 -= pad; y1 += pad; }
-  const X = (v: number) => l0 + ((v - o.x[0]) / (o.x[1] - o.x[0])) * pw;
-  const Y = (v: number) => top + ph - ((v - y0) / (y1 - y0)) * ph;
-  const ystep = niceStep((y1 - y0) / 4);
-  const yt = []; for (let t = Math.ceil(y0 / ystep) * ystep; t <= y1 + 1e-9; t += ystep) yt.push(+t.toFixed(10));
-  const xstep = niceStep((o.x[1] - o.x[0]) / 4);
-  const xt = o.xTicks ?? (() => { const a = []; for (let t = Math.ceil(o.x[0] / xstep) * xstep; t <= o.x[1] + 1e-9; t += xstep) a.push(+t.toFixed(10)); return a; })();
-  const dots = o.sets.map((s) => s.pts.map(([x, y]) => s.ring
-    ? `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="4" fill="none" stroke="${s.color}" stroke-width="1.3"/>`
-    : `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="2.8" fill="${s.color}"/>`).join('')).join('');
-  const links = (o.links ?? []).map(([a, b, c, d]) => `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--quiet)" stroke-opacity="0.6"/>`).join('');
-  const legend = o.sets.map((s) => `<span class="key"><svg width="12" height="12" aria-hidden="true">${s.ring
-    ? `<circle cx="6" cy="6" r="4" fill="none" stroke="${s.color}" stroke-width="1.3"/>` : `<circle cx="6" cy="6" r="3" fill="${s.color}"/>`}</svg>${escapeHtml(s.label)}</span>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.yLabel)} against ${escapeHtml(o.xLabel)}">
-    ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
-    ${xt.map((t) => `<line x1="${X(t)}" x2="${X(t)}" y1="${top}" y2="${top + ph}" stroke="var(--line)" stroke-opacity="0.6"/><text x="${X(t)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(t)}</text>`).join('')}
-    <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel)}</text>
-    <text x="${l0 + 4}" y="${top + 12}">${escapeHtml(o.yLabel)}</text>
-    ${links}${dots}</svg><div class="legend">${legend}</div>`;
-}
 
 document.querySelectorAll<HTMLButtonElement>('button[data-copy]').forEach((b) => b.addEventListener('click', () => {
   const m = matrices[b.dataset.copy!];
@@ -270,9 +237,10 @@ document.querySelectorAll<HTMLButtonElement>('button[data-copy]').forEach((b) =>
 
 $('downloadJson').addEventListener('click', () => {
   if (!source) return;
-  const { cond, n } = source;
+  const { cond, n, n3 } = source;
   const out = {
-    condition: cond.label, wavelengths: '380 to 780 nm, 5 nm', white: n.white, toWpt: n.toWpt, fromWpt: n.fromWpt,
+    condition: cond.label, wavelengths: '380 to 780 nm, 5 nm', sensors: n.sensors, white: n.white, toWpt: n.toWpt,
+    ...(n3 ? { fromWpt: n3.fromWpt } : {}),
     steps: n.steps, ...(destination ? { destination: destination.cond.label, mat: destination.mat, reverseMat: destination.reverse } : {}),
   };
   download('wpt-normalization.json', JSON.stringify(out, null, 2), 'application/json');
