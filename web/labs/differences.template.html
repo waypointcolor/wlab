@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WLab Differences Lab</title>
+<!--FAVICON-->
 <meta name="description" content="Colors from any sensors and light in WLab: values, color differences between pairs across observing conditions, and plots of where they sit and how they differ.">
 <!--LABS-CSS-->
 </head>
 <body>
 <main>
   <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › WLab and color differences</nav>
-  <h1>WLab and color differences</h1>
+  <div class="brand small"><!--LABS-LOGO--><h1>WLab and color differences</h1></div>
   <p class="lead">Every value here is a measurement of a material's color: the responses of some sensors to the
   material under some light (XYZ for a CIE observer, cone or camera responses for others). The condition's Wpt
   normalization turns each measurement into WLab, a description of the material, and ΔE<sub>WLab</sub> is the
@@ -76,7 +77,7 @@
     <div class="card"><h3>The a<sub>w</sub>–b<sub>w</sub> plane</h3><div id="plotAB"></div></div>
     <div class="card"><h3>Lightness against chroma</h3><div id="plotLC"></div></div>
     <div class="card"><h3>How large the differences are</h3><div id="plotHist"></div></div>
-    <div class="card" id="cmpCard"><h3>ΔE<sub>WLab</sub> against ΔE<sub>00</sub> (this condition)</h3><div id="plotCmp"></div></div>
+    <div class="card" id="cmpCard"><h3>ΔE<sub>00</sub> (this condition) against ΔE<sub>WLab</sub></h3><div id="plotCmp"></div></div>
   </div>
   <p class="note">Each pair is an arrow from its first color to its second.</p>
 

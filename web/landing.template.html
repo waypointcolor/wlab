@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WLab and Wpt</title>
+<!--FAVICON-->
 <meta name="description" content="WLab and Wpt describe the color of a material for every light and observer. Interactive demos, the guide, and a robustness report.">
 <style>
   :root {
@@ -20,6 +21,10 @@
   main { max-width: 960px; margin: 0 auto; padding: 32px 16px 56px; }
   header h1 { font-size: 2.3rem; line-height: 1.15; margin: 0; color: var(--accent); }
   header .sub { font-size: 1.2rem; color: var(--quiet); margin: 6px 0 14px; }
+  header .brand { display: flex; gap: 18px; align-items: center; margin-bottom: 16px; }
+  header .brand .sub { margin-bottom: 0; }
+  svg.logo { flex: none; width: 96px; height: 96px; }
+  @media (max-width: 560px) { svg.logo { width: 64px; height: 64px; } header .brand { gap: 12px; } }
   h2 { font-size: 1.35rem; margin: 40px 0 8px; color: var(--accent); }
   p { margin: 8px 0; max-width: 72ch; }
   .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 6px; }
@@ -58,8 +63,10 @@
 <body>
 <main>
   <header>
-    <h1>WLab and Wpt</h1>
-    <div class="sub">Color without the fine print: a material's color for every light and every viewer</div>
+    <div class="brand"><!--LOGO--><div>
+      <h1>WLab and Wpt</h1>
+      <div class="sub">Color without the fine print: a material's color for every light and every viewer</div>
+    </div></div>
     <p>Every CIELAB value comes with fine print: it holds for one light and one standard viewer. Wpt (pronounced
     "Waypoint") describes the material instead, and WLab (Waypoint Lab) reshapes Wpt so that distances read like familiar
     ΔE color differences. Try the two demos below, then read the guide.</p>

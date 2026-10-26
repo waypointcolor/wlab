@@ -14,6 +14,11 @@
   nav.crumbs { font-size: 0.9rem; color: var(--quiet); margin-bottom: 14px; }
   nav.crumbs a { color: var(--accent); text-decoration: none; }
   h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 6px; color: var(--accent); }
+  .brand { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+  .brand h1 { margin: 0; }
+  svg.labs-logo { flex: none; width: 150px; height: auto; }    /* the Waypoint Labs logo, 400 x 315 */
+  .brand.small svg.labs-logo { width: 84px; }
+  @media (max-width: 560px) { svg.labs-logo { width: 100px; } .brand.small svg.labs-logo { width: 64px; } }
   h2 { font-size: 1.2rem; margin: 30px 0 8px; color: var(--accent); }
   h3 { font-size: 1rem; margin: 14px 0 6px; }
   p { margin: 6px 0; max-width: 74ch; }
@@ -49,6 +54,7 @@
   th, td { padding: 4px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
   th:first-child, td:first-child { text-align: left; }
   thead th { border-bottom: 2px solid var(--ink); }
+  th.sep, td.sep { border-left: 1px solid var(--quiet); }      /* a vertical line where a group of columns starts */
   table.matrix td { font-family: ui-monospace, Consolas, monospace; font-size: 13px; border: 0; padding: 2px 10px; }
   table.matrix { border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); }
   pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto;

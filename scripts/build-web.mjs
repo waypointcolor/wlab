@@ -7,7 +7,10 @@
 //   web/labs/differences.html      (web/labs/differences.ts)    Lab B: WLab and color differences
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
-// <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables).
+// <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables). Every
+// page gets the Waypoint color logo (web/assets/waypointcolor-logo.svg) as its favicon, in place of <!--FAVICON-->, and
+// <!--LOGO--> becomes the logo itself, inline; <!--LABS-LOGO--> becomes the Waypoint Labs logo
+// (web/assets/waypointlabs-logo.svg), inline.
 //
 //   npm run build:web
 
@@ -22,9 +25,16 @@ const pages = [
   { entry: 'web/labs/differences.ts', template: 'web/labs/differences.template.html', out: 'web/labs/differences.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
+const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();
+const favicon = `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(logo)}">`;
+const logoInline = logo.replace(/ width="\d+" height="\d+"/, ' class="logo" role="img" aria-label="Waypoint color"');
+const labsLogo = readFileSync('web/assets/waypointlabs-logo.svg', 'utf8').trim()
+  .replace(/ width="\d+" height="\d+"/, ' class="labs-logo" role="img" aria-label="Waypoint Labs"');
 const notice = `<!--\n${readFileSync('LICENSE-psychtoolbox.txt', 'utf8').trim().replace(/--/g, '- -')}\n-->`;
 for (const { entry, template, out } of pages) {
-  let page = readFileSync(template, 'utf8').replace('<!--LABS-CSS-->', () => labsCss).replace('<!--PSYCHTOOLBOX-NOTICE-->', () => notice);
+  let page = readFileSync(template, 'utf8').replace('<!--LABS-CSS-->', () => labsCss).replace('<!--PSYCHTOOLBOX-NOTICE-->', () => notice)
+    .replace('<!--FAVICON-->', () => favicon).replace('<!--LOGO-->', () => logoInline)
+    .replace('<!--LABS-LOGO-->', () => labsLogo);
   if (entry) {
     const result = await build({
       entryPoints: [entry], bundle: true, minify: true, format: 'iife', target: 'es2020', write: false, legalComments: 'none',

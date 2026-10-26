@@ -7,6 +7,7 @@ import {
   type Vec3, type WptNormalizationN,
 } from '../../src/index.ts';
 import { $, conditionPicker, download, escapeHtml, histogram, scatter, type Condition } from './kit.ts';
+import { parseRows, readBoxes as readRows, type Row } from './rows.ts';
 
 let pending: ReturnType<typeof setTimeout> | undefined;
 const schedule = () => { clearTimeout(pending); pending = setTimeout(render, 0); };
@@ -14,69 +15,10 @@ const pick1 = conditionPicker($('cond1'), { observer: 'cie1931', light: 'D65' },
 const message = (e: unknown) => (e as Error).message;
 let lastCsv = '';
 
-// a color is one response per sensor of the condition: three, or more
-interface Row { name: string; first: number[]; second?: number[] }
 const times = (m: readonly (readonly number[])[], v: readonly number[]) => m.map((r) => r.reduce((s, a, i) => s + a * v[i], 0)) as Vec3;
 
-/** One color or one pair per row: an optional name, then three or six numbers. */
-function parseRows(text: string, n: number): Row[] {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
-  const rows: Row[] = [];
-  lines.forEach((line, k) => {
-    const cells = line.split(line.includes('\t') ? '\t' : line.includes(';') ? ';' : line.includes(',') ? ',' : /\s+/).map((c) => c.trim().replace(/^"|"$/g, ''));
-    const named = Number.isNaN(Number(cells[0])) || cells[0] === '';
-    const nums = (named ? cells.slice(1) : cells).filter((c) => c !== '').map(Number);
-    if (nums.some((v) => Number.isNaN(v))) {
-      if (k === 0) return;                                                     // a header row
-      throw new Error(`row ${k + 1}: not a number after the name`);
-    }
-    if (nums.length !== n && nums.length !== 2 * n) throw new Error(`row ${k + 1}: give ${n} values (one color) or ${2 * n} (a pair), not ${nums.length}`);
-    rows.push({
-      name: named ? cells[0] : `${nums.length === 2 * n ? 'Pair' : 'Color'} ${rows.length + 1}`,
-      first: nums.slice(0, n), second: nums.length === 2 * n ? nums.slice(n, 2 * n) : undefined,
-    });
-  });
-  if (!rows.length) throw new Error('paste at least one row');
-  return rows;
-}
 
-/** Lines of a box, without trailing empty lines. */
-const linesOf = (id: string) => {
-  const l = $<HTMLTextAreaElement>(id).value.split(/\r?\n/).map((s) => s.trim());
-  while (l.length && !l[l.length - 1]) l.pop();
-  return l;
-};
-
-/** Three values per line; a first line that is not numbers is a header and is skipped. */
-function colorLines(id: string, what: string, n: number): (number[] | undefined)[] {
-  const lines = linesOf(id);
-  const out = lines.map((line, k) => {
-    if (!line) return undefined;
-    const v = line.split(/[\s,;]+/).filter((c) => c !== '').map(Number);
-    if (v.some((x) => Number.isNaN(x))) {
-      if (k === 0) return null;
-      throw new Error(`${what}, line ${k + 1}: not a number`);
-    }
-    if (v.length !== n) throw new Error(`${what}, line ${k + 1}: give ${n} values (one per sensor), not ${v.length}`);
-    return v;
-  });
-  return (out[0] === null ? out.slice(1) : out) as (number[] | undefined)[];
-}
-
-/** The rows of the three boxes: line n of each belongs together. */
-function readBoxes(n: number): Row[] {
-  const first = colorLines('colors1', 'First colors', n), second = colorLines('colors2', 'Second colors', n);
-  let names = linesOf('names');
-  if (names.length === first.length + 1 && /^names?$/i.test(names[0])) names = names.slice(1);
-  // a missing second color (an empty line, or missing lines at the end) makes a single color; missing names get one
-  if (second.length > first.length) throw new Error(`the second colors have ${second.length} lines for ${first.length} first colors`);
-  if (names.length > first.length) throw new Error(`there are ${names.length} names for ${first.length} colors`);
-  return first.map((c, i) => {
-    if (!c) throw new Error(`First colors, line ${i + 1}: empty`);
-    return { name: names[i] || `${second[i] ? 'Pair' : 'Color'} ${i + 1}`, first: c, second: second[i] };
-  });
-}
-
+const readBoxes = (n: number) => readRows($<HTMLTextAreaElement>('names').value, $<HTMLTextAreaElement>('colors1').value, $<HTMLTextAreaElement>('colors2').value, n);
 const labInput = () => $<HTMLSelectElement>('valueType').value === 'cielab';
 const CIE_CMFS = [observers.cie1931, observers.cie1964, observers.cie2015, observers.cie2015_10] as Condition['observer'][];
 
@@ -145,17 +87,19 @@ function render(): void {
   };
   // columns: the differences first, then L, a, b of both colors, then their chroma and hue
   const f = (x: number) => (Math.abs(x) < 0.005 ? 0 : x).toFixed(2);              // no "-0.00"
-  const labCells = (w?: Vec3) => (w ? w.map((x) => `<td>${f(x)}</td>`).join('') : '<td></td>'.repeat(3));
+  // each group (the differences, each color's L a b, each color's c h) starts with a vertical line: class "sep"
+  const cellsOf = (vals: string[]) => vals.map((v, i) => `<td${i ? '' : ' class="sep"'}>${v}</td>`).join('');
+  const labCells = (w?: Vec3) => cellsOf(w ? w.map(f) : ['', '', '']);
   const ch = (w?: Vec3) => {
-    if (!w) return '<td></td>'.repeat(2);
+    if (!w) return cellsOf(['', '']);
     const [, c, h] = toPolar(w);
-    return `<td>${f(c)}</td><td>${c < 0.005 ? '—' : h.toFixed(1)}</td>`;              // a neutral has no hue
+    return cellsOf([f(c), c < 0.005 ? '—' : h.toFixed(1)]);                          // a neutral has no hue
   };
-  const head = (names: string[], n: string) => names.map((x) => `<th>${x}<sub>w</sub> ${n}</th>`).join('');
-  $('table').innerHTML = `<table><thead><tr><th>Name</th><th>Colors</th><th>ΔE<sub>WLab</sub></th>${cielab ? '<th title="CIELAB of the measurements in the observing condition above, as a spectrophotometer or colorimeter reports">ΔE<sub>00</sub></th>' : ''}
+  const head = (names: string[], n: string) => names.map((x, i) => `<th${i ? '' : ' class="sep"'}>${x}<sub>w</sub> ${n}</th>`).join('');
+  $('table').innerHTML = `<table><thead><tr><th>Name</th><th>Colors</th><th class="sep">ΔE<sub>WLab</sub></th>${cielab ? '<th title="CIELAB of the measurements in the observing condition above, as a spectrophotometer or colorimeter reports">ΔE<sub>00</sub></th>' : ''}
     ${head(['L', 'a', 'b'], '1')}${head(['L', 'a', 'b'], '2')}${head(['c', 'h'], '1')}${head(['c', 'h'], '2')}</tr></thead>
     <tbody>${out.map((o) => `<tr><td>${escapeHtml(o.name)}</td><td>${chip(o.w1)}${chip(o.w2)}</td>
-      <td>${o.d === undefined ? '' : o.d.toFixed(2)}</td>${cielab ? `<td>${o.d00 === undefined ? '' : o.d00.toFixed(2)}</td>` : ''}
+      <td class="sep">${o.d === undefined ? '' : o.d.toFixed(2)}</td>${cielab ? `<td>${o.d00 === undefined ? '' : o.d00.toFixed(2)}</td>` : ''}
       ${labCells(o.w1)}${labCells(o.w2)}${ch(o.w1)}${ch(o.w2)}</tr>`).join('')}</tbody></table>`;
   const polar = (w?: Vec3) => (w ? toPolar(w).slice(1).map((x) => x.toFixed(4)) : ['', '']);
   lastCsv = [['name', 'DeltaE_WLab', ...(cielab ? ['DeltaE00_this_condition'] : []), 'Lw1', 'aw1', 'bw1', 'Lw2', 'aw2', 'bw2', 'cw1', 'hw1', 'cw2', 'hw2'],
@@ -187,8 +131,9 @@ function render(): void {
   if (cielab && pairs.length) {
     const m = Math.max(...pairs.flatMap((p) => [p.d!, p.d00!])) * 1.05 || 1;
     $('plotCmp').innerHTML = scatter({
-      xLabel: 'ΔE00, CIELAB in this condition (as an instrument reports)', yLabel: 'ΔE_WLab', x: [0, m], y: [0, m], square: true, links: [[0, 0, m, m]],
-      sets: [{ pts: pairs.map((p) => [p.d00!, p.d!]), color: 'var(--accent)', label: 'pair (the line: equal values)' }],
+      xLabel: 'ΔE_WLab', yLabel: 'ΔE00 (this condition)', x: [0, m], y: [0, m], square: true, links: [[0, 0, m, m]],
+      sets: [{ pts: pairs.map((p) => [p.d!, p.d00!]), color: 'var(--accent)', label: 'pair (the line: equal values)',
+        titles: pairs.map((p) => `${p.name}: ΔE_WLab ${p.d!.toFixed(2)}, ΔE00 ${p.d00!.toFixed(2)}`) }],
     });
   }
 }
