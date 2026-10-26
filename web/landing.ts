@@ -19,10 +19,13 @@ const LIGHTS: Record<string, Spectrum> = {
   'A (incandescent bulb)': illuminants.A,
   'F2 (cool white fluorescent)': illuminants.F2,
   'F11 (tri-band store fluorescent)': illuminants.F11,
+  'LED-B2 (warm white LED, about 3000 K)': illuminants['LED-B2'],
+  'LED-B3 (neutral white LED, about 4100 K)': illuminants['LED-B3'],
   'Made-up white LED': resample(madeUpLed.nm, madeUpLed.values),
 };
 const LIGHT_OF_MATCH: Record<string, string> = { D50: 'D50 (graphic arts booth)', D65: 'D65 (daylight)' };
-const OBSERVERS: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)' };
+const OBSERVERS: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)',
+  cie2006_2: 'CIE 2006 (2°)', cie2006_10: 'CIE 2006 (10°)' };
 const PAIRS = pairs.map((p) => ({ ...p, ra: resample(p.a.nm, p.a.values), rb: resample(p.b.nm, p.b.values) }));
 const nm = Array.from({ length: 71 }, (_, i) => 380 + 5 * i);    // 380 to 730 nm for the plot
 

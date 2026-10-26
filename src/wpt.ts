@@ -32,6 +32,12 @@ export interface WptNormalization {
   wptOf(reflectance: Spectrum): Vec3;
   /** WLab of a material with this reflectance. */
   wlabOf(reflectance: Spectrum): Vec3;
+  /**
+   * The four steps of the normalization (Technical annex A.3): the rotation of white onto the first axis, the scale
+   * that puts white at W = 100, the leveling plane u = a1 v + a2 z + a0 of the base samples (level = [a1, a2, a0]),
+   * and the 2 x 2 fit of their second and third components to the reference p, t.
+   */
+  readonly steps: { readonly rotation: Mat3; readonly scale: number; readonly level: Vec3; readonly fit: readonly [readonly [number, number], readonly [number, number]] };
 }
 
 /**
@@ -61,6 +67,7 @@ export function wptNormalization(
     lw = mulMV(r, lw);
     am = mulMM(r, am);
   }
+  const rotation = am.map((r) => [...r]) as Mat3;
   // 2. white at W = 100
   const s = 100 / mulMV(am, white)[0];
   am[0] = [am[0][0] * s, am[0][1] * s, am[0][2] * s];
@@ -98,5 +105,9 @@ export function wptNormalization(
   const fromWpt = inv3(toWpt);
 
   const wptOf = (reflectance: Spectrum): Vec3 => mulMV(toWpt, responses(reflectance, obs, ill));
-  return { observer: obs, light: ill, white, toWpt, fromWpt, wptOf, wlabOf: (r) => wptToWlab(wptOf(r)) };
+  const fit = [[F[0][0], F[0][1]], [F[1][0], F[1][1]]] as const;
+  return {
+    observer: obs, light: ill, white, toWpt, fromWpt, wptOf, wlabOf: (r) => wptToWlab(wptOf(r)),
+    steps: { rotation, scale: s, level: alpha, fit },
+  };
 }

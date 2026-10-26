@@ -19,6 +19,8 @@ export const observers = {
   cie1964: { name: 'CIE 1964 (10°)', curves: observerData.cie1964 },
   cie2015: { name: 'CIE 2015 (2°)', curves: observerData.cie2015 },
   cie2015_10: { name: 'CIE 2015 (10°)', curves: observerData.cie2015_10 },
+  cie2006_2: { name: 'CIE 2006 (2°)', curves: observerData.cie2006_2 },
+  cie2006_10: { name: 'CIE 2006 (10°)', curves: observerData.cie2006_10 },
 } as const satisfies Record<string, Observer>;
 
 export type ObserverName = keyof typeof observers;

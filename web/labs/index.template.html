@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waypoint Labs</title>
+<meta name="description" content="Waypoint Labs: work with Wpt normalization, WLab and material adjustment transforms on your own data, in the browser.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › Labs</nav>
+  <h1>Waypoint Labs</h1>
+  <p class="lead">A place to work with the ideas of Waypoint color on your own data: build a Wpt normalization for any
+  sensors and light, carry colors between observing conditions with material adjustment transforms (MATs), and see
+  how materials, observers and lights behave in WLab. Every lab runs in this browser; nothing you enter is sent
+  anywhere.</p>
+  <p>Bring your own observers: custom cone fundamentals and color-matching functions are an active area of research,
+  with several groups developing platforms that measure them for an individual. Any such set of three curves can be
+  used here, in every lab, beside the CIE observers and the categorical observers of Asano and Fairchild. For the
+  CIE 2006 observer at any age and field size, <a href="https://github.com/ifarup/ciefunctions">CIE Functions</a>, the
+  program of CIE technical committee 1-97, computes the cone fundamentals and color-matching functions.</p>
+  <p>New to Wpt and WLab? Start with <a href="../index.html">the short version and the two demos</a>, or the guide,
+  <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color Without the Fine Print</i></a>.</p>
+
+  <h2>Labs</h2>
+  <div class="grid">
+    <a class="card" href="normalization.html">
+      <h3>Wpt normalization and MATs</h3>
+      <p>Give sensor curves (color-matching functions, cone fundamentals or a camera's sensors) and a light; get the
+      Wpt normalization matrix, the MAT to any other condition and how well it predicts, and the normalization's four
+      steps. Custom cone fundamentals and color-matching functions, measured for an individual on one of the platforms
+      research groups are building for this, can be pasted straight in.</p>
+      <span class="status">Open the lab →</span>
+    </a>
+    <div class="card">
+      <h3>WLab and color differences</h3>
+      <p>Pairs of responses, each with its own condition, in WLab: values, ΔE<sub>WLab</sub>, and plots of where the
+      pairs sit and how they differ.</p>
+      <span class="status">In preparation</span>
+    </div>
+    <div class="card">
+      <h3>Objects</h3>
+      <p>Reflectances in WLab under every light and observer of the libraries: pairs compared, WLab shift manifolds
+      drawn, and what scaling or shifting a reflectance does to them.</p>
+      <span class="status">In preparation</span>
+    </div>
+    <div class="card">
+      <h3>Observers</h3>
+      <p>Apply a MAT to sensor curves to get a modified observer, compare observers over libraries of lights and
+      objects, and write iccMAX profiles that carry them.</p>
+      <span class="status">In preparation</span>
+    </div>
+    <div class="card">
+      <h3>Lighting</h3>
+      <p>Give a light's spectrum and see, over libraries of objects and observers, how far materials move from a
+      reference light in WLab, and which move most.</p>
+      <span class="status">In preparation</span>
+    </div>
+  </div>
+
+  <h2>Also here</h2>
+  <div class="grid">
+    <a class="card" href="../WLab-robustness-report.html">
+      <h3>Robustness report</h3>
+      <p>Paste the spectra of a standard and its samples, choose lights, and read ΔE<sub>WLab</sub> for each sample
+      under each one.</p>
+      <span class="status">Open the report →</span>
+    </a>
+    <a class="card" href="https://github.com/waypointcolor/wlab">
+      <h3>The code: wlab</h3>
+      <p>Every lab is built on <code>wlab</code>, a TypeScript implementation of Wpt, WLab and MATs with no
+      dependencies, tested against the reference implementation.</p>
+      <span class="status">On GitHub →</span>
+    </a>
+  </div>
+
+  <footer>
+    <p>Maxim W. Derhak (PhD). Method: <i>WLab and Wpt: Color Without the Fine Print</i> and the Wpt and WLab papers
+    (Derhak and Berns, <i>Color Research &amp; Application</i> 40(6), 2015). Text CC BY 4.0; code BSD 3-Clause; CIE
+    data CC BY-SA 4.0.</p>
+  </footer>
+</main>
+</body>
+</html>

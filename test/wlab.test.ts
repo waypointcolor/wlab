@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import {
-  cat, deltaE00, deltaEWlab, illuminants, labToXyz, mat, munsellBase, mulMV, observers, resample, responses,
+  cat, deltaE00, deltaEWlab, illuminants, labToXyz, mat, munsellBase, mulMM, mulMV, observers, resample, responses,
   wavelengths, whiteOf, wlabToWpt, wptNormalization, wptToWlab, xyzToLab,
   type Mat3, type ObserverName, type IlluminantName, type Vec3,
 } from '../src/index.ts';
@@ -29,7 +29,8 @@ test('the grid and the data', () => {
   assert.equal(munsellBase.reflectances.length, 40);
 });
 
-test('Wpt matrices and whites for 28 conditions match Python', () => {
+test('Wpt matrices and whites for every observer and light match Python', () => {
+  assert.equal(Object.keys(V.matrices).length, Object.keys(observers).length * Object.keys(illuminants).length);
   for (const [key, m] of Object.entries(V.matrices) as [string, number[][]][]) {
     const [o, ill] = key.split('/') as [ObserverName, IlluminantName];
     const n = wptNormalization(o, ill);
@@ -81,4 +82,28 @@ test('sanity checks from the guide', () => {
   close(d65.wptOf(pb), V.sanity['5PB 5/6 wptD65'], 1e-9, '5PB 5/6 Wpt');
   close(d65.wlabOf(pb), V.sanity['5PB 5/6 wlabD65'], 1e-9, '5PB 5/6 WLab');
   close(whiteOf(observers.cie1931, illuminants.D65), V.whites['cie1931/D65'], 1e-12, 'white D65');
+});
+
+test('the 1,600 Munsell colors decode to the toolbox values (to 1/32000), and the test set leaves out the 40 base colors', async () => {
+  const { munsell1600 } = await import('../src/index.ts');
+  const all = munsell1600();
+  assert.equal(all.names.length, 1600);
+  V.samples.reflectances.forEach((r: number[], k: number) => close(all.reflectances[k * 8], r, 1 / 64000 + 1e-12, `Munsell ${k * 8}`));
+  const test = munsell1600(true);
+  assert.equal(test.names.length, 1560);
+  for (const n of munsellBase.names) assert.ok(!test.names.includes(n), n);
+  const i = all.names.indexOf('5PB 5/6');
+  close(all.reflectances[i], munsellBase.reflectances[munsellBase.names.indexOf('5PB 5/6')], 1 / 64000 + 1e-12, '5PB 5/6');
+});
+
+test('the CIE LED illuminants give the Wpt matrices of the wpt-wlab-guide, computed by its own tools', () => {
+  // the wpt-wlab-guide fits to the reference of the 2015 Wpt paper: p2015 = 1.01125 p, t2015 = t - 0.01331 p (Technical
+  // annex A.4), so its matrices are R A, to the rounding of those two constants
+  const R: Mat3 = [[1, 0, 0], [0, 1.01125, 0], [0, -0.01331, 1]];
+  assert.equal(Object.keys(V.guideMatrices).length, 8);
+  for (const [key, m] of Object.entries(V.guideMatrices) as [string, number[][]][]) {
+    const [o, ill] = key.split('/') as [ObserverName, IlluminantName];
+    const ours = mulMM(R, wptNormalization(o, ill).toWpt).flat(), scale = Math.max(...m.flat().map(Math.abs));
+    ours.forEach((x, i) => assert.ok(Math.abs(x - m.flat()[i]) < 5e-6 * scale, `guide matrix ${key}[${i}]`));
+  }
 });

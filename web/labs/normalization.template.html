@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wpt Normalization Lab</title>
+<meta name="description" content="Build the Wpt normalization of any sensors and light, get and test the MAT to another observing condition, and see the normalization's four steps.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Wpt normalization and MATs</nav>
+  <h1>Wpt normalization and MATs</h1>
+  <p class="lead">An observing condition is a set of sensors (a standard observer, cone fundamentals, a camera) under
+  a light. Its Wpt normalization is one 3 × 3 matrix that turns the condition's responses into Wpt, the common
+  representation of materials. Two normalizations give a material adjustment transform (MAT) between their
+  conditions. The sensors can be your own: custom cone fundamentals or color-matching functions measured for an
+  individual can be pasted in as they are.</p>
+
+  <h2>1. The observing condition</h2>
+  <div class="card">
+    <div id="condA"></div>
+    <p id="statusA" class="note"></p>
+  </div>
+
+  <h2>2. The normalization</h2>
+  <div class="card">
+    <div class="row">
+      <label>Write matrices as <select id="fmt"></select></label>
+      <button id="downloadJson">Download all as JSON</button>
+    </div>
+    <div class="cols">
+      <div><h3>Responses to Wpt</h3><div id="toWpt"></div><button data-copy="toWpt">Copy</button></div>
+      <div><h3>Wpt to responses</h3><div id="fromWpt"></div><button data-copy="fromWpt">Copy</button></div>
+    </div>
+    <p id="white" class="note"></p>
+  </div>
+
+  <h2>3. The MAT to another condition</h2>
+  <div class="card">
+    <p>A MAT carries responses from the condition above (the source) to this one (the destination) by way of the
+    material: M = A<sub>destination</sub><sup>−1</sup> A<sub>source</sub>.</p>
+    <div id="condB"></div>
+    <p id="statusB" class="note"></p>
+    <div class="cols">
+      <div><h3>MAT, source to destination</h3><div id="mat"></div><button data-copy="mat">Copy</button></div>
+      <div><h3>Reverse MAT, destination to source</h3><div id="matReverse"></div><button data-copy="matReverse">Copy</button></div>
+    </div>
+    <p class="note">The reverse MAT is the inverse of the MAT, M<sup>−1</sup> = A<sub>source</sub><sup>−1</sup>
+    A<sub>destination</sub>: it carries the destination's responses back to the source.</p>
+  </div>
+
+  <h3>How well does it predict?</h3>
+  <div class="card">
+    <p>For each material, the destination responses predicted from the source responses are compared with the true
+    ones, in ΔE<sub>WLab</sub>; the MAT is compared with the chromatic adaptation transforms (CATs) that apply.</p>
+    <div class="row">
+      <label>Predict <select id="direction" autocomplete="off">
+        <option value="forward" selected>the destination from the source (MAT)</option>
+        <option value="reverse">the source from the destination (reverse MAT)</option>
+      </select></label>
+      <label>Materials <select id="testSet" autocomplete="off">
+        <option value="munsell">1,560 Munsell colors (all but the base set)</option>
+        <option value="base">The 40 base colors (the normalization's own)</option>
+        <option value="paste">Your reflectances (paste)…</option>
+      </select></label>
+      <button id="downloadCsv">Download per material (CSV)</button>
+    </div>
+    <div id="testPasteBox" hidden>
+      <p class="note">Wavelength in nm, then one reflectance per column (0 to 1 or percent), header row optional.</p>
+      <textarea id="testPaste" spellcheck="false" placeholder="nm, Sample 1, Sample 2&#10;380, 0.118, 0.121&#10;…"></textarea>
+    </div>
+    <p id="testStatus" class="note"></p>
+    <div id="matStats"></div>
+    <div id="matHist" style="max-width: 560px"></div>
+    <h3>Where the MAT does worst</h3>
+    <div id="matWorst"></div>
+    <p class="note">The two directions differ for the CATs, each measured in the WLab of the condition it predicts.
+    For the MAT they are the same: the MAT's prediction of a material in one condition is its Wpt in the other, so its
+    error is the WLab difference between the material's Wpt in the two conditions, its shift between them, which reads
+    the same both ways.</p>
+    <p class="note">A CAT adapts colors from the source white to the destination white within one observer. Bradford
+    and CAT02 are defined on CIE XYZ, so they are shown only for the CIE color-matching functions; for cone
+    fundamentals and other sensors the CAT is von Kries scaling in the sensors' own space. When the two conditions
+    have different observers, no CAT applies: only the MAT carries colors across. The 1,600 Munsell colors (UEF
+    measurements, corrected by Derhak and Berns, 2012) include the 40 base colors, left out here unless chosen.</p>
+  </div>
+
+  <h2>4. Evaluating the Wpt normalization</h2>
+  <p>The normalization of the condition in section 1 is built from its responses to a perfect white and to 40
+  Munsell colors of equal lightness (Value 5, Chroma 6), one per 2.5 hue steps: the base set. Here are its four
+  steps; the Technical annex of the guide, section A.3, gives the equations.</p>
+  <div class="cols wide">
+    <div class="card"><h3>1. Rotate white onto the first axis</h3><div id="step1"></div></div>
+    <div class="card"><h3>2. Scale white to W = 100</h3><div id="step2"></div></div>
+    <div class="card"><h3>3. Level the base set</h3><div id="step3"></div></div>
+    <div class="card"><h3>4. Fit hue and chroma to the reference</h3><div id="step4"></div></div>
+  </div>
+
+  <footer>
+    <p>Wpt normalization and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt:
+    Color Without the Fine Print</i></a> (A.3 to A.7) and the Wpt and WLab papers (Derhak and Berns, <i>Color Research
+    &amp; Application</i> 40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>.
+    Everything runs in this page; nothing is sent anywhere. CIE data CC BY-SA 4.0. The tables of the CIE 2006 model
+    (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL database) come from Psychtoolbox-3, MIT license (its notice
+    is in this page's source and in <code>wlab</code>'s LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--
+The tables of the CIE 2006 observer model in src/data.ts (cie2006Tables) are prepared from data files of
+Psychtoolbox-3 (PsychColorimetricData/PsychColorimetricMatFiles: den_mac_bone.mat, T_log10coneabsorbance_ss.mat,
+den_lens_cie_1.mat, den_lens_cie_2.mat), which Psychtoolbox-3 distributes under the following notice. The data
+themselves are those of CIE 170-1:2006 (Tables 6.4 and 6.10) and of Stockman and Sharpe, from the CVRL database; see
+DATA.md.
+
+Copyright (c) The individual Psychtoolbox core developers:
+          (c) 1996-2022, David Brainard <brainard@psych.upenn.edu>
+          (c) 1996-2022, Denis Pelli    <denis.pelli@nyu.edu>
+          (c) 1996-2007, Allen Ingling  <allen.ingling@nyu.edu>
+          (c) 2005-2023, Mario Kleiner  <mario.kleiner.de@gmail.com>
+
+          (c) Individual major contributors:
+          (c) 2006       Richard F. Murray <rfm@yorku.ca>
+          (c) 2008-2022  Diederick C. Niehorster <dcnieho@gmail.com>
+          (c) 2013-2022  Ian Andolina
+          (c) 2008-2011  Tobias Wolf <towolf@tuebingen.mpg.de>
+
+MIT license:
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+</body>
+</html>

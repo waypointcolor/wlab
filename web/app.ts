@@ -11,10 +11,20 @@ interface Condition { label: string; observer: ObserverName; light: Spectrum; li
 interface Lights { [name: string]: Spectrum }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const OBSERVER_LABEL: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)' };
+const OBSERVER_LABEL: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)',
+  cie2006_2: 'CIE 2006 (2°)', cie2006_10: 'CIE 2006 (10°)' };
 const LIGHT_LABEL: Record<IlluminantName, string> = {
   D50: 'D50 booth', D65: 'D65 daylight', A: 'A, home incandescent', F2: 'F2, cool white fluorescent',
   F11: 'F11, tri-band store fluorescent', C: 'C, older daylight', E: 'E, equal energy',
+  'LED-B1': 'LED-B1, blue-pumped phosphor white LED, about 2700 K',
+  'LED-B2': 'LED-B2, blue-pumped phosphor white LED, about 3000 K',
+  'LED-B3': 'LED-B3, blue-pumped phosphor white LED, about 4100 K',
+  'LED-B4': 'LED-B4, blue-pumped phosphor white LED, about 5100 K',
+  'LED-B5': 'LED-B5, blue-pumped phosphor white LED, about 6600 K',
+  'LED-BH1': 'LED-BH1, phosphor white with red LED, about 2850 K',
+  'LED-RGB1': 'LED-RGB1, red, green and blue chips LED, about 2850 K',
+  'LED-V1': 'LED-V1, violet-pumped phosphor white LED, about 2700 K',
+  'LED-V2': 'LED-V2, violet-pumped phosphor white LED, about 4100 K',
 };
 
 const lights: Lights = Object.fromEntries(Object.keys(LIGHT_LABEL).map((k) => [LIGHT_LABEL[k as IlluminantName], illuminants[k as IlluminantName]]));

@@ -52,6 +52,9 @@ const m = mat(wptNormalization('cie1931', 'A'), wptNormalization('cie1931', 'D65
 | `rgbToWlab(rgb, space)`, `wlabToRgb(wlab, space)`, `rgbToXyz`, `xyzToRgb`, `inGamut` | Display colors in `srgb`, `display-p3`, `a98-rgb` (Adobe RGB) or `rec2020` (the CSS Color 4 names), through the D65 Wpt normalization: WLab of the material that would give the same XYZ under D65 for the CIE 1931 observer |
 | `resample(nm, values)` | Any spectrum onto the 380–780 nm, 5 nm grid (linear, ends held) |
 | `observers`, `illuminants`, `munsellBase`, `wavelengths` | CIE 1931 (2°), 1964 (10°), 2015 (2°) and 2015 (10°) observers; illuminants A, C, D50, D65, E, F2, F11; the 40 Munsell base samples |
+| `daylight(cct)`, `planckian(kelvin)` | CIE daylight from 4000 to 25000 K (`daylight(5000)` is the package D50) and Planckian radiators at any temperature, 100 at 560 nm |
+| `cie2006(fieldSize, age)`, `cie2006Tables` | CIE 2006 (CIE 170-1) L, M, S cone fundamentals for a field size of 1 to 10° and an age of 20 to 80 years, peaks at 1, from the built-in tables of the model (or tables you pass) |
+| `categoricalObserver(category, fieldSize)`, `categoricalObserverAges` | The 10 categorical observers of Asano and Fairchild (cone fundamentals, each of area 100) for a field size of 1 to 10° |
 
 Observers can be custom: `{ name, curves: [c1, c2, c3] }`, each curve 81 values (color-matching functions, cone
 fundamentals or camera sensors). Lights are any 81-value spectrum or the name of a CIE illuminant.
