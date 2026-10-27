@@ -106,6 +106,13 @@
     the same material in the reference condition. Small for most materials; larger for those whose color depends more
     on the light and the observer (color inconstancy). The chips show each material in the reference condition, as the
     display color (sRGB) of its WLab, clipped where outside sRGB.</p>
+    <p class="note">Where the shifts go: each WLab shift split into a change in lightness (ΔL<sub>w</sub>), a change in
+    chroma (ΔC′, along the material's own chroma direction in the reference condition: more or less colorful) and a
+    change in hue (ΔH′, across it). The three are at right angles, so ΔL<sub>w</sub>² + ΔC′² + ΔH′² =
+    ΔE<sub>WLab</sub>² in every condition, and the columns give each one's share of ΔE<sub>WLab</sub>² over all the
+    conditions; they add to 100%. A material whose color is inconstant mostly in hue shows a large hue share. A gray,
+    or a metamer of one, has no chroma in the reference and so no direction to tell chroma from hue: the two are given
+    together. The split is made in WLab, not Wpt, because WLab is the one meant to space differences evenly.</p>
   </div>
 
   <h2>4. Waypoint shift manifolds</h2>
@@ -113,8 +120,16 @@
     <div class="row">
       <label>Views <select id="layout" autocomplete="off"><option value="one">one view, every material</option><option value="each" selected>side by side, one view per material</option></select></label>
       <label id="viewScaleBox" hidden>Scale <select id="viewScale" autocomplete="off"><option value="own" selected>each view its own</option><option value="same">the same in every view</option></select></label>
-      <label>Coordinates <select id="space" autocomplete="off"><option value="wpt" selected>Wpt (W, p, t)</option><option value="wlab">WLab (Lw, aw, bw)</option></select></label>
+      <label>Coordinates <select id="space" autocomplete="off"><option value="wpt" selected>Wpt (W, p, t)</option><option value="wlab">WLab (Lw, aw, bw)</option><option value="turned">WLab turned to each material's hue (ΔLw, ΔC′, ΔH′)</option></select></label>
+      <label>Color the dots by <select id="colorBy" autocomplete="off"><option value="material" selected>the material</option>
+        <option value="display">each point's display color</option><option value="light">the light</option><option value="observer">the observer</option></select></label>
     </div>
+    <div id="colorKey"></div>
+    <p class="note">In Wpt and WLab, a direction means different things for different materials: for a blue, a shift
+    toward +b<sub>w</sub> is mostly a loss of chroma; for a green, the same shift is mostly a change of hue. Turned to
+    each material's hue, every manifold has the same directions: ΔH′ is a change of hue toward a larger hue angle, ΔC′
+    is more chroma, and ΔL<sub>w</sub> is up. Turning keeps each manifold's shape and size; only the
+    way it faces changes.</p>
     <div id="each3d" hidden>
       <div id="multiples" class="multiples"></div>
       <p class="note">Turning one view turns them all. Each view on its own scale shows the shapes: the materials of one
@@ -147,29 +162,59 @@
     <div class="cols wide">
       <div><h3>How large the differences are, over the conditions</h3><div id="pairsHist"></div></div>
     </div>
-    <p class="note">ΔE<sub>WLab</sub> between the two materials in each condition. With one light and one observer
-    chosen beside the reference, this is a simple index of metamerism: a pair that matches in the reference condition
-    and how far apart it is in the other. With many, it shows how the pair holds up across all of them, and where it
-    holds up least.</p>
+    <p class="note">How to read it: ΔE<sub>WLab</sub> between the two materials, condition by condition.
+    <b>In the reference</b> is how far apart the pair is in the reference condition; 0.00 means the two match, or they are metameric, for that condition.
+    <b>Mean, median, smallest and largest</b> sum up the same difference over the other conditions. A small largest
+    value means the pair stays together in all of them. A median well below the mean means most conditions keep the
+    pair close and a few take it far apart; the histogram shows those few as a tail to the right, and <b>where it is
+    largest</b> names the worst. A smallest of 0.00 means there is a condition where the pair matches or is metameric;
+    <b>where it is smallest</b> names the first such condition and how many others there are (hover for which): every
+    condition when the two spectra are the same. Each example's
+    second material was made to match the first in one condition (D50 for the reds, D65 for the PMCC twins, the
+    reference for the grays), so the other values show how well a match made in one condition holds up in the rest.
+    With one light and one observer chosen beside the reference, the table is a simple index of metamerism: a pair
+    that matches in the reference condition, and how far apart it is in the other.</p>
     <h3>What each pair has in common</h3>
     <div id="pairsObs" class="table-wrap"></div>
-    <p class="note">Numbers, not verdicts: where they are 0, the pair has that in common exactly; how close to 0 counts
-    as the same is left to you. The second reflectance is fitted as a × the first + b: two reflectances of one spectral
-    hue fit exactly, and then the second's Wpt shifts are k = a times the first's and their Wpt hue angles agree in
-    every condition. The difference spectrum, second − first, is nonselective when its RMS about its mean is 0: the
-    pair then differs only in W, by 100 × the mean, the same in every condition. The last column gives where the two
-    match to two decimals: where the pair is a metamer and its difference spectrum a metameric black (hover for the
-    conditions).</p>
+    <p class="note">How to read it: each column asks a question about the pair, and its number answers it: 0 when the
+    answer is yes. Numbers, not verdicts: how close to 0 counts as yes is left to you. The first two numbers are
+    spectral: root mean squares over the 81 wavelengths from 380 to 780 nm in steps of 5 nm, all weighted alike, with
+    no light and no observer. Reflectances run from 0 to 1, so 0.01 is 1 percent of reflectance. The next two are in
+    Wpt, over the reference and the conditions chosen above. A dotted underline means more on hover. In the brand red
+    example, submission 1 leaves 0.0129 of its reflectance, 33% of its shifts and 2.25° of hue: nearer to a copy of the
+    standard. Submission 2 leaves 0.0749, 90% and 26.69°: it is not.</p>
+    <ul class="note">
+      <li><b>Is the second a scaled and shifted copy of the first?</b> The second is fitted as a × the first + b (a and b on hover), and the number
+      is the spectral RMS of what the fit leaves over. 0 means the two belong to one spectral hue plane, as in the
+      plane example; then they also shift alike and keep the same hue. A dash means the first is flat (a gray): any
+      copy of it is flat too, so the next column answers the question.</li>
+      <li><b>Do they differ only in W?</b> The difference spectrum, second − first, wavelength by wavelength, and its spectral RMS
+      about its own mean (the mean on hover). 0 means the difference is flat: the second is higher or lower in W by
+      100 × the mean, by the same amount in every condition, and the two never differ in hue. The more uneven the
+      difference, the further the pair can come apart as the condition changes.</li>
+      <li><b>Do they shift alike?</b> The second's Wpt shifts fitted as k times the first's, condition by condition (k on
+      hover), and the share of them the fit leaves over, from 0% to 100%. 0% means the two move the same way from
+      condition to condition, the second k times as far; for one spectral hue, k = a. Near 100% means they shift in
+      unrelated ways. A dash means the first (a gray) does not shift.</li>
+      <li><b>Do they keep the same hue?</b> The largest difference between the two Wpt hue angles, over the reference and every
+      condition. It is 0° for one spectral hue. A pair that matches in one condition and turns different hues in
+      others shows it here. A dash means a gray is in the pair: it has no hue angle.</li>
+      <li><b>Where do they match?</b> The conditions where ΔE<sub>WLab</sub> between the two is 0.00 to two decimals
+      (hover for which). There the two are metameric, and their difference spectrum is a metameric black for that
+      condition. The reference is counted once, also when it is one of the conditions chosen above.</li>
+    </ul>
     <h3>The pairs' difference manifolds</h3>
     <div class="row"><label>Show <select id="pairShow" autocomplete="off"><option value="all">every pair, side by side</option></select></label></div>
     <div id="pairMultiples" class="multiples"></div>
-    <p class="note">Each pair's two Wpt shift manifolds (W up), one color each, with a line joining the pair's two
-    points in each condition. Each line is how the pair's difference has shifted from the reference: Wpt is linear,
-    so it is the Wpt shift of the difference spectrum, second − first, and the lines together are the pair's
-    difference manifold. A pair of one spectral hue has its lines on rays through the origin (the second's shifts are
-    a times the first's); for a gray and a metamer of it, the lines start at the origin (the gray does not shift); a
-    pair that differs only in W has lines of length 0. WLab is not linear, so the pair's ΔE<sub>WLab</sub> depends
-    also on where the pair is, not only on these lines.</p>
+    <p class="note">Each pair's two shift manifolds, one color each, in the coordinates chosen in section 4 (turned to
+    the hue, both are turned to the first material's), with a line joining the pair's two points in each condition.
+    Each line is how the pair's difference has shifted from the reference. In Wpt, which is linear, it is the Wpt
+    shift of the difference spectrum, second − first, and the lines together are the pair's difference manifold; in
+    WLab, which is not, the lines are close to that but not exactly it. In Wpt, a pair of one spectral hue has its
+    lines on rays through the origin (the second's shifts are a times the first's), and a pair that differs only in W
+    has lines of length 0; in WLab both hold only roughly. For a gray and a metamer of it, the lines start at the origin in
+    any coordinates (the gray does not shift). The pair's ΔE<sub>WLab</sub> depends also on where the pair is, not
+    only on these lines.</p>
   </div>
 
   <footer>

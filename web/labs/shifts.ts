@@ -168,6 +168,36 @@ export function cloudsOf(materials: Material[], norms: WptNormalizationN[], refe
   });
 }
 
+/**
+ * A WLab shift turned to the material's own hue: [ΔLw, ΔC′, ΔH′], where ΔC′ is the part along the material's chroma
+ * direction in the reference condition (out from neutral: more chroma) and ΔH′ the part across it (toward a larger hue
+ * angle). A turn only, so ΔLw² + ΔC′² + ΔH′² = ΔE_WLab². Undefined when the material has no chroma in the reference.
+ */
+export function hueTurn(refWlab: Vec3): ((d: Vec3) => Vec3) | undefined {
+  const c = Math.hypot(refWlab[1], refWlab[2]);
+  if (c < 1e-3) return undefined;
+  const ca = refWlab[1] / c, sa = refWlab[2] / c;
+  return (d) => [d[0], d[1] * ca + d[2] * sa, d[2] * ca - d[1] * sa];
+}
+
+/**
+ * How a material's WLab shifts split over the conditions: the share of ΣΔE_WLab² in lightness, in chroma and in hue
+ * (turned to the material's hue; the three add to 1). With no chroma in the reference, chroma and hue cannot be told
+ * apart and only their sum is given. Undefined when the material does not shift.
+ */
+export interface ShiftShares { lightness: number; chroma?: number; hue?: number; chromaAndHue: number }
+export function shiftShares(cloud: Cloud): ShiftShares | undefined {
+  const turn = hueTurn(cloud.refWlab);
+  let l = 0, c = 0, h = 0;
+  for (const p of cloud.points) {
+    const d = turn ? turn(p.dWlab) : p.dWlab;
+    l += d[0] ** 2; c += d[1] ** 2; h += d[2] ** 2;
+  }
+  const all = l + c + h;
+  if (all < 1e-18) return undefined;
+  return turn ? { lightness: l / all, chroma: c / all, hue: h / all, chromaAndHue: (c + h) / all } : { lightness: l / all, chromaAndHue: (c + h) / all };
+}
+
 /** The pairs of materials to compare: each against the first, consecutive pairs (1–2, 3–4, …), or every pair. */
 export type PairMode = 'first' | 'consecutive' | 'halves' | 'all';
 export function pairIndices(count: number, mode: PairMode): [number, number][] {

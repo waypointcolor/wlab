@@ -9,7 +9,7 @@ import {
 } from '../src/index.ts';
 import { responder } from '../src/spectra.ts';
 import {
-  adjust, cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, metamericBlack, observePair, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials, type ObservingCondition,
+  adjust, cloudsOf, copyEntry, grayMetamers, graysWithBlack, hueTurn, materialsOf, metamericBlack, observePair, NormalizationCache, pairIndices, pairsOf, readMaterials, shiftShares, summary, syncEntries, writeMaterials, type ObservingCondition,
 } from '../web/labs/shifts.ts';
 
 const close = (a: readonly number[], b: readonly number[], tol: number) =>
@@ -199,4 +199,23 @@ test('pair observations: one spectral hue, a metamer of a gray, and a nonselecti
   close(gray.refDWpt, [0, 0, 0], 1e-9);
   assert.equal(gray.hueSpread, undefined);
   assert.equal(gray.shiftFit, undefined);
+});
+
+test('shifts turned to the hue: chroma out from neutral, hue toward a larger angle, the size kept', () => {
+  const onA = hueTurn([50, 20, 0])!, onB = hueTurn([50, 0, 20])!;
+  close(onA([1, 1, 0]), [1, 1, 0], 1e-12);                   // along +a_w: more chroma
+  close(onA([0, 0, 1]), [0, 0, 1], 1e-12);                   // toward +b_w: a larger hue angle
+  close(onB([0, -1, 0]), [0, 0, 1], 1e-12);                  // at 90°, toward −a_w is a larger hue angle
+  close(onB([0, 0, -2]), [0, -2, 0], 1e-12);                 // and toward neutral is less chroma
+  const d: [number, number, number] = [0.3, -1.2, 0.7], t = hueTurn([40, -12, 31])!(d);
+  assert.ok(Math.abs(Math.hypot(...t) - Math.hypot(...d)) < 1e-12);
+  assert.equal(hueTurn([50, 0, 0]), undefined);
+  const ref = wptNormalizationN('cie1931', 'C');
+  const conds = [cond('cie1964', 'A'), cond('cie1931', 'F11'), cond('cie2015', 'D65')];
+  const norms = conds.map((c) => wptNormalizationN(c.observer, c.light));
+  const [red, gray] = cloudsOf([material('5R 5/8'), { name: 'gray', reflectance: reflectances[0].map(() => 0.4) }], norms, ref);
+  const s = shiftShares(red)!;
+  assert.ok(Math.abs(s.lightness + s.chroma! + s.hue! - 1) < 1e-12);
+  assert.ok(Math.abs(s.chroma! + s.hue! - s.chromaAndHue) < 1e-12);
+  assert.equal(shiftShares(gray), undefined);
 });

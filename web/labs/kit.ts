@@ -321,7 +321,11 @@ export function histogram(sets: number[][], labels: string[], colors: string[],
 /** Points (dots or rings) on two axes, with optional lines or arrows between pairs of points. */
 export function scatter(o: {
   xLabel: string; yLabel: string; x: [number, number]; y?: [number, number]; xTicks?: number[]; square?: boolean;
-  sets: { pts: number[][]; color: string; label: string; ring?: boolean; titles?: string[] }[]; links?: number[][]; arrows?: boolean;
+  sets: { pts: number[][]; color: string; label: string; ring?: boolean; titles?: string[]; colors?: string[] }[]; links?: number[][]; arrows?: boolean;
+  /** an outline around each dot, so that a dot of any color shows against the page */
+  outline?: boolean;
+  /** the radius of each dot (2.8 by default, 3.4 with an outline) */
+  dot?: number;
 }): string {
   const W = 440, H = o.square ? 400 : 250, l0 = 46, top = 10, pw = W - l0 - 12, ph = H - top - 44;
   const ys = o.sets.flatMap((s) => s.pts.map((p) => p[1]));
@@ -339,11 +343,11 @@ export function scatter(o: {
   const drawOrder = [...o.sets.filter((s) => !s.titles), ...o.sets.filter((s) => s.titles)];
   const dots = drawOrder.map((s) => s.pts.map(([x, y], i) => s.ring
     ? `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="4" fill="#fff" fill-opacity="0" stroke="${s.color}" stroke-width="1.3">${tip(s, i)}</circle>`
-    : `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="2.8" fill="${s.color}">${tip(s, i)}</circle>`).join('')).join('');
+    : `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="${o.dot ?? (o.outline ? 3.4 : 2.8)}" fill="${s.colors?.[i] ?? s.color}"${o.outline ? ' stroke="var(--quiet)" stroke-width="0.6"' : ''}>${tip(s, i)}</circle>`).join('')).join('');
   const id = `arrow${++plotId}`;
   const links = (o.links ?? []).map(([a, b, c, d]) => `<line x1="${X(a).toFixed(1)}" y1="${Y(b).toFixed(1)}" x2="${X(c).toFixed(1)}" y2="${Y(d).toFixed(1)}"
     stroke="var(--quiet)" stroke-opacity="0.7"${o.arrows ? ` marker-end="url(#${id})"` : ''}/>`).join('');
-  const legend = o.sets.map((s) => `<span class="key"><svg width="12" height="12" aria-hidden="true">${s.ring
+  const legend = o.sets.filter((s) => !s.colors).map((s) => `<span class="key"><svg width="12" height="12" aria-hidden="true">${s.ring
     ? `<circle cx="6" cy="6" r="4" fill="none" stroke="${s.color}" stroke-width="1.3"/>` : `<circle cx="6" cy="6" r="3" fill="${s.color}"/>`}</svg>${escapeHtml(s.label)}</span>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.yLabel)} against ${escapeHtml(o.xLabel)}">
     ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
@@ -364,7 +368,9 @@ export const viewGroup = (from?: { yaw: number; pitch: number }): ViewGroup => (
  * redraws, or are shared by a group of views.
  */
 export function cloud3d(canvas: HTMLCanvasElement, o: {
-  sets: { pts: number[][]; color: string }[]; axes: [string, string, string];
+  sets: { pts: number[][]; color: string; colors?: string[] }[]; axes: [string, string, string];
+  /** an outline around each point, so that a point of any color shows against the page */
+  outline?: boolean;
   /** lines, each from one point to another, drawn under the points */
   lines?: { from: number[][]; to: number[][]; color: string };
   /** the radius of each point, in pixels (2.4 by default; smaller where lines should show) */
@@ -416,10 +422,14 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
       });
       g.stroke(); g.globalAlpha = 1;
     }
-    const dots = d.sets.flatMap((s) => s.pts.map((p) => ({ ...project(p[0], p[1], p[2]), color: s.color })));
+    const dots = d.sets.flatMap((s) => s.pts.map((p, i) => ({ ...project(p[0], p[1], p[2]), color: s.colors?.[i] ?? s.color })));
     dots.sort((a, b) => b.depth - a.depth);
-    const r = d.dot ?? 2.4;
-    for (const p of dots) { g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, r, 0, 2 * Math.PI); g.fill(); }
+    const r = d.dot ?? (d.outline ? 3.2 : 2.4);
+    g.strokeStyle = ink; g.lineWidth = 0.6;
+    for (const p of dots) {
+      g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, r, 0, 2 * Math.PI); g.fill();
+      if (d.outline) g.stroke();
+    }
     g.fillStyle = ink;
     g.fillText(still ? 'no shift: every point at the origin' : `each axis ±${fmtTick(R)}`, 6, h - 6);
   };
