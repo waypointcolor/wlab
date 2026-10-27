@@ -21,9 +21,13 @@ const matrices: Record<string, { m: readonly (readonly number[])[]; name: string
 
 // one render for a burst of changes (a timer rather than an animation frame, which never comes in a hidden tab)
 let pending: ReturnType<typeof setTimeout> | undefined;
-const schedule = () => { clearTimeout(pending); pending = setTimeout(render, 0); };
+const schedule = () => { clearTimeout(pending); pending = setTimeout(() => { render(); syncCopyButtons(); }, 0); };
+// a Copy button only where there is a matrix to copy: with more than three sensors there is no way back from Wpt and
+// no MAT, and a condition that cannot be built has none
+const syncCopyButtons = () => document.querySelectorAll<HTMLButtonElement>('button[data-copy]').forEach((b) => { b.hidden = !matrices[b.dataset.copy!]; });
 const pickA = conditionPicker($('condA'), { observer: 'cie1931', light: 'D65' }, schedule);
 const pickB = conditionPicker($('condB'), { observer: 'cie1931', light: 'A' }, schedule);
+const pickC = conditionPicker($('condC'), { observer: 'cie1964', light: 'A' }, schedule);
 
 const fmtV = (v: readonly number[], d = 3) => `(${v.map((x) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d)).join(', ')})`;
 const message = (e: unknown) => (e as Error).message;
@@ -47,6 +51,9 @@ function render(): void {
     return;
   }
   const { cond, n, n3 } = source;
+  // with more than three sensors there is no MAT: section 3 is one sentence
+  $('matSection').hidden = !n3;
+  $('matNone').hidden = !!n3;
   matrices.toWpt = { m: n.toWpt, name: 'toWpt' };
   $('toWpt').innerHTML = matrixTable(n.toWpt);
   if (n3) {
@@ -60,53 +67,90 @@ function render(): void {
   $('white').textContent = `White, the responses of a perfect white scaled so that the second is 100: ${fmtV(n.white, 4)}. `
     + 'In Wpt it is (100, 0, 0) for every condition.';
 
-  drawSteps(cond, n);
+  // section 4: this condition's steps, side by side with a second condition's when comparing
+  const shown: { cond: Condition; n: WptNormalizationN }[] = [{ cond, n }];
+  const comparing = $<HTMLInputElement>('compare').checked;
+  $('condCBox').hidden = !comparing;
+  if (comparing) {
+    try {
+      const second = pickC.get();
+      shown.push({ cond: second, n: wptNormalizationN(second.observer, second.light) });
+      $('statusC').className = 'note';
+      $('statusC').textContent = '';
+    } catch (e) {
+      $('statusC').className = 'error';
+      $('statusC').textContent = `Cannot build the second condition: ${message(e)}.`;
+    }
+  }
+  drawSteps(shown);
   renderMat();
 }
 
-function drawSteps(cond: Condition, n: WptNormalizationN): void {
-  const { rotation, scale, level, fit } = n.steps;
-  const N = n.sensors, others = N - 1;
-  $('step1').innerHTML = `<p>A rotation turns white, ${fmtV(n.white)}, into ${fmtV(times(rotation, n.white))}: all of white
-    on the first axis, so the other ${others} axes carry only color.</p>${matrixTable(rotation)}`;
-  $('step2').innerHTML = `<p>The first axis is scaled by ${scale.toPrecision(6)}, so that white is W = 100 in every
-    condition: (100, 0, 0).</p>`;
+/** What the four steps do to the base set in one condition. */
+interface Steps { cond: Condition; n: WptNormalizationN; before: number[]; after: number[]; hue: number[]; fitted: number[][]; rms: number }
 
+function stepsOf(cond: Condition, n: WptNormalizationN): Steps {
   // the base set after steps 1 and 2 (u along white, the others across it), and in Wpt
   const resp = munsellBase.reflectances.map((r) => sensorResponses(r, cond.observer, cond.light));
-  const turned = resp.map((c) => times(rotation, c));
   const wpt = resp.map((c) => times(n.toWpt, c));
-  const hue = wpt.map(([, p, t]) => ((Math.atan2(t, p) * 180) / Math.PI + 360) % 360);
-  const before = turned.map((r) => r[0] * scale);
-  const after = wpt.map((w) => w[0]);
-  const spread = (a: number[]) => Math.max(...a) - Math.min(...a);
-  const plane = `${level.slice(0, others).map((a, k) => `${a.toFixed(4)} c${k + 2}`).join(' + ')} + ${level[others].toFixed(3)}`;
-  $('step3').innerHTML = `<p>The 40 base colors share one Munsell Value, so they should share one W. Here they spread
-    over ${spread(before).toFixed(2)} in W; a shear along W = ${plane} (c2 … c${N} the other axes) levels them to a
-    spread of ${spread(after).toFixed(2)}.</p>`
-    + scatter({
-      xLabel: 'hue angle in Wpt (°)', yLabel: 'W', x: [0, 360], xTicks: [0, 90, 180, 270, 360],
-      sets: [
-        { pts: before.map((u, i) => [hue[i], u]), color: 'var(--accent2)', label: 'before leveling', titles: munsellBase.names.map((nm, i) => nm + ': W ' + before[i].toFixed(2)) },
-        { pts: after.map((u, i) => [hue[i], u]), color: 'var(--accent)', label: 'after leveling', titles: munsellBase.names.map((nm, i) => nm + ': W ' + after[i].toFixed(2)) },
-      ],
-    });
-
   const fitted = wpt.map((w) => [w[1], w[2]]);
+  const ref = munsellBase.referencePT;
+  return {
+    cond, n, fitted,
+    before: resp.map((c) => times(n.steps.rotation, c)[0] * n.steps.scale),
+    after: wpt.map((w) => w[0]),
+    hue: wpt.map(([, p, t]) => ((Math.atan2(t, p) * 180) / Math.PI + 360) % 360),
+    rms: Math.sqrt(fitted.reduce((s, [p, t], i) => s + (p - ref[i][0]) ** 2 + (t - ref[i][1]) ** 2, 0) / fitted.length),
+  };
+}
+
+/** The four steps of one condition, or of two side by side on the same axes. */
+function drawSteps(list: { cond: Condition; n: WptNormalizationN }[]): void {
+  const all = list.map(({ cond, n }) => stepsOf(cond, n));
   const ref = munsellBase.referencePT.map(([p, t]) => [p, t]);
-  const rms = Math.sqrt(fitted.reduce((s, [p, t], i) => s + (p - ref[i][0]) ** 2 + (t - ref[i][1]) ** 2, 0) / fitted.length);
-  const lim = Math.max(...[...fitted, ...ref].flat().map(Math.abs)) * 1.1;
-  $('step4').innerHTML = `<p>A 2 × ${others} fit turns the other ${others} axes into Wpt's p and t${N > 3 ? ' (a non-square regression)' : ''},
-    matching the base colors' reference p, t (CIE 1931 observer under illuminant C) as closely as one linear map can:
-    they land within ${rms.toFixed(3)} (root mean square) of the reference.</p>${matrixTable(fit, 6)}`
-    + scatter({
-      xLabel: 'p', yLabel: 't', x: [-lim, lim], y: [-lim, lim], square: true,
-      links: fitted.map(([p, t], i) => [p, t, ref[i][0], ref[i][1]]),
-      sets: [
-        { pts: ref, color: 'var(--quiet)', label: 'reference', ring: true, titles: munsellBase.names.map((nm) => nm + ', reference') },
-        { pts: fitted, color: 'var(--accent)', label: 'this condition', titles: munsellBase.names.map((nm, i) => nm + ': p ' + fitted[i][0].toFixed(2) + ', t ' + fitted[i][1].toFixed(2)) },
-      ],
-    });
+  // the same axes for every condition shown
+  const ws = all.flatMap((s) => [...s.before, ...s.after]);
+  const pad = (Math.max(...ws) - Math.min(...ws)) * 0.08 || 0.5;
+  const wRange: [number, number] = [Math.min(...ws) - pad, Math.max(...ws) + pad];
+  const lim = Math.max(...[...all.flatMap((s) => s.fitted), ...ref].flat().map(Math.abs)) * 1.1;
+  const spread = (a: number[]) => Math.max(...a) - Math.min(...a);
+  const side = (parts: string[]) => (all.length > 1
+    ? `<div class="pair">${parts.map((p, i) => `<div><h4>${escapeHtml(all[i].cond.label)}</h4>${p}</div>`).join('')}</div>`
+    : parts[0]);
+
+  $('step1').innerHTML = side(all.map(({ n }) => `<p>A rotation turns white, ${fmtV(n.white)}, into ${fmtV(times(n.steps.rotation, n.white))}: all
+    of white on the first axis, so the other ${n.sensors - 1} axes carry only color.</p>${matrixTable(n.steps.rotation)}`));
+  $('step2').innerHTML = side(all.map(({ n }) => `<p>The first axis is scaled by ${n.steps.scale.toPrecision(6)}, so that white is
+    W = 100 in every condition: (100, 0, 0).</p>`));
+  $('step3').innerHTML = side(all.map(({ n, before, after, hue }) => {
+    const others = n.sensors - 1, level = n.steps.level;
+    const plane = `${level.slice(0, others).map((a, k) => `${a.toFixed(4)} c${k + 2}`).join(' + ')} + ${level[others].toFixed(3)}`;
+    return `<p>The 40 base colors share one Munsell Value, so they should share one W. Here they spread over
+      ${spread(before).toFixed(2)} in W; a shear along W = ${plane} (c2 … c${n.sensors} the other axes) levels them to a
+      spread of ${spread(after).toFixed(2)}.</p>`
+      + scatter({
+        xLabel: 'hue angle in Wpt (°)', yLabel: 'W', x: [0, 360], xTicks: [0, 90, 180, 270, 360], y: wRange,
+        sets: [
+          { pts: before.map((u, i) => [hue[i], u]), color: 'var(--accent2)', label: 'before leveling', titles: munsellBase.names.map((nm, i) => nm + ': W ' + before[i].toFixed(2)) },
+          { pts: after.map((u, i) => [hue[i], u]), color: 'var(--accent)', label: 'after leveling', titles: munsellBase.names.map((nm, i) => nm + ': W ' + after[i].toFixed(2)) },
+        ],
+      });
+  }));
+  $('step4').innerHTML = side(all.map(({ n, fitted, rms }) => {
+    const others = n.sensors - 1;
+    return `<p>A 2 × ${others} fit turns the other ${others} axes into Wpt's p and t${others > 2 ? ' (a non-square regression)' : ''},
+      matching the base colors' reference p, t (CIE 1931 observer under illuminant C) as closely as one linear map can:
+      they land within ${rms.toFixed(3)} (root mean square) of the reference.</p>${matrixTable(n.steps.fit, 6)}`
+      + scatter({
+        xLabel: 'p', yLabel: 't', x: [-lim, lim], y: [-lim, lim], square: true,
+        links: fitted.map(([p, t], i) => [p, t, ref[i][0], ref[i][1]]),
+        sets: [
+          { pts: ref, color: 'var(--quiet)', label: 'reference', ring: true, titles: munsellBase.names.map((nm) => nm + ', reference') },
+          { pts: fitted, color: 'var(--accent)', label: 'this condition', titles: munsellBase.names.map((nm, i) => nm + ': p ' + fitted[i][0].toFixed(2) + ', t ' + fitted[i][1].toFixed(2)) },
+        ],
+      });
+  }));
+  $('steps').classList.toggle('compare', all.length > 1);
 }
 
 function renderMat(): void {
@@ -226,6 +270,7 @@ function evaluate(na: WptNormalization, nb: WptNormalization, M: Mat3, reverse: 
 }
 
 $('direction').addEventListener('change', schedule);
+$('compare').addEventListener('change', schedule);
 $('testSet').addEventListener('change', () => { $('testPasteBox').hidden = $<HTMLSelectElement>('testSet').value !== 'paste'; schedule(); });
 $('testPaste').addEventListener('input', schedule);
 $('testOrient').addEventListener('change', schedule);

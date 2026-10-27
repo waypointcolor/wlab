@@ -2,7 +2,7 @@
 // from a reference condition (the raw Wpt shift manifold of each material), and pairs compared condition by condition.
 // No browser code, so that the tests can use it directly.
 
-import { deltaEWlab, resample, wavelengths, wptNormalizationN, wptToWlab, type Observer, type Spectrum, type Vec3, type WptNormalizationN } from '../../src/index.ts';
+import { deltaEWlab, resample, solve, wavelengths, wptNormalizationN, wptToWlab, type Observer, type Spectrum, type Vec3, type WptNormalizationN } from '../../src/index.ts';
 import { parseTable } from './kit.ts';
 
 /** A material: a name and its spectral reflectance (0 to 1) on the package grid. */
@@ -92,6 +92,62 @@ export function adjust(r: Spectrum, scale: number, shift: number): Spectrum {
   return r.map((v) => Math.max(0, v * scale + shift));
 }
 
+/**
+ * The metameric black of a spectrum for one observing condition: the part of it that the condition's sensors do not
+ * respond to (its projection onto the null space of the sensors weighted by the light). Added to a reflectance, it
+ * gives a metamer in that condition: the same responses from a different spectrum.
+ */
+export function metamericBlack(v: Spectrum, observer: Observer, light: Spectrum): number[] {
+  const rows = observer.curves.map((c) => c.map((x, i) => x * light[i]));
+  const dot = (a: readonly number[], b: readonly number[]) => a.reduce((s, x, i) => s + x * b[i], 0);
+  const y = solve(rows.map((a) => rows.map((b) => dot(a, b))), rows.map((a) => dot(a, v)));
+  return v.map((x, i) => x - rows.reduce((s, a, k) => s + y[k] * a[i], 0));
+}
+
+/** The shapes the gray's metameric blacks are made from, before the sensors' part is taken out. */
+const BLACK_SHAPES: { label: string; shape: (nm: number) => number }[] = [
+  { label: 'a slow wave', shape: (nm) => Math.cos((2 * Math.PI * (nm - 380)) / 400) },
+  { label: 'a faster wave', shape: (nm) => Math.cos((2 * Math.PI * (nm - 380)) / 200) },
+  { label: 'a bump at 450 nm', shape: (nm) => Math.exp(-(((nm - 450) / 20) ** 2) / 2) },
+  { label: 'a bump at 610 nm', shape: (nm) => Math.exp(-(((nm - 610) / 20) ** 2) / 2) },
+];
+
+/**
+ * A nonselective gray and metamers of it for one observing condition: the gray plus metameric blacks, each scaled to
+ * swing at most `swing` of the room between the gray and 0 or 1, so that every reflectance stays between 0 and 1.
+ */
+export function grayMetamers(level: number, observer: Observer, light: Spectrum, swing = 0.8): Material[] {
+  const pct = Math.round(level * 100);
+  return [{ name: `Gray ${pct}%`, reflectance: wavelengths.map(() => level) }, ...BLACK_SHAPES.map(({ label, shape }) => ({
+    name: `Gray ${pct}% plus the black of ${label}`,
+    reflectance: plusBlack(level, scaledBlack(shape, observer, light, Math.min(level, 1 - level) * swing)),
+  }))];
+}
+
+/**
+ * Grays from light to dark, alone, then the same grays with one metameric black added in proportion to the gray: each
+ * is the gray times (1 + b), one relative black b for all, as large as the lightest gray allows. A nonselective gray
+ * does not shift (its Wpt is W = 100 × its reflectance, p = t = 0, in every condition), and each gray with the black
+ * is the lightest one scaled, so their Wpt shift manifolds are one shape, scaled by the gray's level.
+ */
+export function graysWithBlack(levels: number[], observer: Observer, light: Spectrum, which = 3, swing = 0.8): Material[] {
+  const { label, shape } = BLACK_SHAPES[which];
+  // g (1 + b) stays within 0 to 1 for every gray when |b| ≤ (1 − g) / g and |b| ≤ 1
+  const relative = scaledBlack(shape, observer, light, Math.min(1, ...levels.map((g) => (1 - g) / g)) * swing);
+  const pct = (g: number) => Math.round(g * 100);
+  return [...levels.map((g) => ({ name: `Gray ${pct(g)}%`, reflectance: wavelengths.map(() => g) })),
+    ...levels.map((g) => ({ name: `Gray ${pct(g)}% plus the black of ${label}`, reflectance: plusBlack(g, relative.map((b) => g * b)) }))];
+}
+
+/** The metameric black of a shape, scaled so that its largest swing is `swing`. */
+function scaledBlack(shape: (nm: number) => number, observer: Observer, light: Spectrum, swing: number): number[] {
+  const black = metamericBlack(wavelengths.map(shape), observer, light);
+  const k = swing / Math.max(...black.map(Math.abs));
+  return black.map((b) => k * b);
+}
+
+const plusBlack = (level: number, black: number[]): Spectrum => black.map((b) => level + b);
+
 /** One material in one condition: its Wpt and WLab there, and their shifts from the reference condition. */
 export interface Point { wpt: Vec3; wlab: Vec3; dWpt: Vec3; dWlab: Vec3; dE: number }
 
@@ -113,11 +169,12 @@ export function cloudsOf(materials: Material[], norms: WptNormalizationN[], refe
 }
 
 /** The pairs of materials to compare: each against the first, consecutive pairs (1–2, 3–4, …), or every pair. */
-export type PairMode = 'first' | 'consecutive' | 'all';
+export type PairMode = 'first' | 'consecutive' | 'halves' | 'all';
 export function pairIndices(count: number, mode: PairMode): [number, number][] {
   const out: [number, number][] = [];
   if (mode === 'first') for (let j = 1; j < count; j++) out.push([0, j]);
   else if (mode === 'consecutive') for (let i = 0; i + 1 < count; i += 2) out.push([i, i + 1]);
+  else if (mode === 'halves') for (let i = 0, h = Math.floor(count / 2); i < h; i++) out.push([i, i + h]);
   else for (let i = 0; i < count; i++) for (let j = i + 1; j < count; j++) out.push([i, j]);
   return out;
 }

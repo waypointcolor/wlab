@@ -38,6 +38,9 @@
   </div>
 
   <h2>3. The MAT to another condition</h2>
+  <p id="matNone" class="card" hidden>A MAT is not possible with more than three sensors: the normalization goes one
+  way, from the sensors' responses to Wpt, with no way back to the responses of another condition.</p>
+  <div id="matSection">
   <div class="card">
     <p>A MAT carries responses from the condition above (the source) to this one (the destination) by way of the
     material: M = A<sub>destination</sub><sup>−1</sup> A<sub>source</sub>.</p>
@@ -92,12 +95,18 @@
     have different observers, no CAT applies: only the MAT carries colors across. The 1,600 Munsell colors (UEF
     measurements, corrected by Derhak and Berns, 2012) include the 40 base colors, left out here unless chosen.</p>
   </div>
+  </div>
 
   <h2>4. Evaluating the Wpt normalization</h2>
   <p>The normalization of the condition in section 1 is built from its responses to a perfect white and to 40
   Munsell colors of equal lightness (Value 5, Chroma 6), one per 2.5 hue steps: the base set. Here are its four
   steps; the Technical annex of the guide, section A.3, gives the equations.</p>
-  <div class="cols wide">
+  <div class="card">
+    <label><input type="checkbox" id="compare"> Compare with a second observing condition, side by side on the same
+    axes</label>
+    <div id="condCBox" hidden><div id="condC"></div><p id="statusC" class="note"></p></div>
+  </div>
+  <div class="cols wide" id="steps">
     <div class="card"><h3>1. Rotate white onto the first axis</h3><div id="step1"></div></div>
     <div class="card"><h3>2. Scale white to W = 100</h3><div id="step2"></div></div>
     <div class="card"><h3>3. Level the base set</h3><div id="step3"></div></div>

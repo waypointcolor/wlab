@@ -384,7 +384,9 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
     const g = c.getContext('2d')!;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
-    const R = d.range ?? Math.max(1e-9, ...d.sets.flatMap((s) => s.pts.flatMap((p) => p.map(Math.abs))));
+    // every point at the origin (a nonselective gray's shifts, say): one point, drawn on axes of ±1
+    const far = d.range ?? Math.max(...d.sets.flatMap((s) => s.pts.flatMap((p) => p.map(Math.abs))));
+    const still = !(far > 1e-6), R = still ? 1 : far;
     const k = (0.4 * Math.min(w, h)) / R, cx = w / 2, cy = h / 2;
     const cy0 = Math.cos(v.yaw), sy0 = Math.sin(v.yaw), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch);
     // x and y lie in the horizontal plane, z points up
@@ -405,7 +407,7 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
     dots.sort((a, b) => b.depth - a.depth);
     for (const p of dots) { g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, 2.4, 0, 2 * Math.PI); g.fill(); }
     g.fillStyle = ink;
-    g.fillText(`each axis ±${fmtTick(R)}`, 6, h - 6);
+    g.fillText(still ? 'no shift: every point at the origin' : `each axis ±${fmtTick(R)}`, 6, h - 6);
   };
   if (!c.bound && !o.fixed) {
     c.bound = true;

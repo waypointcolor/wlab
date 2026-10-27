@@ -9,7 +9,7 @@ import {
 } from '../src/index.ts';
 import { responder } from '../src/spectra.ts';
 import {
-  adjust, cloudsOf, copyEntry, materialsOf, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials, type ObservingCondition,
+  adjust, cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, metamericBlack, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials, type ObservingCondition,
 } from '../web/labs/shifts.ts';
 
 const close = (a: readonly number[], b: readonly number[], tol: number) =>
@@ -70,6 +70,7 @@ test('pairs: ΔE_WLab between the two materials in each condition', () => {
   assert.equal(p.refDE, deltaEWlab(ref.wlabOf(ms[0].reflectance), ref.wlabOf(ms[1].reflectance)));
   assert.deepEqual(pairIndices(4, 'first'), [[0, 1], [0, 2], [0, 3]]);
   assert.deepEqual(pairIndices(5, 'consecutive'), [[0, 1], [2, 3]]);
+  assert.deepEqual(pairIndices(5, 'halves'), [[0, 2], [1, 3]]);
   assert.deepEqual(pairIndices(3, 'all'), [[0, 1], [0, 2], [1, 2]]);
 });
 
@@ -137,4 +138,38 @@ test('reflectances one material per row: names first, a header row of wavelength
     assert.deepEqual(back.map((m) => m.name), ['5R 5/6', 'Blue  a copy']);
     back.forEach((m, k) => close(m.reflectance, ms[k].reflectance, 5.0001e-6));   // written to 5 decimals
   }
+});
+
+test('metameric blacks: no response in their condition; gray plus a black matches the gray there and not elsewhere', () => {
+  const black = metamericBlack(reflectances[names.indexOf('5R 5/6')], observers.cie1931, illuminants.C);
+  close(sensorResponses(black, observers.cie1931, illuminants.C), [0, 0, 0], 1e-9);
+  const grays = grayMetamers(0.5, observers.cie1931, illuminants.C);
+  assert.equal(grays.length, 5);
+  const ref = wptNormalizationN('cie1931', 'C'), other = wptNormalizationN('cie1964', 'A');
+  const clouds = cloudsOf(grays, [other], ref);
+  for (const g of grays.slice(1)) {
+    assert.ok(g.reflectance.every((v) => v >= 0.1 - 1e-12 && v <= 0.9 + 1e-12), `${g.name} stays within 0.1 to 0.9`);
+    close(sensorResponses(g.reflectance, observers.cie1931, illuminants.C), sensorResponses(grays[0].reflectance, observers.cie1931, illuminants.C), 1e-9);
+  }
+  pairsOf(clouds, pairIndices(5, 'first')).forEach((r) => {
+    assert.ok(r.refDE < 1e-9, 'a metamer in the reference');
+    assert.ok(r.dE[0] > 0.05, 'not a metamer for the 10° observer under A');
+  });
+});
+
+test('grays light to dark: alone they do not shift; with a black in proportion, one Wpt shift manifold, scaled', () => {
+  const levels = [0.8, 0.65, 0.5, 0.35, 0.2];
+  const ms = graysWithBlack(levels, observers.cie1931, illuminants.C);
+  assert.equal(ms.length, 10);
+  ms.forEach((m) => assert.ok(m.reflectance.every((v) => v >= 0 && v <= 0.96 + 1e-12), `${m.name} stays within 0 to 0.96`));
+  ms.slice(5).forEach((m, k) => close(m.reflectance.map((v) => v / levels[k]), ms[5].reflectance.map((v) => v / levels[0]), 1e-12));
+  const clouds = cloudsOf(ms, [wptNormalizationN('cie1964', 'A'), wptNormalizationN('cie1931', 'F11')], wptNormalizationN('cie1931', 'C'));
+  const plain = clouds.slice(0, 5), black = clouds.slice(5);
+  assert.deepEqual(pairIndices(10, 'halves').map(([a, b]) => [ms[a].name, ms[b].name.slice(0, 8)]).slice(0, 1), [['Gray 80%', 'Gray 80%']]);
+  plain.forEach((cl) => cl.points.forEach((p) => close(p.dWpt, [0, 0, 0], 1e-9)));
+  black.forEach((cl) => cl.points.forEach((p, k) => {
+    const j = black.indexOf(cl);
+    close(p.dWpt, black[0].points[k].dWpt.map((d) => (d * levels[j]) / levels[0]), 1e-9);
+    assert.ok(Math.hypot(...p.dWpt) > 0.05, `${cl.material.name} shifts`);
+  }));
 });

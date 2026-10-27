@@ -12,9 +12,10 @@
 <main>
   <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Objects</nav>
   <div class="brand small"><!--LABS-LOGO--><h1>Materials across lights and observers</h1></div>
-  <p class="lead">A material's reflectance gives its measurement under any light, for any observer, and each
-  measurement turns into Wpt and WLab through its condition's Wpt normalization. For most materials the result barely
-  moves from condition to condition; how far and which way it does move is the material's own behavior. Measured under
+  <p class="lead">An observing condition is an observer (a set of sensors) under a light; from here on, just a
+  condition. A material's reflectance gives its measurement in any condition, and each measurement turns into Wpt and
+  WLab through that condition's Wpt normalization. For most materials the result barely
+  moves from condition to condition; how far and which way it does move is the material's own behavior. Measured in
   many conditions, one material makes a small cloud of points, its Wpt shift manifold. Choose the materials and the
   lights and observers, and see each material's cloud and how pairs compare in every condition.</p>
 
@@ -36,8 +37,11 @@
       <button data-example="ublue">Example: PMCC Unitary Blue and a twin</button>
       <button data-example="red">Example: a brand red and two submissions</button>
       <button data-example="munsell">Example: ten Munsell colors of Value 5, Chroma 6</button>
+      <button data-example="gray">Example: a nonselective gray and gray plus metameric blacks</button>
+      <button data-example="grays">Example: grays light to dark, alone and with a metameric black in proportion</button>
       <button data-example="plane">Example: one spectral hue plane (Munsell 5PB 5/8, scaled and shifted copies)</button>
     </div>
+    <p id="exampleNote" class="note" hidden></p>
     <h3>The materials in use</h3>
     <p class="note">Each reflectance given above, and any copies of it. Copy a material, then scale or shift the copy:
     scaling multiplies its reflectance at every wavelength, shifting adds the same amount at every wavelength (never
@@ -104,10 +108,10 @@
     display color (sRGB) of its WLab, clipped where outside sRGB.</p>
   </div>
 
-  <h2>4. The Wpt shift manifolds</h2>
+  <h2>4. Waypoint shift manifolds</h2>
   <div class="card">
     <div class="row">
-      <label>Views <select id="layout" autocomplete="off"><option value="one" selected>one view, every material</option><option value="each">side by side, one view per material</option></select></label>
+      <label>Views <select id="layout" autocomplete="off"><option value="one">one view, every material</option><option value="each" selected>side by side, one view per material</option></select></label>
       <label id="viewScaleBox" hidden>Scale <select id="viewScale" autocomplete="off"><option value="own" selected>each view its own</option><option value="same">the same in every view</option></select></label>
       <label>Coordinates <select id="space" autocomplete="off"><option value="wpt" selected>Wpt (W, p, t)</option><option value="wlab">WLab (Lw, aw, bw)</option></select></label>
     </div>
@@ -134,6 +138,7 @@
       <label>Compare <select id="pairMode" autocomplete="off">
         <option value="first" selected>each material with the first</option>
         <option value="consecutive">materials in pairs: 1 with 2, 3 with 4, …</option>
+        <option value="halves">the first half with the second: 1 with n/2 + 1, 2 with n/2 + 2, …</option>
         <option value="all">every pair</option></select></label>
     </div>
     <p id="pairsSummary"></p>

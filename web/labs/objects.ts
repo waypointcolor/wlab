@@ -17,7 +17,7 @@ import {
   $, cloud3d, download, escapeHtml, histogram, LIGHT_LABEL, OBSERVER_LABEL, parseTable, scatter, spectrumPlot, viewGroup, type ViewGroup,
 } from './kit.ts';
 import {
-  cloudsOf, copyEntry, materialsOf, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials,
+  cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials,
   type Cloud, type Entry, type Layout, type Material, type ObservingCondition, type PairMode,
 } from './shifts.ts';
 
@@ -126,8 +126,12 @@ function referenceCondition(): ObservingCondition {
 // ---------------------------------------------------------------------------------------------------------------
 // Computing and showing
 
-const f2 = (v: number) => v.toFixed(2);
+// no "-0.00": a value that rounds to zero is written 0.00
+const f2 = (v: number) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
 const where = (c: ObservingCondition) => `${c.observerLabel}, ${c.lightLabel}`;
+/** Where the largest value is, or a dash when it is 0.00 everywhere (a nonselective gray does not shift anywhere). */
+const whereLargest = (s: { max: number; argmax: number }, conds: ObservingCondition[]) => (s.max < 0.005
+  ? '<span title="0.00 in every condition">—</span>' : escapeHtml(where(conds[s.argmax])));
 
 /** A chip: the material's display color from its WLab (as under D65), clipped where it is outside sRGB. */
 function chip(w: Vec3): string {
@@ -209,7 +213,7 @@ function showMaterials(clouds: Cloud[], conds: ObservingCondition[], ref: Observ
   const rows = clouds.map((cl) => {
     const s = summary(cl.points.map((p) => p.dE));
     return `<tr><td>${escapeHtml(cl.material.name)}</td><td>${chip(cl.refWlab)}</td>${cl.refWlab.map((v, i) => `<td${i ? '' : ' class="sep"'}>${f2(v)}</td>`).join('')}
-      <td class="sep">${f2(s.mean)}</td><td>${f2(s.median)}</td><td>${f2(s.max)}</td><td class="where">${escapeHtml(where(conds[s.argmax]))}</td></tr>`;
+      <td class="sep">${f2(s.mean)}</td><td>${f2(s.median)}</td><td>${f2(s.max)}</td><td class="where">${whereLargest(s, conds)}</td></tr>`;
   }).join('');
   $('table').innerHTML = `<table><thead>
     <tr><th></th><th></th><th class="sep" colspan="3">In the reference condition</th><th class="sep" colspan="4">ΔE<sub>WLab</sub> from the reference, over the conditions</th></tr>
@@ -342,7 +346,7 @@ function showPairs(clouds: Cloud[], conds: ObservingCondition[], ref: ObservingC
   const rows = results.map((r) => {
     const cells = one
       ? `<td class="sep">${f2(r.refDE)}</td><td class="sep">${f2(r.dE[0])}</td>`
-      : (() => { const s = summary(r.dE); return `<td class="sep">${f2(r.refDE)}</td><td class="sep">${f2(s.mean)}</td><td>${f2(s.median)}</td><td>${f2(s.min)}</td><td>${f2(s.max)}</td><td class="where">${escapeHtml(where(conds[s.argmax]))}</td>`; })();
+      : (() => { const s = summary(r.dE); return `<td class="sep">${f2(r.refDE)}</td><td class="sep">${f2(s.mean)}</td><td>${f2(s.median)}</td><td>${f2(s.min)}</td><td>${f2(s.max)}</td><td class="where">${whereLargest(s, conds)}</td>`; })();
     return `<tr><td>${escapeHtml(name(r.a))}</td><td>${escapeHtml(name(r.b))}</td><td>${chip(clouds[r.a].refWlab)}${chip(clouds[r.b].refWlab)}</td>${cells}</tr>`;
   }).join('');
   $('pairsTable').innerHTML = `<table><thead>
@@ -366,6 +370,31 @@ const orient = () => $<HTMLSelectElement>('orient').value as Layout;
 /** A table of reflectances on the package grid, laid out as chosen. */
 const tableOf = (names: string[], columns: Spectrum[]) => writeMaterials(names.map((name, k) => ({ name, reflectance: columns[k] })), orient());
 
+/** What each example is, shown under the buttons while the example is in the box. */
+const EXAMPLE_NOTES: Record<string, string> = {
+  smurf: `The Smurf patch of a Preferred Memory Colour Chart (a blue), as measured, and a twin made to match it for the
+    CIE 1931 observer under D65: the patch plus a metameric black for that condition, held at 0 where it would make the
+    reflectance negative. The two match under D65 and come apart in other observing conditions.`,
+  ublue: `The Unitary Blue patch of a Preferred Memory Colour Chart (close to a purplish blue), as measured, and a twin
+    made to match it for the CIE 1931 observer under D65, as for the Smurf.`,
+  red: `The guide's buyer example: a brand red standard (Munsell 5R 5/6) and two submissions that match it in a D50
+    booth, one smooth and one jagged. The jagged one comes apart under other lights.`,
+  munsell: 'Ten Munsell colors of Value 5 and Chroma 6, one for each principal hue: how far each one shifts.',
+  gray: `A nonselective gray, and the gray plus four metameric blacks. A metameric black is a spectrum that the sensors
+    of one observing condition do not respond to: its positive and negative parts cancel for every sensor. Added to
+    the gray, it gives a metamer of the gray in that condition. The blacks here are made for the reference condition
+    chosen below, so the four metamers match the gray there and come apart in the other conditions. A metameric black
+    is a hue only other conditions see: in the condition it is made for it adds nothing, and in any other condition
+    it adds a hue and a chroma. A metamer's shift in each condition is the black's Wpt there.`,
+  grays: `Five grays, light to dark, then the same grays with one metameric black, made for the reference observing
+    condition, added in proportion: each is the gray times (1 + b), one relative black b for all, so the darker the gray, the
+    smaller the black. A nonselective gray does not shift in any condition, so each gray alone is a single point. Each
+    gray with the black is the lightest one scaled, so their Wpt shift manifolds have one shape, scaled by the gray's
+    level. The black gives the same hue in each condition to every gray, with a chroma in proportion to the gray.`,
+  plane: `Munsell 5PB 5/8 and copies of it scaled and shifted: one spectral hue plane. The shift manifolds have one
+    shape, scaled; the views are side by side, each on its own scale.`,
+};
+
 function example(which: string): void {
   let text: string;
   entries = [];
@@ -379,6 +408,20 @@ function example(which: string): void {
     $<HTMLSelectElement>('layout').value = 'each';
     $<HTMLSelectElement>('viewScale').value = 'own';
   }
+  else if (which === 'gray') {
+    // a nonselective gray and gray plus metameric blacks: one color in the reference condition, apart elsewhere
+    const ref = referenceCondition();
+    text = writeMaterials(grayMetamers(0.5, ref.observer, ref.light), orient());
+    $<HTMLSelectElement>('pairMode').value = 'first';
+  }
+  else if (which === 'grays') {
+    // grays light to dark, alone (no shift: one point), then with a metameric black in proportion (one manifold, scaled)
+    const ref = referenceCondition();
+    text = writeMaterials(graysWithBlack([0.8, 0.65, 0.5, 0.35, 0.2], ref.observer, ref.light), orient());
+    $<HTMLSelectElement>('pairMode').value = 'halves';
+    $<HTMLSelectElement>('layout').value = 'each';
+    $<HTMLSelectElement>('viewScale').value = 'same';
+  }
   else if (which === 'munsell') {
     const { names, reflectances } = munsell1600(false);
     const picks = ['R', 'YR', 'Y', 'GY', 'G', 'BG', 'B', 'PB', 'P', 'RP'].map((h) => `5${h} 5/6`).filter((n) => names.includes(n));
@@ -388,6 +431,8 @@ function example(which: string): void {
     text = tableOf([p.a.name, `Twin of ${p.a.name}`], [resample(p.a.nm, p.a.values), resample(p.b.nm, p.b.values)]);
   }
   $<HTMLTextAreaElement>('materials').value = text;
+  $('exampleNote').textContent = EXAMPLE_NOTES[which] ?? '';
+  $('exampleNote').hidden = !EXAMPLE_NOTES[which];
   schedule();
 }
 
@@ -412,6 +457,8 @@ document.querySelectorAll<HTMLButtonElement>('[data-none]').forEach((b) => b.add
   syncPasteBoxes(); schedule();
 }));
 document.querySelectorAll<HTMLButtonElement>('[data-example]').forEach((b) => b.addEventListener('click', () => example(b.dataset.example!)));
+// once the box is edited it holds the user's reflectances, not the example's
+$('materials').addEventListener('input', () => { $('exampleNote').hidden = true; });
 for (const id of ['materials', 'lightPaste', 'obsPaste', 'catField', 'ageStep', 'fieldSet', 'refObserver', 'refLight', 'pairMode']) {
   $(id).addEventListener('input', schedule);
   $(id).addEventListener('change', schedule);
@@ -428,7 +475,7 @@ $('orient').addEventListener('change', () => {
 });
 $<HTMLInputElement>('importFile').addEventListener('change', async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
-  if (file) { $<HTMLTextAreaElement>('materials').value = await file.text(); schedule(); }
+  if (file) { $<HTMLTextAreaElement>('materials').value = await file.text(); $('exampleNote').hidden = true; schedule(); }
 });
 $('downloadPoints').addEventListener('click', () => { if (pointsCsv) download('wlab-shift-manifolds.csv', pointsCsv(), 'text/csv'); });
 $('downloadPairs').addEventListener('click', () => { if (pairsCsv) download('wlab-pairs-by-condition.csv', pairsCsv(), 'text/csv'); });

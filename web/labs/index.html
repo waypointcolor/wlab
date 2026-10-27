@@ -55,6 +55,9 @@
   .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; }
   .cols.wide { grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
   .cols > .card { margin: 0; }
+  .cols.compare { grid-template-columns: minmax(0, 1fr); }      /* two conditions side by side within each card */
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+  .pair h4 { margin: 4px 0; font-size: 0.9rem; color: var(--accent); }
   .inputs3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1.4fr); gap: 10px; margin-top: 8px; }
   @media (max-width: 640px) { .inputs3 { grid-template-columns: minmax(0, 1fr); } }
   label.stack { display: flex; flex-direction: column; gap: 4px; color: var(--quiet); font-size: 0.9rem; }
