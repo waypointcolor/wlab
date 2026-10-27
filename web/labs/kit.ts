@@ -365,6 +365,10 @@ export const viewGroup = (from?: { yaw: number; pitch: number }): ViewGroup => (
  */
 export function cloud3d(canvas: HTMLCanvasElement, o: {
   sets: { pts: number[][]; color: string }[]; axes: [string, string, string];
+  /** lines, each from one point to another, drawn under the points */
+  lines?: { from: number[][]; to: number[][]; color: string };
+  /** the radius of each point, in pixels (2.4 by default; smaller where lines should show) */
+  dot?: number;
   /** a view that does not turn (for example straight down, { yaw: 0, pitch: π/2 }): many points drawn fast */
   fixed?: { yaw: number; pitch: number };
   /** views that turn together */
@@ -385,7 +389,7 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
     // every point at the origin (a nonselective gray's shifts, say): one point, drawn on axes of ±1
-    const far = d.range ?? Math.max(...d.sets.flatMap((s) => s.pts.flatMap((p) => p.map(Math.abs))));
+    const far = d.range ?? Math.max(...[...d.sets.map((s) => s.pts), d.lines?.from ?? [], d.lines?.to ?? []].flatMap((pts) => pts.flatMap((p) => p.map(Math.abs))));
     const still = !(far > 1e-6), R = still ? 1 : far;
     const k = (0.4 * Math.min(w, h)) / R, cx = w / 2, cy = h / 2;
     const cy0 = Math.cos(v.yaw), sy0 = Math.sin(v.yaw), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch);
@@ -403,9 +407,19 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
       g.fillStyle = ink;
       g.fillText(d.axes[i], p1.sx + 4, p1.sy - 4);
     });
+    if (d.lines) {
+      g.strokeStyle = d.lines.color; g.globalAlpha = 0.75;
+      g.beginPath();
+      d.lines.from.forEach((p, k) => {
+        const q = d.lines!.to[k], a = project(p[0], p[1], p[2]), b = project(q[0], q[1], q[2]);
+        g.moveTo(a.sx, a.sy); g.lineTo(b.sx, b.sy);
+      });
+      g.stroke(); g.globalAlpha = 1;
+    }
     const dots = d.sets.flatMap((s) => s.pts.map((p) => ({ ...project(p[0], p[1], p[2]), color: s.color })));
     dots.sort((a, b) => b.depth - a.depth);
-    for (const p of dots) { g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, 2.4, 0, 2 * Math.PI); g.fill(); }
+    const r = d.dot ?? 2.4;
+    for (const p of dots) { g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, r, 0, 2 * Math.PI); g.fill(); }
     g.fillStyle = ink;
     g.fillText(still ? 'no shift: every point at the origin' : `each axis ±${fmtTick(R)}`, 6, h - 6);
   };

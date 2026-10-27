@@ -189,6 +189,63 @@ export function pairsOf(clouds: Cloud[], pairs: [number, number][]): PairResult[
   }));
 }
 
+/**
+ * What a pair has in common, as numbers rather than verdicts. Wpt is linear, so the pair's Wpt difference in every
+ * condition is the Wpt of its difference spectrum d = second − first: d's Wpt is the pair's difference manifold.
+ * - fit: the second reflectance as a × the first + b, and the RMS left over. One spectral hue: r₂ = a r₁ + b exactly,
+ *   and then the second's Wpt shifts are a × the first's and the two share one Wpt hue angle in every condition (a > 0).
+ *   When the first is flat, a is not defined and the fit is the second as a constant.
+ * - diff: d's mean and its RMS about the mean; 0 for a nonselective difference, which only moves W, by 100 × the mean.
+ * - shiftFit: the second's Wpt shifts as k × the first's, and the share left over (RMS, relative to the second's).
+ * - hueSpread: the largest difference of Wpt hue angle, in degrees, over the reference and the conditions; not defined
+ *   where either has no chroma.
+ * - matches: the conditions where ΔE_WLab between the two is 0.00 to two decimals (−1 for the reference): where the
+ *   pair is a metamer, d a metameric black.
+ */
+export interface PairObservation {
+  fit: { a?: number; b: number; rms: number };
+  diff: { mean: number; rmsAboutMean: number };
+  shiftFit?: { k: number; residual: number };
+  hueSpread?: number;
+  matches: number[];
+  refDWpt: Vec3;
+  dWpt: Vec3[];
+}
+
+export function observePair(clouds: Cloud[], pair: PairResult): PairObservation {
+  const A = clouds[pair.a], B = clouds[pair.b];
+  const r1 = A.material.reflectance, r2 = B.material.reflectance, n = r1.length;
+  const mean = (v: readonly number[]) => v.reduce((s, x) => s + x, 0) / n;
+  const rms = (v: readonly number[]) => Math.sqrt(v.reduce((s, x) => s + x * x, 0) / n);
+  const m1 = mean(r1), m2 = mean(r2);
+  const var1 = r1.reduce((s, x) => s + (x - m1) ** 2, 0);
+  let fit: PairObservation['fit'];
+  if (var1 < 1e-12 * n) fit = { b: m2, rms: rms(r2.map((x) => x - m2)) };
+  else {
+    const a = r1.reduce((s, x, i) => s + (x - m1) * (r2[i] - m2), 0) / var1, b = m2 - a * m1;
+    fit = { a, b, rms: rms(r2.map((x, i) => x - a * r1[i] - b)) };
+  }
+  const d = r2.map((x, i) => x - r1[i]), md = mean(d);
+  const s1 = A.points.map((p) => p.dWpt), s2 = B.points.map((p) => p.dWpt);
+  const dot = (u: Vec3[], v: Vec3[]) => u.reduce((s, x, k) => s + x[0] * v[k][0] + x[1] * v[k][1] + x[2] * v[k][2], 0);
+  const ss1 = dot(s1, s1), ss2 = dot(s2, s2);
+  let shiftFit: PairObservation['shiftFit'];
+  if (ss1 > 1e-18) {
+    const k = dot(s1, s2) / ss1;
+    shiftFit = { k, residual: ss2 > 1e-18 ? Math.sqrt(Math.max(0, ss2 - k * k * ss1) / ss2) : 0 };
+  }
+  const both = [[A.refWpt, B.refWpt], ...A.points.map((p, k) => [p.wpt, B.points[k].wpt])];
+  const hue = (w: Vec3) => (Math.atan2(w[2], w[1]) * 180) / Math.PI;
+  const chromaless = both.some(([u, v]) => Math.hypot(u[1], u[2]) < 1e-3 || Math.hypot(v[1], v[2]) < 1e-3);
+  const hueSpread = chromaless ? undefined
+    : Math.max(...both.map(([u, v]) => Math.abs(((hue(v) - hue(u) + 540) % 360) - 180)));
+  const matches = [...(pair.refDE < 0.005 ? [-1] : []), ...pair.dE.flatMap((e, k) => (e < 0.005 ? [k] : []))];
+  return {
+    fit, diff: { mean: md, rmsAboutMean: rms(d.map((x) => x - md)) }, shiftFit, hueSpread, matches,
+    refDWpt: minus(B.refWpt, A.refWpt), dWpt: A.points.map((p, k) => minus(B.points[k].wpt, p.wpt)),
+  };
+}
+
 /** Mean, median, smallest and largest of a list, with where the smallest and largest are. */
 export function summary(v: number[]): { mean: number; median: number; min: number; argmin: number; max: number; argmax: number } {
   const sorted = [...v].sort((x, y) => x - y), n = v.length;

@@ -9,7 +9,7 @@ import {
 } from '../src/index.ts';
 import { responder } from '../src/spectra.ts';
 import {
-  adjust, cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, metamericBlack, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials, type ObservingCondition,
+  adjust, cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, metamericBlack, observePair, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials, type ObservingCondition,
 } from '../web/labs/shifts.ts';
 
 const close = (a: readonly number[], b: readonly number[], tol: number) =>
@@ -172,4 +172,31 @@ test('grays light to dark: alone they do not shift; with a black in proportion, 
     close(p.dWpt, black[0].points[k].dWpt.map((d) => (d * levels[j]) / levels[0]), 1e-9);
     assert.ok(Math.hypot(...p.dWpt) > 0.05, `${cl.material.name} shifts`);
   }));
+});
+
+test('pair observations: one spectral hue, a metamer of a gray, and a nonselective difference', () => {
+  const ref = wptNormalizationN('cie1931', 'C'), others = [wptNormalizationN('cie1964', 'A'), wptNormalizationN('cie1931', 'F11')];
+  const blue = reflectances[names.indexOf('5PB 5/8')];
+  const ms = [
+    { name: 'blue', reflectance: blue },
+    { name: 'blue × 0.5 + 0.25', reflectance: blue.map((v) => 0.5 * v + 0.25) },
+    { name: 'blue + 0.1', reflectance: blue.map((v) => v + 0.1) },
+    ...grayMetamers(0.5, observers.cie1931, illuminants.C).slice(0, 2),
+  ];
+  const clouds = cloudsOf(ms, others, ref);
+  const [hue, flat, gray] = pairsOf(clouds, [[0, 1], [0, 2], [3, 4]]).map((p) => observePair(clouds, p));
+  // one spectral hue: the fit holds, the shifts are a × the first's, the hue angles agree everywhere
+  assert.ok(Math.abs(hue.fit.a! - 0.5) < 1e-12 && Math.abs(hue.fit.b - 0.25) < 1e-12 && hue.fit.rms < 1e-12);
+  assert.ok(Math.abs(hue.shiftFit!.k - 0.5) < 1e-9 && hue.shiftFit!.residual < 1e-6);
+  assert.ok(hue.hueSpread! < 1e-9);
+  // a nonselective difference moves W only, by 100 × the difference, the same in every condition
+  assert.ok(flat.diff.rmsAboutMean < 1e-12 && Math.abs(flat.diff.mean - 0.1) < 1e-12);
+  [flat.refDWpt, ...flat.dWpt].forEach((w) => close(w, [10, 0, 0], 1e-9));
+  // a gray and a metamer of it: flat first (no a), a match in the reference only, no hue, no shift to scale
+  assert.equal(gray.fit.a, undefined);
+  assert.ok(gray.fit.rms > 0.01);
+  assert.deepEqual(gray.matches, [-1]);
+  close(gray.refDWpt, [0, 0, 0], 1e-9);
+  assert.equal(gray.hueSpread, undefined);
+  assert.equal(gray.shiftFit, undefined);
 });

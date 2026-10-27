@@ -17,8 +17,8 @@ import {
   $, cloud3d, download, escapeHtml, histogram, LIGHT_LABEL, OBSERVER_LABEL, parseTable, scatter, spectrumPlot, viewGroup, type ViewGroup,
 } from './kit.ts';
 import {
-  cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, NormalizationCache, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials,
-  type Cloud, type Entry, type Layout, type Material, type ObservingCondition, type PairMode,
+  cloudsOf, copyEntry, grayMetamers, graysWithBlack, materialsOf, NormalizationCache, observePair, pairIndices, pairsOf, readMaterials, summary, syncEntries, writeMaterials,
+  type Cloud, type Entry, type Layout, type Material, type ObservingCondition, type PairMode, type PairResult,
 } from './shifts.ts';
 
 /** Conditions normalized without asking; above this the page shows the count and a Compute button. */
@@ -27,6 +27,8 @@ const AUTO = 3000;
 const US_PER_NORMALIZATION = 60;
 const PALETTE = ['#0b72b9', '#d9690f', '#2a9d5c', '#9b3fb5', '#c9302c', '#a07d00', '#0098a8', '#7a7a7a', '#d6337a', '#4a5fb0'];
 const MAX_PLOTTED = PALETTE.length;
+/** A pair's two materials and the lines joining them. */
+const PAIR_COLORS = ['#0b72b9', '#d9690f', '#8f99a3'];
 
 const cache = new NormalizationCache();
 const message = (e: unknown) => (e as Error).message;
@@ -271,7 +273,7 @@ $('entries').addEventListener('click', (e) => {
 });
 
 let lastClouds: Cloud[] = [], lastConds: ObservingCondition[] = [];
-let group: ViewGroup | undefined;
+let group: ViewGroup | undefined, pairGroup: ViewGroup | undefined;
 function clearPlot3d(): void { lastClouds = []; const c = $<HTMLCanvasElement>('plot3d'); c.getContext('2d')?.clearRect(0, 0, c.width, c.height); }
 
 function showManifolds(clouds: Cloud[], conds: ObservingCondition[]): void {
@@ -334,7 +336,7 @@ function showPairs(clouds: Cloud[], conds: ObservingCondition[], ref: ObservingC
   const results = pairsOf(clouds, pairIndices(clouds.length, mode));
   if (!results.length) {
     $('pairsSummary').textContent = 'Give two or more materials to compare them in pairs.';
-    clear(['pairsTable', 'pairsHist']); pairsCsv = undefined;
+    clear(['pairsTable', 'pairsHist', 'pairsObs', 'pairMultiples']); pairsCsv = undefined; lastPairs = undefined;
     return;
   }
   const name = (i: number) => clouds[i].material.name;
@@ -361,6 +363,63 @@ function showPairs(clouds: Cloud[], conds: ObservingCondition[], ref: ObservingC
   pairsCsv = () => [['first', 'second', 'observer', 'light', 'DeltaE_WLab'].join(','),
     ...results.map((r) => [q(name(r.a)), q(name(r.b)), q(`reference: ${ref.observerLabel}`), q(ref.lightLabel), r.refDE.toFixed(4)].join(',')),
     ...results.flatMap((r) => r.dE.map((d, k) => [q(name(r.a)), q(name(r.b)), q(conds[k].observerLabel), q(conds[k].lightLabel), d.toFixed(4)].join(',')))].join('\n');
+  showObservations(clouds, conds, results);
+}
+
+/** What each pair has in common, as numbers, and each pair's difference manifold: the Wpt of its difference spectrum. */
+function showObservations(clouds: Cloud[], conds: ObservingCondition[], results: PairResult[]): void {
+  const name = (i: number) => clouds[i].material.name;
+  const dash = (why: string) => `<span title="${why}">—</span>`;
+  const obs = results.map((r) => observePair(clouds, r));
+  const rows = results.map((r, i) => {
+    const o = obs[i];
+    const at = o.matches.map((k) => (k < 0 ? 'the reference' : where(conds[k])));
+    const others = o.matches.filter((k) => k >= 0).length;
+    const matched = !o.matches.length ? 'nowhere'
+      : `<span title="${escapeHtml(at.slice(0, 20).join('; ') + (at.length > 20 ? '; …' : ''))}">${[
+        ...(o.matches[0] === -1 ? ['the reference'] : []), ...(others ? [`${others} of ${conds.length}`] : [])].join(' and ')}</span>`;
+    return `<tr><td>${escapeHtml(name(r.a))}</td><td>${escapeHtml(name(r.b))}</td>
+      <td class="sep">${o.fit.a === undefined ? dash('the first is flat: the second is fitted as a constant') : o.fit.a.toFixed(3)}</td><td>${o.fit.b.toFixed(3)}</td><td>${o.fit.rms.toFixed(5)}</td>
+      <td class="sep">${o.diff.mean.toFixed(3)}</td><td>${o.diff.rmsAboutMean.toFixed(5)}</td>
+      <td class="sep">${o.shiftFit ? o.shiftFit.k.toFixed(3) : dash('the first does not shift')}</td><td>${o.shiftFit ? `${(o.shiftFit.residual * 100).toFixed(1)}%` : dash('the first does not shift')}</td>
+      <td class="sep">${o.hueSpread === undefined ? dash('a hue angle is not defined where the chroma is 0') : `${o.hueSpread.toFixed(2)}°`}</td>
+      <td class="sep">${matched}</td></tr>`;
+  }).join('');
+  $('pairsObs').innerHTML = `<table><thead>
+    <tr><th></th><th></th><th class="sep" colspan="3">Second ≈ a × first + b</th><th class="sep" colspan="2">Second − first</th>
+      <th class="sep" colspan="2">Second's shifts ≈ k × first's</th><th class="sep">Hue</th><th class="sep">ΔE<sub>WLab</sub> 0.00</th></tr>
+    <tr><th>First</th><th>Second</th><th class="sep">a</th><th>b</th><th>RMS left over</th><th class="sep">mean</th><th>RMS about it</th>
+      <th class="sep">k</th><th>left over</th><th class="sep">largest difference</th><th class="sep">in</th></tr>
+    </thead><tbody>${rows}</tbody></table>`;
+  // the choice of pairs to draw: every pair (the first 6), or one, kept across recomputing while it still exists
+  const pick = $<HTMLSelectElement>('pairShow'), was = pick.value;
+  pick.replaceChildren(new Option(results.length > 6 ? 'the first 6 pairs, side by side' : 'every pair, side by side', 'all'),
+    ...results.map((r, i) => new Option(`${name(r.a)} and ${name(r.b)}`, String(i))));
+  pick.value = was !== 'all' && Number(was) < results.length ? was : 'all';
+  lastPairs = { clouds, results };
+  drawPairs();
+}
+
+let lastPairs: { clouds: Cloud[]; results: PairResult[] } | undefined;
+
+/** Each pair's two Wpt shift manifolds, joined condition by condition: each line is the shift of the pair's difference. */
+function drawPairs(): void {
+  if (!lastPairs) return;
+  const { clouds, results } = lastPairs;
+  const name = (i: number) => clouds[i].material.name;
+  const choice = $<HTMLSelectElement>('pairShow').value;
+  const shown = choice === 'all' ? results.slice(0, 6) : [results[Number(choice)]];
+  $('pairMultiples').classList.toggle('single', choice !== 'all');
+  pairGroup = viewGroup(pairGroup);
+  const up = (w: Vec3) => [w[1], w[2], w[0]];
+  const key = (color: string, label: string) => `<span class="key"><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="3" fill="${color}"/></svg>${escapeHtml(label)}</span>`;
+  $('pairMultiples').innerHTML = shown.map((r) => `<figure><figcaption><div class="legend">${key(PAIR_COLORS[0], name(r.a))}${key(PAIR_COLORS[1], name(r.b))}</div></figcaption>
+    <canvas class="cloud" aria-label="The Wpt shifts of ${escapeHtml(name(r.a))} and ${escapeHtml(name(r.b))}, joined condition by condition; drag to turn every view"></canvas></figure>`).join('')
+    + (choice === 'all' && results.length > 6 ? `<p class="note">The first 6 of ${results.length} pairs; choose a pair above to see any of them.</p>` : '');
+  $('pairMultiples').querySelectorAll('canvas').forEach((c, i) => {
+    const a = clouds[shown[i].a].points.map((p) => up(p.dWpt)), b = clouds[shown[i].b].points.map((p) => up(p.dWpt));
+    cloud3d(c, { sets: [{ pts: a, color: PAIR_COLORS[0] }, { pts: b, color: PAIR_COLORS[1] }], lines: { from: a, to: b, color: PAIR_COLORS[2] }, dot: 1.1, axes: ['Δp', 'Δt', 'ΔW'], group: pairGroup });
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -398,6 +457,8 @@ const EXAMPLE_NOTES: Record<string, string> = {
 function example(which: string): void {
   let text: string;
   entries = [];
+  // each example sets how its pairs are made; most compare each material with the first
+  $<HTMLSelectElement>('pairMode').value = 'first';
   if (which === 'red') text = writeMaterials(readMaterials(brandRed, 'columns'), orient());
   else if (which === 'plane') {
     // one reflectance and copies of it scaled and shifted: one spectral hue plane, seen side by side on their own scales
@@ -412,7 +473,6 @@ function example(which: string): void {
     // a nonselective gray and gray plus metameric blacks: one color in the reference condition, apart elsewhere
     const ref = referenceCondition();
     text = writeMaterials(grayMetamers(0.5, ref.observer, ref.light), orient());
-    $<HTMLSelectElement>('pairMode').value = 'first';
   }
   else if (which === 'grays') {
     // grays light to dark, alone (no shift: one point), then with a metameric black in proportion (one manifold, scaled)
@@ -463,6 +523,7 @@ for (const id of ['materials', 'lightPaste', 'obsPaste', 'catField', 'ageStep', 
   $(id).addEventListener('input', schedule);
   $(id).addEventListener('change', schedule);
 }
+$('pairShow').addEventListener('change', drawPairs);
 for (const id of ['space', 'positions', 'layout', 'viewScale']) $(id).addEventListener('change', () => { if (lastClouds.length) showManifolds(lastClouds, lastConds); });
 $('compute').addEventListener('click', () => void update(true));
 // a change of layout rewrites the table in the box, if it can be read in the layout it was in

@@ -151,6 +151,25 @@
     chosen beside the reference, this is a simple index of metamerism: a pair that matches in the reference condition
     and how far apart it is in the other. With many, it shows how the pair holds up across all of them, and where it
     holds up least.</p>
+    <h3>What each pair has in common</h3>
+    <div id="pairsObs" class="table-wrap"></div>
+    <p class="note">Numbers, not verdicts: where they are 0, the pair has that in common exactly; how close to 0 counts
+    as the same is left to you. The second reflectance is fitted as a × the first + b: two reflectances of one spectral
+    hue fit exactly, and then the second's Wpt shifts are k = a times the first's and their Wpt hue angles agree in
+    every condition. The difference spectrum, second − first, is nonselective when its RMS about its mean is 0: the
+    pair then differs only in W, by 100 × the mean, the same in every condition. The last column gives where the two
+    match to two decimals: where the pair is a metamer and its difference spectrum a metameric black (hover for the
+    conditions).</p>
+    <h3>The pairs' difference manifolds</h3>
+    <div class="row"><label>Show <select id="pairShow" autocomplete="off"><option value="all">every pair, side by side</option></select></label></div>
+    <div id="pairMultiples" class="multiples"></div>
+    <p class="note">Each pair's two Wpt shift manifolds (W up), one color each, with a line joining the pair's two
+    points in each condition. Each line is how the pair's difference has shifted from the reference: Wpt is linear,
+    so it is the Wpt shift of the difference spectrum, second − first, and the lines together are the pair's
+    difference manifold. A pair of one spectral hue has its lines on rays through the origin (the second's shifts are
+    a times the first's); for a gray and a metamer of it, the lines start at the origin (the gray does not shift); a
+    pair that differs only in W has lines of length 0. WLab is not linear, so the pair's ΔE<sub>WLab</sub> depends
+    also on where the pair is, not only on these lines.</p>
   </div>
 
   <footer>

@@ -83,6 +83,7 @@
   canvas.cloud.flat { cursor: default; }
   .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
   .multiples figure { margin: 0; }
+  .multiples.single { grid-template-columns: minmax(0, 720px); }    /* one view, large */
   .multiples figcaption { font-size: 0.85rem; color: var(--ink); margin-bottom: 4px; display: flex; gap: 6px; align-items: center; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
   table.entries td { vertical-align: middle; }
