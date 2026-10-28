@@ -5,42 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WLab Lighting Lab</title>
 <!--FAVICON-->
-<meta name="description" content="Give a test light and see how far objects move between it and a reference light in WLab, over libraries of objects and observers (the IRE), which objects move most, and the closest Planckian and daylight references.">
+<meta name="description" content="Give a test light and a reference light, and measure how far objects move in WLab between the two lights over libraries of objects and observers (the IRE): which objects move most, the closest Planckian and daylight references, and beside them the light's CCT and its color rendering indices (CIE 13.3 Ra, CIE 224 and TM-30 Rf, TM-30 Rg).">
 <!--LABS-CSS-->
 </head>
 <body>
 <main>
   <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Lighting</nav>
   <div class="brand small"><!--LABS-LOGO--><h1>Lighting</h1></div>
-  <p class="lead">A light changes the colors of the objects it falls on, and no two lights change them alike. An
-  observing condition (hereafter "condition") is an observer under a light, and each condition has its own Wpt
+  <p class="lead">A light changes the colors of the objects it falls on, and no two lights change them alike. This page
+  takes a test light and a reference light and measures how far objects move in WLab between the two lights, for many
+  objects and many observers at once.</p>
+  <p>An observing condition (hereafter "condition") is an observer under a light, and each condition has its own Wpt
   normalization, which puts its light's white at the same place: what is left is how the light renders the objects.
-  This lab takes a test light and a reference light, and measures how far each object moves in WLab between the two,
-  for many objects and many observers at once.</p>
+  Take an object and an observer. The WLab difference (ΔE<sub>WLab</sub>) between the object under the test light and
+  under the reference light, each through the observer's own normalization for that light, is how far the object moves
+  between the two lights. The mean of that difference over every object and every observer is this page's main measurement metric,
+  <b>Illuminant Rendering Equivalency</b> (IRE). It is 0 when the two lights render every object alike for every
+  observer, and the larger it is, the more the two lights differ in how they render objects; it leaves out the color of
+  the lights themselves. Beside it, the page gives the test light's correlated color temperature and its standard color
+  rendering indices.</p>
 
-  <h2>1. The test light</h2>
+  <h2>1. Test light</h2>
   <div class="card">
     <div id="test"></div>
     <p id="status" class="note"></p>
   </div>
 
-  <h2>2. The reference light</h2>
+  <h2>2. Reference light</h2>
   <div class="card">
-    <p>The light the test light is compared with. By default, the Planckian (blackbody) or daylight light that renders
-    the objects most like the test light does, found in section 4; any other light can be chosen.</p>
+    <p>The light the test light is compared with: a single light you pick, or one found from the test light. Found
+    from it: the Planckian (blackbody) or daylight light with the lowest IRE, the one that renders the objects most like
+    the test light does (section 4, the default); the one with the lowest IRE among lights of your own; or the reference
+    the color rendering indices make at the test light's correlated color temperature (CCT, section 5).</p>
     <div id="reference"></div>
     <div id="lightPlot" style="max-width: 640px"></div>
   </div>
 
   <h2>3. How far objects move between the two lights</h2>
   <div class="card">
-    <p>Take an object and an observer. The object's Wpt under the test light and under the reference light, each
-    through the observer's own Wpt normalization for that light, would be the same if the two lights rendered it alike;
-    the WLab difference between them (ΔE<sub>WLab</sub>) is how far the object moves between the two lights. The mean of
-    that difference over every object and every observer is the <b>Illuminant Rendering Equivalency</b> (IRE). It is 0
-    when the two lights render every object alike for every observer, and the larger it is, the more the two lights
-    differ in how they render objects. Because each normalization puts its light's white at the same Wpt, the IRE
-    leaves out the color of the light itself.</p>
+    <p>The IRE of the test light against the reference light, and how its WLab differences spread: one for each object
+    and each observer.</p>
     <div id="move"></div>
     <div id="moveHist" style="max-width: 520px"></div>
     <div class="optin">
@@ -49,8 +53,8 @@
       <label class="check"><input type="checkbox" id="chooseSets" autocomplete="off"> Choose the objects and observers myself</label>
       <div id="setsBox" hidden>
         <p class="note">The objects are the materials the lights are compared on, and the observers those who see them;
-        the more varied the objects' spectra, the more a difference between lights shows. They apply to sections 3 to
-        5.</p>
+        the more varied the objects' spectra, the more a difference between lights shows. They apply to the IRE wherever
+        it appears (sections 3 to 6); the color rendering indices of section 5 use their own samples and observer.</p>
         <h3>Objects</h3>
         <div id="objectSets" class="sets"></div>
         <div class="row"><label>Your own objects <input type="file" id="ownFiles" accept=".txt,.csv,.tsv,.cgats,.cgt,.it8,.ti3" multiple></label></div>
@@ -67,7 +71,7 @@
         <p id="observerPasteNote" class="note"></p>
       </div>
     </div>
-    <h3>The objects that move most</h3>
+    <h3>Objects that move most</h3>
     <div id="movers"></div>
     <p class="note">The 15 objects with the largest mean ΔE<sub>WLab</sub> over the observers. The shares split each one's
     differences (their squares, summed over the observers) into lightness, chroma (toward or away from neutral) and hue
@@ -85,22 +89,79 @@
     <div class="row"><button id="downloadMove" disabled>Download every object's differences (CSV)</button></div>
   </div>
 
-  <h2>4. The closest Planckian and daylight references</h2>
+  <h2>4. Closest Planckian and daylight references</h2>
   <div class="card">
     <p>The IRE of the test light against every Planckian light from 1750 to 12000 K and every CIE daylight from 4000 to
     14000 K, in steps of 250 K. The lowest point of each line is the reference of that kind that renders the objects
-    most like the test light does. It need not be at the test light's correlated color temperature: the IRE compares
-    renderings, not the color of the lights.</p>
+    most like the test light does.</p>
+    <p class="flag"><b>Two temperatures, two questions.</b> The temperature of the lowest IRE is about the similarity of
+    material color rendering: the Planckian or daylight light under which objects, each observer through its own
+    normalization, keep their material colors closest to those the test light gives them. It depends on the whole
+    spectrum, and not on the color of the light, which each normalization takes away. The CCT is about the closeness of
+    the light's white point to the Planckian locus in a chromaticity diagram: the temperature of the Planckian light
+    whose white is nearest, from the light's chromaticity alone (here in the CIE 1960 u, v diagram), whatever spectrum
+    makes that white. Two lights with the same white point have one CCT and can still render material colors
+    differently, so the lowest IRE can lie away from the CCT, marked by the dashed line.</p>
     <p id="sweepProgress" class="note"></p>
     <div id="curves" style="max-width: 640px"></div>
     <div id="closestTable"></div>
+    <div id="yoursTable"></div>
     <div class="row"><button id="downloadCurves" disabled>Download the IRE by temperature (CSV)</button></div>
   </div>
 
-  <h2>5. Many test lights at once</h2>
+  <h2>5. Color rendering indices</h2>
   <div class="card">
-    <p>The same for a set of test lights: for each, the closest Planckian and the closest daylight reference and their
-    IRE, the smaller of the two in italics, and the curves, colored by the kind of light.</p>
+    <p>The standard measures of color rendering also compare the test light with a reference, one made from the test
+    light's CCT: the temperature of the Planckian light whose color is closest to the test light's, found from the
+    light's chromaticity alone (the CIE 1931 observer in the CIE 1960 u, v diagram). Duv is the light's distance above
+    (+, toward green) or below (−, toward magenta) the line of Planckian colors. Each index compares the colors of its
+    own samples under the two lights, for one observer, and is 100 when the test light renders them as the reference
+    does:</p>
+    <ul>
+      <li>the <b>color rendering index</b> Ra (CIE 13.3): 14 Munsell samples and the CIE 1931 observer, with a Planckian
+      reference below 5000 K and daylight from 5000 K up; Ra is the mean of the special indices R1 to R8, each 100 minus
+      4.6 times the sample's color difference (in the U*V*W* space of CIE 13.3, after an adaptation to the reference's
+      white);</li>
+      <li>the <b>color fidelity index</b> R<sub>f</sub> (CIE 224:2017, the same as that of ANSI/IES TM-30): the CIE's 99
+      color evaluation samples, the CIE 1964 observer and color differences in CAM02-UCS, with a Planckian reference
+      below 4000 K, daylight above 5000 K and a mix of the two between;</li>
+      <li>the <b>gamut index</b> R<sub>g</sub> (TM-30): the area the 99 samples' mean colors in 16 hue bins span under
+      the test light, as a percentage of the area under the reference; above 100 the colors are more saturated on
+      average, below 100 less.</li>
+    </ul>
+    <p>Unlike the IRE, each uses one observer, a fixed set of samples and a reference set by the CCT; the IRE against the
+    same references is given with them.</p>
+    <div id="indices"></div>
+    <details><summary>The special color rendering indices R1 to R14</summary>
+      <div id="riTable"></div>
+      <p class="note">Each test color sample's index, 100 minus 4.6 times its color difference between the two lights;
+      Ra is the mean of the first eight. R9 to R14 (in gray), strong red, yellow, green and blue, a skin tone and a leaf
+      green, are not part of Ra.</p>
+    </details>
+    <h3>16 hue bins of TM-30</h3>
+    <div class="cols"><div id="cvg"></div><div id="bins"></div></div>
+    <p class="note">The 99 samples grouped by their hue under the reference. For each bin: its local color fidelity, and
+    the shift of its mean color along the angle bisecting the bin (chroma, as a share of the reference's distance from
+    neutral; + more saturated) and across it (hue, in radians; + toward a larger angle). In the graphic, each bin's
+    mean color under the reference is put on the dashed circle, and the arrow goes to where the test light moves it.
+    Checked against colour-science 0.4.7 for the CIE fluorescent and LED lights: R<sub>f</sub> and R<sub>g</sub> to
+    0.002, the bins' shifts to 0.0001.</p>
+    <div class="row"><button id="downloadIndices" disabled>Download the indices (CSV)</button></div>
+  </div>
+
+  <h2>6. Many test lights at once</h2>
+  <div class="card">
+    <p>Sections 1 to 5 look at one test light. This section takes a set of test lights, chosen below, and does for each
+    of them what sections 4 and 5 do for the test light of section 1. It searches the Planckian lights from 1750 to
+    12000 K and the CIE daylights from 4000 to 14000 K, every 250 K, for the one with the lowest IRE against the test
+    light: the same search that gives section 2 its default reference. And it gives each test light's CCT and color
+    rendering indices. The test light and reference chosen in sections 1 and 2 play no part here.</p>
+    <p>The table gives, for each test light, its CCT; then the Planckian light with the lowest IRE and that IRE, and the
+    daylight with the lowest IRE and that IRE, the smaller of the two in italics; and last its Ra, R<sub>f</sub> and
+    R<sub>g</sub>.
+    The first two plots show each test light's IRE against every Planckian (left) and every daylight (right) reference,
+    colored by the kind of light, with the lowest point of each line marked. The last two put each test light's lowest
+    IRE against its R<sub>f</sub> and against its Ra, to set the IRE beside the color rendering indices.</p>
     <div id="lightSets" class="sets"></div>
     <div class="row"><label>Your own lights <input type="file" id="lightFiles" accept=".txt,.csv,.tsv" multiple></label></div>
     <p id="lightNote" class="note"></p>
@@ -108,7 +169,10 @@
     <p id="lightPasteNote" class="note"></p>
     <div id="many"></div>
     <div class="cols" id="manyPlots"></div>
-    <div class="row"><button id="downloadMany" disabled>Download the IRE of every test light (CSV)</button></div>
+    <div class="cols" id="manyScatter"></div>
+    <p class="note">The lowest IRE is the smaller of each light's closest Planckian and closest daylight IRE. Hover over a
+    point for the light.</p>
+    <div class="row"><button id="downloadMany" disabled>Download the IRE and indices of every test light (CSV)</button></div>
   </div>
 
   <footer>
@@ -117,15 +181,17 @@
     40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed
     in this page. The object sets and cameras not built into it are files of this site, loaded from it when chosen;
     nothing you enter or load is sent anywhere. The IRE: M. W. Derhak, <i>Spectrally Based Material Color Equivalency:
-    Modeling and Manipulation</i>, PhD dissertation, Rochester Institute of Technology, 2015. The objects: the corrected
-    Munsell colors (measurements © University of Eastern Finland; corrected by Derhak and Berns, 2012), the CIE's 99
-    color evaluation samples (CIE 224:2017, CC BY-SA 4.0), natural objects measured in Japan (Morimoto, Zhang, Fukuda
-    and Uchikawa, 2021, CC BY 4.0), human skin (NIST, Cooksey, Allen and Tsai, 2017) and the Munsell soil color chart
-    (2023 dataset, CC BY 4.0); each set's source and changes are shown where it is chosen. CIE data (observers,
-    illuminants, the fluorescent and LED lights) CC BY-SA 4.0. Categorical observers of Asano and Fairchild, used with
-    permission. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL database) come
-    from Psychtoolbox-3, MIT license (its notice is in this page's source and in <code>wlab</code>'s
-    LICENSE-psychtoolbox.txt).</p>
+    Modeling and Manipulation</i>, PhD dissertation, Rochester Institute of Technology, 2015. The color rendering
+    indices: CIE 13.3-1995 (with its 14 test color samples, CIE dataset 10.25039/CIE.DS.wuiuu9cz, CC BY-SA 4.0), CIE
+    224:2017 and ANSI/IES TM-30-18, with CIECAM02 (CIE 159:2004) and its CAM02-UCS (Luo, Cui and Li, 2006); the CCT as
+    in CIE 015:2018. The objects: the corrected Munsell colors (measurements © University of Eastern Finland; corrected
+    by Derhak and Berns, 2012), the CIE's 99 color evaluation samples (CIE 224:2017, CC BY-SA 4.0), natural objects
+    measured in Japan (Morimoto, Zhang, Fukuda and Uchikawa, 2021, CC BY 4.0), human skin (NIST, Cooksey, Allen and
+    Tsai, 2017) and the Munsell soil color chart (2023 dataset, CC BY 4.0); each set's source and changes are shown
+    where it is chosen. CIE data (observers, illuminants, the fluorescent and LED lights) CC BY-SA 4.0. Categorical
+    observers of Asano and Fairchild, used with permission. The tables of the CIE 2006 model (CIE 170-1:2006 and
+    Stockman and Sharpe, from the CVRL database) come from Psychtoolbox-3, MIT license (its notice is in this page's
+    source and in <code>wlab</code>'s LICENSE-psychtoolbox.txt).</p>
   </footer>
 </main>
 <!--APP-->

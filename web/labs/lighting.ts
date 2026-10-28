@@ -1,12 +1,14 @@
 // Lab E: lighting. A test light against a reference light over a library of objects and observers: how far objects
 // move between the two in WLab (the thesis's IRE), which move most, and the Planckian and daylight references that
-// come closest, for one test light or many at once.
+// come closest; beside them the light's CCT and the color rendering indices (CIE 13.3 Ra, CIE 224 and TM-30 Rf, TM-30
+// Rg), for one test light or many at once.
 // Bundled into labs/lighting.html by scripts/build-web.mjs.
 
 import {
-  categoricalObserver, cie2006, daylight, deltaEsOf, fluorescents, illuminants, observers, planckian, resample, wlabsOf,
+  categoricalObserver, cct, cie2006, daylight, deltaEsOf, fluorescents, illuminants, ire, observers, planckian, resample, wlabsOf,
   type IlluminantName, type Observer, type SampleSet, type Spectrum,
 } from '../../src/index.ts';
+import { cri, fidelity, fidelityReference, type Fidelity } from './rendering.ts';
 import { CAMERA_CREDIT, cameraObservers } from './cameras.ts';
 import { fromDisk } from './fetchdata.ts';
 import { hueTurn } from './shifts.ts';
@@ -38,7 +40,7 @@ const LEDS: Light[] = (Object.keys(illuminants) as IlluminantName[]).filter((k) 
 
 const range = (a: number, b: number, s: number) => Array.from({ length: Math.round((b - a) / s) + 1 }, (_, i) => a + s * i);
 const PLANCK = range(1750, 12000, 250), DAY = range(4000, 14000, 250);
-/** The references of sections 4 and 5: every Planckian light, then every daylight, as in the thesis's tables. */
+/** The references of sections 4 and 6: every Planckian light, then every daylight, as in the thesis's tables. */
 const REFS: (Light & { kind: 'planck' | 'day'; t: number })[] = [
   ...PLANCK.map((t) => ({ key: `planck${t}`, label: `Planckian ${t} K`, spd: planckian(t), kind: 'planck' as const, t })),
   ...DAY.map((t) => ({ key: `day${t}`, label: `daylight ${t} K`, spd: daylight(t), kind: 'day' as const, t })),
@@ -64,15 +66,19 @@ function readLights(text: string, source: string): Light[] {
   });
 }
 
-type Closest = 'any' | 'planck' | 'day';
-interface Picked { light?: Light; closest?: Closest }
+/** A reference found from the test light: the one rendering the objects most alike (lowest IRE), or at its CCT. */
+type Closest = 'any' | 'planck' | 'day' | 'yours';
+type AtCct = 'cri' | 'fidelity';
+interface Picked { light?: Light; closest?: Closest; atCct?: AtCct; yours?: Light[] }
 
 /**
- * A light picker: the common lights, the CIE fluorescent lights, daylight or Planckian at a
- * temperature, or your own (pasted or from a file). With `closest`, it also offers the closest reference by IRE
- * (section 4), which `get()` returns as a choice to resolve rather than a light.
+ * A light picker: the common lights, the CIE fluorescent lights, daylight or Planckian at a temperature, or your own
+ * (pasted or from a file). With `found`, it also offers references found from the test light, which `get()` returns as
+ * a choice to resolve rather than a light: the one rendering the objects most alike (the lowest IRE, section 4) among
+ * the Planckian and daylight lights or among lights of your own, or the reference of the color rendering indices at
+ * the test light's CCT (section 5).
  */
-function lightPicker(host: HTMLElement, start: string, onChange: () => void, closest = false): { get(): Picked } {
+function lightPicker(host: HTMLElement, start: string, onChange: () => void, found = false): { get(): Picked } {
   host.innerHTML = `
     <div class="row">
       <label>Light <select data-k="light" autocomplete="off"></select></label>
@@ -83,15 +89,22 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, clo
     <div data-k="ownBox" hidden>
       <div class="row"><label>From a file <input type="file" data-k="file" accept=".txt,.csv,.tsv"></label></div>
       <textarea data-k="paste" spellcheck="false" placeholder="nm, my lamp&#10;380, 2.1&#10;385, 2.3&#10;…"></textarea>
-      <p class="note" data-k="ownNote">Wavelength in nm and relative power, any scale; comma, tab or space separated, header
-      row optional, at least 420 to 680 nm. A file's numbers appear in the box. Read in this page; they go nowhere.</p>
+      <p class="note" data-k="ownNote"></p>
     </div>`;
   const el = <T extends HTMLElement>(k: string) => host.querySelector(`[data-k="${k}"]`) as T;
   const light = el<HTMLSelectElement>('light');
   const group = (label: string, options: HTMLOptionElement[]) => { const g = document.createElement('optgroup'); g.label = label; g.append(...options); return g; };
+  const ONE = 'Wavelength in nm and relative power, any scale; comma, tab or space separated, header row optional, at least 420 to 680 nm. A file\'s numbers appear in the box. Read in this page; they go nowhere.';
+  const MANY = 'Your candidate references: wavelength in nm in the first column and one light per column (a header row can name them), relative power at any scale, at least 420 to 680 nm. A file\'s numbers appear in the box. Read in this page; they go nowhere.';
   light.replaceChildren(
-    ...(closest ? [group('Rendering the objects most alike (section 4)', [new Option('The closest Planckian or daylight', 'closest:any'),
-      new Option('The closest Planckian', 'closest:planck'), new Option('The closest daylight', 'closest:day')])] : []),
+    ...(found ? [group('Found from the test light', [
+      new Option('The Planckian or daylight light with the lowest IRE (section 4)', 'closest:any'),
+      new Option('The Planckian light with the lowest IRE (section 4)', 'closest:planck'),
+      new Option('The daylight with the lowest IRE (section 4)', 'closest:day'),
+      new Option('The one of your own lights with the lowest IRE…', 'closest:yours'),
+      new Option('At the test light\'s CCT: the color rendering index\'s reference (section 5)', 'cct:cri'),
+      new Option('At the test light\'s CCT: the reference of CIE 224 and TM-30 (section 5)', 'cct:fidelity'),
+    ])] : []),
     group('Common lights', (Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k))),
     group('CIE fluorescent lights', FLUORESCENT.map((l) => new Option(l.label, `fl:${l.key}`))),
     group('Others', [new Option('Daylight at a temperature…', 'daylight'),
@@ -108,7 +121,9 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, clo
         ? 'CIE daylight for this CCT, from 4000 to 25000 K: its white lies near that of a blackbody at that temperature (5000 K gives D50).'
         : 'A blackbody (Planckian) radiator at this temperature; about 2700 K is a household incandescent bulb, 2856 K is CIE illuminant A.';
     }
-    el('ownBox').hidden = light.value !== 'paste';
+    el('ownBox').hidden = light.value !== 'paste' && light.value !== 'closest:yours';
+    if (light.value === 'paste' && !el('ownNote').dataset.read) el('ownNote').textContent = ONE;
+    if (light.value === 'closest:yours' && !el('ownNote').dataset.read) el('ownNote').textContent = MANY;
     onChange();
   };
   host.addEventListener('input', sync);
@@ -123,7 +138,17 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, clo
   return {
     get(): Picked {
       const v = light.value, kelvin = Number(el<HTMLInputElement>('kelvin').value);
+      const note = el('ownNote');
+      if (v === 'closest:yours') {
+        const text = el<HTMLTextAreaElement>('paste').value;
+        if (!text.trim()) { delete note.dataset.read; note.textContent = MANY; throw new Error('give your candidate reference lights in the box (pasted or from a file)'); }
+        const yours = readLights(text, 'your light');
+        note.dataset.read = '1';
+        note.textContent = `Read: ${yours.length} candidate reference${yours.length > 1 ? 's' : ''} (${yours.map((l) => l.label.replace(/ \(yours\)$/, '')).join(', ')}).`;
+        return { closest: 'yours', yours };
+      }
       if (v.startsWith('closest:')) return { closest: v.slice(8) as Closest };
+      if (v.startsWith('cct:')) return { atCct: v.slice(4) as AtCct };
       if (v.startsWith('fl:')) return { light: FLUORESCENT.find((l) => l.key === v.slice(3))! };
       if (v === 'daylight') {
         if (!(kelvin >= 4000 && kelvin <= 25000)) throw new Error('give a daylight CCT from 4000 to 25000 K');
@@ -135,7 +160,8 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, clo
       }
       if (v === 'paste') {
         const { spd, name, count } = readOneLight(el<HTMLTextAreaElement>('paste').value);
-        el('ownNote').textContent = count > 1 ? `The first of the ${count} lights given: ${name}.` : `Read: ${name}.`;
+        note.dataset.read = '1';
+        note.textContent = count > 1 ? `The first of the ${count} lights given: ${name}.` : `Read: ${name}.`;
         return { light: { key: `yours:${fingerprint([spd])}`, label: name === 'your light' ? name : `${name} (yours)`, spd } };
       }
       return { light: builtIn(v as IlluminantName) };
@@ -149,7 +175,7 @@ const pickTest = lightPicker($('test'), 'fl:F11', schedule);
 const pickRef = lightPicker($('reference'), 'closest:any', schedule, true);
 
 // ---------------------------------------------------------------------------------------------------------------
-// Section 5's test lights
+// Section 6's test lights
 
 interface LightSet { id: string; title: string; about: string; lights(): Light[] }
 let yourLights: Light[] = [], fileLights: Light[] = [], pastedLights: Light[] = [];
@@ -354,7 +380,7 @@ async function chosenSets(): Promise<Sets> {
   const custom = $<HTMLInputElement>('chooseSets').checked;
   $('setsNow').textContent = custom
     ? `Your choice: ${objects.reflectances.length.toLocaleString('en')} objects (${objects.sets.map((s) => s.title).join('; ')}) and ${obs.length} observer${obs.length > 1 ? 's' : ''} (${chosen.map((s) => s.title).join('; ')}).`
-    : 'Sections 3 to 5 use the CIE\'s 99 color evaluation samples (those of TM-30-18), chosen from about 105,000 measured objects to span the colors of real objects evenly (natural objects, skin, textiles, paints, plastics, printed colors and color systems), seen by 72 common observers: CIE 1931, CIE 1964 and the CIE 2006 observers for field sizes 1° to 10° and ages 20 to 80. The other sets, all 1,600 corrected Munsell colors among them, are among the choices below.';
+    : 'The IRE uses the CIE\'s 99 color evaluation samples (those of TM-30-18), chosen from about 105,000 measured objects to span the colors of real objects evenly (natural objects, skin, textiles, paints, plastics, printed colors and color systems), seen by 72 common observers: CIE 1931, CIE 1964 and the CIE 2006 observers for field sizes 1° to 10° and ages 20 to 80. The other sets, all 1,600 corrected Munsell colors among them, are among the choices below.';
   return {
     objects, observers: obs, observerTitles: chosen.map((s) => s.title),
     key: `${objects.sets.map((s) => s.id).join('+')}|${[...seen].join('+')}`,
@@ -362,7 +388,7 @@ async function chosenSets(): Promise<Sets> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The sweep of sections 4 and 5: each test light's IRE against every Planckian and daylight reference
+// The sweep of sections 4 and 6: each test light's IRE against every Planckian and daylight reference
 
 /** The mean ΔE_WLab between two packed WLab sets of the same objects (as from `wlabsOf`). */
 function meanDelta(a: ArrayLike<number>, b: ArrayLike<number>): number {
@@ -543,10 +569,15 @@ function drawCurves(test: Light, c: Curves, sets: Sets): void {
     { pts: c.planck, color: 'var(--accent)', label: 'against Planckian references', tips: c.planck.map(([t, v]) => `Planckian ${t} K: IRE ${f3(v)}`) },
     { pts: c.day, color: 'var(--accent2)', dash: '5 3', label: 'against daylight references', tips: c.day.map(([t, v]) => `daylight ${t} K: IRE ${f3(v)}`) },
   ];
-  $('curves').innerHTML = linePlot({ xLabel: 'color temperature of the reference (K)', yLabel: `IRE of ${test.label}`, series });
+  const t = cct(test.spd).cct;
+  $('curves').innerHTML = linePlot({
+    xLabel: 'color temperature of the reference (K)', yLabel: `IRE of ${test.label}`, series,
+    marks: t >= PLANCK[0] && t <= DAY[DAY.length - 1] ? [{ x: t, label: `CCT ${Math.round(t)} K` }] : [],
+  });
   const [p, d] = [lowest(c.planck), lowest(c.day)];
-  $('closestTable').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Test light</th><th class="sep">closest Planckian</th><th>IRE</th>
-    <th class="sep">closest daylight</th><th>IRE</th></tr></thead><tbody><tr><td>${escapeHtml(test.label)}</td>
+  $('closestTable').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Test light</th><th class="sep">CCT</th>
+    <th class="sep">closest Planckian</th><th>IRE</th><th class="sep">closest daylight</th><th>IRE</th></tr></thead><tbody><tr>
+    <td>${escapeHtml(test.label)}</td><td class="sep">${Math.round(t)} K</td>
     <td class="sep">${p[0]} K</td><td>${f3(p[1])}</td><td class="sep">${d[0]} K</td><td>${f3(d[1])}</td></tr></tbody></table></div>`;
   curvesCsv = [`# IRE of ${test.label} against Planckian and daylight references; ${sets.objects.reflectances.length} objects, ${sets.observers.length} observers`,
     'reference,temperature (K),IRE', ...c.planck.map(([t, v]) => `Planckian,${t},${v.toFixed(6)}`), ...c.day.map(([t, v]) => `daylight,${t},${v.toFixed(6)}`)].join('\n') + '\n';
@@ -555,28 +586,138 @@ function drawCurves(test: Light, c: Curves, sets: Sets): void {
 }
 $('downloadCurves').addEventListener('click', () => { if (curvesCsv) download(`${curvesName}.csv`, curvesCsv, 'text/csv'); });
 
+/** The IRE of the test light against each of your candidate references (section 2), the lowest first marked; the lowest. */
+function drawYours(test: Light, yours: Light[], sets: Sets): Light {
+  const v = yours.map((l) => ire(test.spd, l.spd, sets.observers, sets.objects));
+  const best = v.reduce((b, x, i) => (x < v[b] ? i : b), 0);
+  $('yoursTable').innerHTML = `<h3>Your candidate references</h3><div class="table-wrap"><table><thead><tr><th>Reference</th><th class="sep">CCT</th>
+    <th class="sep">IRE</th></tr></thead><tbody>${yours.map((l, i) => `<tr${i === best ? ' class="own"' : ''}><td>${escapeHtml(l.label)}</td>
+    <td class="sep">${Math.round(cct(l.spd).cct)} K</td><td class="sep">${f3(v[i])}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note">The IRE of the test light against each of the lights given in section 2; the lowest, in bold, is the reference of
+    section 3.</p>`;
+  return yours[best];
+}
+
 // ---------------------------------------------------------------------------------------------------------------
-// Section 5: many test lights at once, as in the thesis's table
+// Section 5: the color rendering indices, from the test light's CCT
+
+let samples: { tcs: SampleSet; ces: SampleSet } | undefined;
+const samplesNow = async () => (samples ??= { tcs: await objectsOf(['cie-tcs14']), ces: await objectsOf(['cie-ces99']) });
+
+/** The reference the color rendering index makes for a CCT: Planckian below 5000 K, CIE daylight at and above. */
+const criReference = (t: number): Light => (t >= 5000
+  ? { key: `cri-day${t.toFixed(2)}`, label: `daylight ${Math.round(t)} K`, spd: daylight(t) }
+  : { key: `cri-planck${t.toFixed(2)}`, label: `Planckian ${Math.round(t)} K`, spd: planckian(t) });
+const fidelityLight = (t: number): Light => { const f = fidelityReference(t); return { key: `fid${t.toFixed(2)}`, label: f.name, spd: f.spd }; };
+
+/** TM-30's color vector graphic: each hue bin's mean shift from the reference, drawn out from a circle of the reference. */
+function vectorGraphic(f: Fidelity): string {
+  const S = 320, c = S / 2, R = 110, X = (x: number) => (c + R * x).toFixed(1), Y = (y: number) => (c - R * y).toFixed(1);
+  const pts = f.bins.filter((b) => b.count).map((b) => {
+    const th = Math.atan2(b.ref[1], b.ref[0]), cr = Math.hypot(b.ref[0], b.ref[1]);
+    const u = [Math.cos(th), Math.sin(th)];
+    return { u, t: [u[0] + (b.test[0] - b.ref[0]) / cr, u[1] + (b.test[1] - b.ref[1]) / cr] };
+  });
+  const spokes = Array.from({ length: 16 }, (_, j) => { const a = (j * 22.5 * Math.PI) / 180; return `<line x1="${c}" y1="${c}" x2="${X(1.45 * Math.cos(a))}" y2="${Y(1.45 * Math.sin(a))}" stroke="var(--line)"/>`; }).join('');
+  const id = `cvg${Math.random().toString(36).slice(2, 8)}`;
+  return `<svg viewBox="0 0 ${S} ${S}" width="100%" style="max-width: ${S}px" role="img" aria-label="TM-30 color vector graphic">
+    <defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+    ${spokes}<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="var(--quiet)" stroke-dasharray="4 3"/>
+    <polygon points="${pts.map((p) => `${X(p.t[0])},${Y(p.t[1])}`).join(' ')}" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent)" stroke-width="1.5"/>
+    ${pts.map((p) => `<line x1="${X(p.u[0])}" y1="${Y(p.u[1])}" x2="${X(p.t[0])}" y2="${Y(p.t[1])}" stroke="var(--accent)" marker-end="url(#${id})"/>`).join('')}
+    <text x="${c}" y="${S - 6}" text-anchor="middle">dashed: the reference; solid: the test light</text></svg>`;
+}
+
+let indicesCsv = '', indicesName = '';
+
+/**
+ * Section 5: the test light's CCT and color rendering indices, each beside its reference and the IRE of the test light
+ * against that reference; and, once section 4 has its curves, the lowest IRE among the Planckian and daylight lights.
+ */
+function drawIndices(test: Light, sets: Sets, s: { tcs: SampleSet; ces: SampleSet }, curves?: Curves): void {
+  const r = cri(test.spd, s.tcs), f = fidelity(test.spd, s.ces);
+  const refC = criReference(r.cct), refF = fidelityLight(f.cct);
+  const ireC = ire(test.spd, refC.spd, sets.observers, sets.objects), ireF = ire(test.spd, refF.spd, sets.observers, sets.objects);
+  const sgn = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(4)}`;
+  const where = Math.abs(r.duv) < 5e-5 ? 'on the Planckian locus' : r.duv > 0 ? 'above the Planckian locus, toward green' : 'below the Planckian locus, toward magenta';
+  const low = curves && (() => { const [p, d] = [lowest(curves.planck), lowest(curves.day)]; return p[1] <= d[1] ? { t: p[0], v: p[1], kind: 'Planckian' } : { t: d[0], v: d[1], kind: 'daylight' }; })();
+  $('indices').innerHTML = `<p><b>${escapeHtml(test.label)}</b>: CCT <span class="big">${Math.round(r.cct)} K</span>, from its chromaticity;
+    Duv ${sgn(r.duv)} (${where}).</p>
+    <div class="table-wrap"><table class="indices"><thead><tr><th>Measure</th><th class="sep">value</th><th class="sep">its reference</th>
+    <th class="sep">IRE against that reference</th></tr></thead><tbody>
+    <tr class="own"><td>Color rendering index Ra (CIE 13.3)</td><td class="sep">${r.ra.toFixed(1)}</td>
+      <td class="sep">${escapeHtml(refC.label)}, at the CCT (chromaticity distance DC ${r.dc.toExponential(1)})</td><td class="sep">${f3(ireC)}</td></tr>
+    <tr class="own"><td>Color fidelity index R<sub>f</sub> (CIE 224, TM-30)</td><td class="sep">${f.rf.toFixed(1)}</td>
+      <td class="sep" rowspan="2">${escapeHtml(refF.label)}, at the CCT</td><td class="sep" rowspan="2">${f3(ireF)}</td></tr>
+    <tr class="own"><td>Gamut index R<sub>g</sub> (TM-30)</td><td class="sep">${f.rg.toFixed(1)}</td></tr>
+    <tr><td>Lowest IRE (section 4)</td><td class="sep">–</td>
+      <td class="sep">${low ? `${low.kind} ${low.t} K, the Planckian or daylight light with the lowest IRE` : 'computing…'}</td><td class="sep">${low ? f3(low.v) : ''}</td></tr>
+    </tbody></table></div>
+    <p class="note">The IRE column measures, with the objects and observers of section 3, how far objects move between the test
+    light and each reference; the last row is the reference with the lowest IRE, for comparison.</p>`;
+  $('riTable').innerHTML = `<div class="table-wrap"><table class="bylight"><thead><tr><th>Test color sample</th><th class="sep">R<sub>i</sub></th></tr></thead>
+    <tbody>${s.tcs.names.map((n, i) => `<tr${i < 8 ? '' : ' class="extra"'}><td>${escapeHtml(n)}</td><td class="sep">${r.r[i].toFixed(1)}</td></tr>`).join('')}</tbody></table></div>`;
+  $('cvg').innerHTML = vectorGraphic(f);
+  $('bins').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Hue bin</th><th class="sep">samples</th><th class="sep">R<sub>f</sub></th>
+    <th>chroma shift</th><th>hue shift</th></tr></thead><tbody>${f.bins.map((b, j) => `<tr><td>${j + 1} (${(22.5 * j).toFixed(1)}° to ${(22.5 * (j + 1)).toFixed(1)}°)</td>
+    <td class="sep">${b.count}</td><td class="sep">${b.count ? b.rf.toFixed(0) : '–'}</td><td>${b.count ? `${b.rcs >= 0 ? '+' : '−'}${Math.abs(100 * b.rcs).toFixed(0)}%` : '–'}</td>
+    <td>${b.count ? `${b.rhs >= 0 ? '+' : '−'}${Math.abs(b.rhs).toFixed(2)}` : '–'}</td></tr>`).join('')}</tbody></table></div>`;
+  indicesCsv = [`# Color rendering indices of ${test.label}`, 'quantity,value',
+    `CCT (K),${r.cct.toFixed(2)}`, `Duv,${r.duv.toFixed(6)}`, `Ra,${r.ra.toFixed(3)}`, ...r.r.map((v, i) => `R${i + 1},${v.toFixed(3)}`),
+    `CIE 1995 reference,${refC.label}`, `DC,${r.dc.toExponential(3)}`, `Rf,${f.rf.toFixed(3)}`, `Rg,${f.rg.toFixed(3)}`, `CIE 2017 and TM-30 reference,"${refF.label}"`,
+    ...f.bins.map((b, j) => `bin ${j + 1} Rf / chroma shift / hue shift,${b.rf.toFixed(3)} / ${b.rcs.toFixed(4)} / ${b.rhs.toFixed(4)}`),
+    ...f.rfi.map((v, i) => `Rf of CES${i + 1},${v.toFixed(3)}`)].join('\n') + '\n';
+  indicesName = `${slug(test.label)}-color-rendering-indices`;
+  $<HTMLButtonElement>('downloadIndices').disabled = false;
+}
+$('downloadIndices').addEventListener('click', () => { if (indicesCsv) download(`${indicesName}.csv`, indicesCsv, 'text/csv'); });
+
+// ---------------------------------------------------------------------------------------------------------------
+// Section 6: many test lights at once, as in the thesis's table
 
 const GROUP_COLORS: Record<string, string> = {
   'standard fluorescent': '#8a6d00', 'broadband fluorescent': '#1f8a5b', 'tri-band fluorescent': '#c0306a', 'CIE LED': '#2f74c0', other: '#7a3fb0',
 };
 let manyCsv = '';
 
-function drawMany(lights: Light[], curves: Curves[], sets: Sets): void {
+function drawMany(lights: Light[], curves: Curves[], sets: Sets, s: { tcs: SampleSet; ces: SampleSet }): void {
   if (!lights.length) {
     $('many').innerHTML = '<p class="note">Choose at least one set of test lights.</p>';
-    $('manyPlots').replaceChildren();
+    clear(['manyPlots', 'manyScatter']);
     $<HTMLButtonElement>('downloadMany').disabled = true;
     return;
   }
-  $('many').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Test light</th><th class="sep">closest Planckian</th><th>IRE</th>
-    <th class="sep">closest daylight</th><th>IRE</th></tr></thead><tbody>${lights.map((l, k) => {
+  const idx = lights.map((l) => { const r = cri(l.spd, s.tcs), f = fidelity(l.spd, s.ces); return { cct: r.cct, ra: r.ra, rf: f.rf, rg: f.rg }; });
+  const low = curves.map((c) => Math.min(lowest(c.planck)[1], lowest(c.day)[1]));
+  // each light's name on one line and what it is (the label's parentheses) under it, in small type
+  const name = (label: string) => {
+    const m = /^(.*?) \((.*)\)$/.exec(label);
+    return m ? `${escapeHtml(m[1])}<span class="what">${escapeHtml(m[2])}</span>` : escapeHtml(label);
+  };
+  $('many').innerHTML = `<div class="table-wrap"><table class="many"><thead>
+    <tr><th></th><th class="sep"></th><th class="sep" colspan="2">Planckian with<br>the lowest IRE</th>
+      <th class="sep" colspan="2">Daylight with<br>the lowest IRE</th><th class="sep" colspan="3">Color rendering<br>indices</th></tr>
+    <tr><th>Test light</th><th class="sep">CCT</th><th class="sep">at</th><th>IRE</th><th class="sep">at</th><th>IRE</th>
+      <th class="sep">Ra</th><th>R<sub>f</sub></th><th>R<sub>g</sub></th></tr></thead><tbody>${lights.map((l, k) => {
     const [p, d] = [lowest(curves[k].planck), lowest(curves[k].day)];
     const it = (v: number, other: number) => (v <= other ? `<i>${f3(v)}</i>` : f3(v));
-    return `<tr><td>${escapeHtml(l.label)}</td><td class="sep">${p[0]} K</td><td>${it(p[1], d[1])}</td><td class="sep">${d[0]} K</td><td>${it(d[1], p[1])}</td></tr>`;
+    return `<tr><td>${name(l.label)}</td><td class="sep">${Math.round(idx[k].cct)} K</td>
+      <td class="sep">${p[0]} K</td><td>${it(p[1], d[1])}</td><td class="sep">${d[0]} K</td><td>${it(d[1], p[1])}</td>
+      <td class="sep">${idx[k].ra.toFixed(1)}</td><td>${idx[k].rf.toFixed(1)}</td><td>${idx[k].rg.toFixed(1)}</td></tr>`;
   }).join('')}</tbody></table></div>`;
   const groups = [...new Set(lights.map((l) => l.group ?? 'other'))];
+  const against = (key: 'rf' | 'ra', label: string) => {
+    const xs = idx.map((v) => v[key]), lo = Math.min(...xs), hi = Math.max(...xs), pad = (hi - lo) * 0.06 || 1;
+    return scatter({
+      xLabel: label, yLabel: 'lowest IRE', x: [lo - pad, hi + pad], y: [0, Math.max(...low) * 1.08],
+      sets: groups.map((g) => {
+        const at = lights.map((l, k) => k).filter((k) => (lights[k].group ?? 'other') === g);
+        return { pts: at.map((k) => [xs[k], low[k]]), color: GROUP_COLORS[g] ?? GROUP_COLORS.other, label: g === 'other' ? 'other lights' : `${g} lights`,
+          titles: at.map((k) => `${lights[k].label}: ${label} ${xs[k].toFixed(1)}, lowest IRE ${f3(low[k])}`) };
+      }),
+    });
+  };
+  $('manyScatter').innerHTML = `<div>${against('rf', 'Rf (CIE 224, TM-30)')}</div><div>${against('ra', 'Ra (CIE 13.3)')}</div>`;
   const legend = groups.map((g) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"
     stroke="${GROUP_COLORS[g] ?? GROUP_COLORS.other}" stroke-width="2"/></svg>${escapeHtml(g === 'other' ? 'other lights' : `${g} lights`)}</span>`).join('');
   const top = Math.max(...curves.flatMap((c) => [...c.planck, ...c.day].map((p) => p[1]))) * 1.05;
@@ -588,10 +729,12 @@ function drawMany(lights: Light[], curves: Curves[], sets: Sets): void {
     })),
   });
   $('manyPlots').innerHTML = `<div>${plot('planck')}</div><div>${plot('day')}</div>`;
-  manyCsv = [`# IRE of each test light against Planckian and daylight references; ${sets.objects.reflectances.length} objects, ${sets.observers.length} observers`,
-    'test light,reference,temperature (K),IRE',
-    ...lights.flatMap((l, k) => [...curves[k].planck.map(([t, v]) => `"${l.label}",Planckian,${t},${v.toFixed(6)}`),
-      ...curves[k].day.map(([t, v]) => `"${l.label}",daylight,${t},${v.toFixed(6)}`)])].join('\n') + '\n';
+  manyCsv = [`# IRE of each test light against Planckian and daylight references; ${sets.objects.reflectances.length} objects, ${sets.observers.length} observers; with each light's CCT, Ra, Rf and Rg`,
+    'test light,CCT (K),Ra,Rf,Rg,reference,temperature (K),IRE',
+    ...lights.flatMap((l, k) => {
+      const head = `"${l.label}",${idx[k].cct.toFixed(1)},${idx[k].ra.toFixed(2)},${idx[k].rf.toFixed(2)},${idx[k].rg.toFixed(2)}`;
+      return [...curves[k].planck.map(([t, v]) => `${head},Planckian,${t},${v.toFixed(6)}`), ...curves[k].day.map(([t, v]) => `${head},daylight,${t},${v.toFixed(6)}`)];
+    })].join('\n') + '\n';
   $<HTMLButtonElement>('downloadMany').disabled = false;
 }
 $('downloadMany').addEventListener('click', () => { if (manyCsv) download('IRE-of-many-test-lights.csv', manyCsv, 'text/csv'); });
@@ -600,7 +743,7 @@ $('downloadMany').addEventListener('click', () => { if (manyCsv) download('IRE-o
 // The page
 
 let run = 0;
-let done4: { key: string; curves: Curves } | undefined, done5: { key: string; lights: Light[]; curves: Curves[] } | undefined;
+let done4: { key: string; curves: Curves } | undefined, done6: { key: string; lights: Light[]; curves: Curves[] } | undefined;
 
 /** The two lights at the same luminance (CIE 1931 ȳ), as the thesis plots its test lights: spikes stand out as they are. */
 function drawLights(test: Light, ref: Light | undefined): void {
@@ -627,42 +770,55 @@ async function render(): Promise<void> {
   }
   status.className = 'note';
   status.textContent = '';
-  let sets: Sets, lights5: Light[];
+  let sets: Sets, lights6: Light[], s: { tcs: SampleSet; ces: SampleSet };
   const slow = setTimeout(() => { if (me === run) $('setsNow').textContent = 'Loading the chosen objects and observers…'; }, 150);
   try {
     sets = await chosenSets();
-    lights5 = testLights();
+    lights6 = testLights();
+    s = await samplesNow();
   } catch (e) {
     if (me !== run) return;
-    clear(['moveHist', 'movers', 'plane', 'byObserver', 'curves', 'closestTable', 'many', 'manyPlots', 'setsNow']);
+    clear(['moveHist', 'movers', 'plane', 'byObserver', 'curves', 'closestTable', 'yoursTable', 'indices', 'riTable', 'cvg', 'bins', 'many', 'manyPlots', 'manyScatter', 'setsNow']);
     $('move').innerHTML = `<p class="error">${escapeHtml(message(e))}.</p>`;
-    done4 = done5 = undefined;
+    done4 = done6 = undefined;
     return;
   } finally { clearTimeout(slow); }
   if (me !== run) return;
-  // section 3 at once when the reference is given; after section 4 when it is the closest
-  drawLights(test, ref.light);
-  if (ref.light) drawMove(test, ref.light, '', sets);
-  const k4 = `${sets.key}|${fingerprint([test.spd])}`, k5 = `${sets.key}|${lights5.map((l) => `${l.key}:${fingerprint([l.spd])}`).join('+')}`;
-  const need4 = done4?.key !== k4, need5 = done5?.key !== k5 && lights5.length > 0;
-  if (!ref.light && !need4) { const r = closestOf(done4!.curves, ref.closest!); drawLights(test, r); drawMove(test, r, 'the closest by IRE', sets); }
-  if (!ref.light && need4) {
+  // the reference: given, or found from the test light at once (at its CCT, or among your lights), or after section 4
+  $('yoursTable').replaceChildren();
+  let refLight = ref.light, refNote = '';
+  if (ref.atCct) {
+    const t = cct(test.spd).cct;
+    refLight = ref.atCct === 'cri' ? criReference(t) : fidelityLight(t);
+    refNote = ref.atCct === 'cri' ? 'the color rendering index\'s reference at the test light\'s CCT' : 'the reference of CIE 224 and TM-30 at the test light\'s CCT';
+  } else if (ref.closest === 'yours') {
+    refLight = drawYours(test, ref.yours!, sets);
+    refNote = 'of your lights, the one with the lowest IRE';
+  }
+  drawLights(test, refLight);
+  if (refLight) drawMove(test, refLight, refNote, sets);
+  drawIndices(test, sets, s);
+  const k4 = `${sets.key}|${fingerprint([test.spd])}`, k6 = `${sets.key}|${lights6.map((l) => `${l.key}:${fingerprint([l.spd])}`).join('+')}`;
+  const need4 = done4?.key !== k4, need6 = done6?.key !== k6 && lights6.length > 0;
+  const fromCurves = (c: Curves) => { const r = closestOf(c, ref.closest as 'any' | 'planck' | 'day'); drawLights(test, r); drawMove(test, r, 'the closest by IRE', sets); };
+  if (!refLight && !need4) fromCurves(done4!.curves);
+  if (!refLight && need4) {
     $('move').innerHTML = '<p class="note">Finding the closest reference (section 4)…</p>';
     clear(['moveHist', 'movers', 'plane', 'byObserver']);
     $<HTMLButtonElement>('downloadMove').disabled = true;
   }
   if (need4) { clear(['curves', 'closestTable']); $<HTMLButtonElement>('downloadCurves').disabled = true; }
-  if (need5) { clear(['many', 'manyPlots']); $<HTMLButtonElement>('downloadMany').disabled = true; }
-  if (!need4 && done4) drawCurves(test, done4.curves, sets);
-  if (!need5) { if (done5 && lights5.length) drawMany(done5.lights, done5.curves, sets); else if (!lights5.length) drawMany([], [], sets); }
-  const tests = [...(need4 ? [test.spd] : []), ...(need5 ? lights5.map((l) => l.spd) : [])];
+  if (need6) { clear(['many', 'manyPlots', 'manyScatter']); $<HTMLButtonElement>('downloadMany').disabled = true; }
+  if (!need4 && done4) { drawCurves(test, done4.curves, sets); drawIndices(test, sets, s, done4.curves); }
+  if (!need6) { if (done6 && lights6.length) drawMany(done6.lights, done6.curves, sets, s); else if (!lights6.length) drawMany([], [], sets, s); }
+  const tests = [...(need4 ? [test.spd] : []), ...(need6 ? lights6.map((l) => l.spd) : [])];
   if (!tests.length) return;
   const progress = $('sweepProgress'), total = sets.observers.length;
   // the page gets its turn after about 40 ms of work (with the references kept, many observers fit in one slice)
   let slice = performance.now();
   const rows = await ireSweep(tests, sets, async (n) => {
     if (performance.now() - slice < 40) return true;
-    progress.textContent = `Computing sections 4${need5 ? ' and 5' : ''}: ${n} of ${total} observers…`;
+    progress.textContent = `Computing sections 4${need6 ? ' and 6' : ''}: ${n} of ${total} observers…`;
     await new Promise((r) => setTimeout(r, 0));
     slice = performance.now();
     return me === run;
@@ -672,11 +828,12 @@ async function render(): Promise<void> {
   if (need4) {
     done4 = { key: k4, curves: curvesOf(rows[0]) };
     drawCurves(test, done4.curves, sets);
-    if (!ref.light) { const r = closestOf(done4.curves, ref.closest!); drawLights(test, r); drawMove(test, r, 'the closest by IRE', sets); }
+    drawIndices(test, sets, s, done4.curves);
+    if (!refLight) fromCurves(done4.curves);
   }
-  if (need5) {
-    done5 = { key: k5, lights: lights5, curves: rows.slice(need4 ? 1 : 0).map(curvesOf) };
-    drawMany(lights5, done5.curves, sets);
+  if (need6) {
+    done6 = { key: k6, lights: lights6, curves: rows.slice(need4 ? 1 : 0).map(curvesOf) };
+    drawMany(lights6, done6.curves, sets, s);
   }
 }
 

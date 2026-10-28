@@ -484,10 +484,10 @@ export function heatMap(o: {
 /**
  * Lines through points on two axes, the smallest point of each line marked, every point with its hover text. With
  * many lines, `legend` (HTML) can stand in for the line-by-line legend, `title` names the plot, and `y` fixes the
- * top of the axis (for plots compared side by side).
+ * top of the axis (for plots compared side by side); `marks` draws labeled vertical lines at values of x.
  */
 export function linePlot(o: {
-  xLabel: string; yLabel: string; title?: string; y?: number; legend?: string;
+  xLabel: string; yLabel: string; title?: string; y?: number; legend?: string; marks?: { x: number; label: string }[];
   series: { pts: [number, number][]; color: string; dash?: string; label: string; tips: string[] }[];
 }): string {
   const W = 460, H = 262, l0 = 46, top = 24, pw = W - l0 - 26, ph = H - top - 44;
@@ -510,7 +510,9 @@ export function linePlot(o: {
     ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
     ${xt.map((t) => `<text x="${X(t)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(t)}</text>`).join('')}
     <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel)}</text>
-    <text x="${l0}" y="12">${escapeHtml(o.title ? `${o.title}: ${o.yLabel}` : o.yLabel)}</text>${lines}</svg><div class="legend">${legend}</div>`;
+    <text x="${l0}" y="12">${escapeHtml(o.title ? `${o.title}: ${o.yLabel}` : o.yLabel)}</text>
+    ${(o.marks ?? []).map((m) => `<line x1="${X(m.x).toFixed(1)}" x2="${X(m.x).toFixed(1)}" y1="${top}" y2="${top + ph}" stroke="var(--quiet)" stroke-dasharray="3 3"/>
+      <text x="${(X(m.x) + 4).toFixed(1)}" y="${top + 12}">${escapeHtml(m.label)}</text>`).join('')}${lines}</svg><div class="legend">${legend}</div>`;
 }
 
 /**

@@ -16,6 +16,22 @@
   "scale": 10000
  },
  {
+  "id": "cie-tcs14",
+  "title": "The CIE 14 test color samples of the color rendering index",
+  "description": "The 14 Munsell samples of the CIE color rendering index (CIE 13.3): eight of moderate chroma around the hue circle, whose mean gives the general index Ra, and six more (strong red, yellow, green and blue, a skin tone and a leaf green). The objects the color rendering index has judged lights by for decades.",
+  "source": "CIE 13.3-1995, Method of measuring and specifying colour rendering properties of light sources: spectral radiance factors of the 14 test colour samples (5 nm); the general colour rendering index Ra uses the first 8.",
+  "doi": "10.25039/CIE.DS.wuiuu9cz; this file: CIE_srf_cri.csv, 5 nm",
+  "report_doi": "10.25039/tr.013.3.1995",
+  "url": "https://doi.org/10.25039/CIE.DS.wuiuu9cz",
+  "file": "cie-tcs14.json",
+  "sha256": "f461decedb5c18800c61a6923240c71f6cf91fd23ac94865133cbfdb7e05c0ad",
+  "license": "CC BY-SA 4.0 (International Commission on Illumination, CIE)",
+  "changes": "380 to 780 nm of the 360 to 830 nm given; put in this layout and stored to 1/10000.",
+  "wavelengths": "380 to 780 nm in 5 nm steps",
+  "count": 14,
+  "scale": 10000
+ },
+ {
   "id": "morimoto-natural-objects",
   "title": "Natural objects measured in Japan",
   "description": "359 natural objects: 200 flowers, 113 leaves, 23 fruits, 6 vegetables, 8 pieces of bark and 9 stones, measured outdoors and in the laboratory by Morimoto, Zhang, Fukuda and Uchikawa. Spectra of the kind made by living things, unlike those of paints and inks.",
