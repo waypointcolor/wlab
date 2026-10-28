@@ -1,0 +1,221 @@
+{
+ "id": "rawtoaces-cameras",
+ "title": "Camera spectral sensitivities (rawtoaces-data)",
+ "description": "52 digital cameras, their red, green and blue sensitivities as measured for the Academy's RAW to ACES utility: cinema, professional and consumer cameras from ten makers.",
+ "source": "rawtoaces-data, the data repository of the RAW to ACES Utility (Academy Software Foundation), https://github.com/AcademySoftwareFoundation/rawtoaces-data, commit e9b8503cf8a0641f40e5345d9757bde60c15f423, data/camera/.",
+ "url": "https://github.com/AcademySoftwareFoundation/rawtoaces-data",
+ "license": "Apache License 2.0 (see LICENSE-rawtoaces-data.txt)",
+ "changes": "The R, G, B columns of each camera file put in this layout and rounded to 6 significant digits.",
+ "wavelengths": "380 to 780 nm in 5 nm steps",
+ "count": 52,
+ "cameras": [
+  {
+   "name": "ARRI D21",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Arashi Vision Insta360 X5",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon Digital Rebel XTi",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Canon EOS-1D X Mark II",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS-1Ds Mark III",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS-1Ds Mark II",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 100D",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 200D",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 200D II",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 5DS",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 5D",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 5D Mark III",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 5D Mark II",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 5D Mark IV",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS 600D",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS M",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS R10",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS R5",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS R5m2",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS R6",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS R6m2",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS RP",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon EOS R",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Canon PowerShot S90",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Fujifilm GFX 100",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Fujifilm X-T3",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Fujifilm X-T4",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Hasselblad L1D-20c",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Hasselblad L2D-20c",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Nikon D200",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Nikon D3300",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Nikon D5100",
+   "measured_by": "Jonathon Irons, National Physical Laboratory (double monochromator)"
+  },
+  {
+   "name": "Nikon D5300",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Nikon D7000",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Nikon D700",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Nikon D70",
+   "measured_by": "the Academy of Motion Picture Arts and Sciences (Sci-Tech)"
+  },
+  {
+   "name": "Nikon D800E",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Nikon D810",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Nikon D850",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Nikon Z f",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Panasonic DC-GX9",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony DSC-RX100M4",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-6400",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7CM2",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7M3",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7M4",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7RM2",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7RM3",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7RM4",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7SM2",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-7SM3",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  },
+  {
+   "name": "Sony ILCE-9",
+   "measured_by": "Weta Digital (the \"lightsaber\" system; the Physlight set)"
+  }
+ ]
+}

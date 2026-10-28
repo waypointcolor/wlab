@@ -165,11 +165,12 @@ function demo2(): void {
     const [Ll, Cab] = toPolar(c.lab);
     const labHeld: Vec3 = [Ll, Cab * Math.cos((hab * Math.PI) / 180), Cab * Math.sin((hab * Math.PI) / 180)];
     const rgbHeld = xyzToRgb(labToXyz(labHeld, WHITE), space);
-    ctx.fillStyle = css(c.rgb);
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + chip, y); ctx.lineTo(x, y + chip); ctx.closePath(); ctx.fill();
+    // CIELAB's half upper left, WLab's lower right
     ctx.fillStyle = css(rgbHeld);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + chip, y); ctx.lineTo(x, y + chip); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = css(c.rgb);
     ctx.beginPath(); ctx.moveTo(x + chip, y); ctx.lineTo(x + chip, y + chip); ctx.lineTo(x, y + chip); ctx.closePath(); ctx.fill();
-    if (!inGamut(rgbHeld)) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(x + chip * 0.72, y + chip * 0.72, 1.8, 0, 7); ctx.fill(); }
+    if (!inGamut(rgbHeld)) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(x + chip * 0.28, y + chip * 0.28, 1.8, 0, 7); ctx.fill(); }
     if (c === top) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(x - 1.5, y - 1.5, chip + 3, chip + 3); }
     if (c.C >= 10) gaps.push(((toPolar(c.lab)[2] - hab + 540) % 360) - 180);
   }

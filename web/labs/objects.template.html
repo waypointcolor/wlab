@@ -12,8 +12,8 @@
 <main>
   <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Objects</nav>
   <div class="brand small"><!--LABS-LOGO--><h1>Materials across lights and observers</h1></div>
-  <p class="lead">An observing condition is an observer (a set of sensors) under a light; from here on, just a
-  condition. A material's reflectance gives its measurement in any condition, and each measurement turns into Wpt and
+  <p class="lead">An observing condition (hereafter "condition") is an observer (having a set of sensors) under a
+  light. A material's reflectance gives its measurement in any condition, and each measurement turns into Wpt and
   WLab through that condition's Wpt normalization. For most materials the result barely
   moves from condition to condition; how far and which way it does move is the material's own behavior. Measured in
   many conditions, one material makes a small cloud of points, its Wpt shift manifold. Choose the materials and the
@@ -56,6 +56,13 @@
 
   <h2>2. The lights and observers</h2>
   <div class="card">
+    <div class="optin">
+      <p id="setsNow" class="note"></p>
+      <label class="check"><input type="checkbox" id="chooseSets" autocomplete="off"> Choose the lights and observers myself</label>
+      <div id="setsBox" hidden>
+    <p class="note">The lights and observers are the observing conditions each material is seen in: every light with
+    every observer. Together they stand for the spread of everyday viewing that a material's color shifts across; more
+    lights or more varied observers widen the clouds, and a single light or observer shows what that one alone does.</p>
     <div class="cols">
       <div>
         <h3>Lights</h3>
@@ -84,6 +91,16 @@
           <p class="note">Your observer: wavelength in nm, then three or more sensitivity curves, any scale.</p>
           <textarea id="obsPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
         </div>
+      </div>
+    </div>
+    <div id="profileBox" hidden>
+      <div class="row"><label>ICC or iccMAX profiles <input type="file" id="profileFiles" accept=".icc,.icm,.xml" multiple></label></div>
+      <p class="note">ICC (version 2 or 4) or iccMAX (version 5) profiles, binary (.icc) or as XML. Each gives one
+      observer and one light, used where chosen above: those of its spectral viewing conditions (the svcn tag, or that
+      of the version 5 profile inside a hybrid profile), or CIE 1931 (2°) and D50, the standard PCS, for a profile
+      without them, as every version 2 or 4 profile.</p>
+      <p id="profileNote" class="note"></p>
+    </div>
       </div>
     </div>
     <h3>The reference condition</h3>
@@ -221,7 +238,7 @@
     <p>Wpt, WLab and ΔE<sub>WLab</sub>: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and
     Wpt: Color Without the Fine Print</i></a>; Wpt shift manifolds: Derhak, Luo and Berns, <i>Color Research &amp;
     Application</i> 45(3), 2020. Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>.
-    Everything runs in this page; nothing is sent anywhere. PMCC patches: Luo, <i>Color Research &amp; Application</i>
+    Everything is computed in this page. The camera sensitivities are a file of this site, loaded from it when a camera is chosen; nothing you enter or load is sent anywhere. PMCC patches: Luo, <i>Color Research &amp; Application</i>
     49(6), 2024, measured by Maxim W. Derhak. CIE data CC BY-SA 4.0. Categorical observers of Asano and Fairchild,
     used with permission. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL
     database) come from Psychtoolbox-3, MIT license (its notice is in this page's source and in <code>wlab</code>'s

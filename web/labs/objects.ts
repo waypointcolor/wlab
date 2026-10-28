@@ -14,12 +14,14 @@ import {
 import { pairs as demoPairs } from '../demo-data.ts';
 import { example as brandRed } from '../example.ts';
 import {
-  $, cloud3d, download, escapeHtml, histogram, LIGHT_LABEL, OBSERVER_LABEL, parseTable, scatter, spectrumPlot, viewGroup, type ViewGroup,
+  $, cloud3d, download, escapeHtml, histogram, LIGHT_LABEL, OBSERVER_LABEL, optIn, parseTable, scatter, spectrumPlot, viewGroup, type ViewGroup,
 } from './kit.ts';
 import {
   cloudsOf, copyEntry, grayMetamers, graysWithBlack, hueTurn, materialsOf, NormalizationCache, observePair, pairIndices, pairsOf, readMaterials, shiftShares, summary, syncEntries, writeMaterials,
   type Cloud, type Entry, type Layout, type Material, type ObservingCondition, type PairMode, type PairResult,
 } from './shifts.ts';
+import { CAMERAS, camerasNow, retryCameras } from './cameras.ts';
+import { profileCondition } from './svcn.ts';
 
 /** Conditions normalized without asking; above this the page shows the count and a Compute button. */
 const AUTO = 3000;
@@ -50,13 +52,16 @@ const LIGHT_CHOICES: Choice[] = [
   { value: 'daylightSeries', label: 'CIE daylight from 4000 to 10000 K, every 500 K (13 lights)' },
   { value: 'planckianSeries', label: 'Planckian from 2000 to 6500 K, every 500 K (10 lights)' },
   { value: 'paste', label: 'Your own light (paste)…' },
+  { value: 'profile', label: 'The lights of ICC/iccMAX profiles…' },
 ];
 const OBSERVER_CHOICES: Choice[] = [
   ...(Object.keys(OBSERVER_LABEL) as ObserverName[]).map((k) => ({ value: k, label: OBSERVER_LABEL[k], checked: k === 'cie1931' || k === 'cie1964' })),
   { value: 'rods', label: 'CIE 2006 (10°) cones plus rods (4 sensors)' },
   { value: 'categorical', label: 'The 10 categorical observers of Asano and Fairchild', checked: true },
   { value: 'sweep', label: 'The CIE 2006 model over ages and field sizes (below)' },
+  { value: 'cameras', label: `The ${CAMERAS.length} cameras of rawtoaces-data (open data, Apache 2.0)` },
   { value: 'paste', label: 'Your own observer (paste)…' },
+  { value: 'profile', label: 'The observers of ICC/iccMAX profiles…' },
 ];
 
 function checkboxes(host: HTMLElement, choices: Choice[]): void {
@@ -76,6 +81,9 @@ const memo = (key: string, make: () => Observer) => { let o = observerCache.get(
 
 interface Named<T> { key: string; label: string; value: T }
 
+/** The observing conditions of the ICC or iccMAX profiles loaded below the lights and observers, one per profile. */
+let profiles: { key: string; file: string; cond: ReturnType<typeof profileCondition> }[] = [];
+
 function chosenLights(): Named<Spectrum>[] {
   const on = checked('lights'), out: Named<Spectrum>[] = [];
   for (const k of Object.keys(LIGHT_LABEL) as IlluminantName[]) if (on.has(k)) out.push({ key: k, label: k, value: illuminants[k] });
@@ -90,6 +98,7 @@ function chosenLights(): Named<Spectrum>[] {
     if (spd.some((v) => v < 0) || !spd.some((v) => v > 0)) throw new Error('your light needs positive power');
     out.push({ key: `paste:${hash(text)}`, label: 'your light', value: spd });
   }
+  if (on.has('profile')) for (const p of profiles) out.push({ key: `profile:${p.key}`, label: `${p.cond.lightLabel}, ${p.file}`, value: p.cond.light });
   return out;
 }
 
@@ -111,12 +120,14 @@ function chosenObservers(): Named<Observer>[] {
       out.push({ key: `cie2006@${field}/${age}`, label: `CIE 2006, ${age} years, ${field}°`, value: memo(`cie2006@${field}/${age}`, () => cie2006(field, age)) });
     }
   }
+  if (on.has('cameras')) camerasNow(schedule).forEach((o, i) => out.push({ key: `camera${i}`, label: o.name, value: o }));
   const obsText = $<HTMLTextAreaElement>('obsPaste').value;
   if (on.has('paste') && obsText.trim()) {
     const text = obsText;
     const t = parseTable(text, 3);
     out.push({ key: `paste:${hash(text)}`, label: 'your observer', value: { name: 'Your observer', curves: t.columns.map((c) => resample(t.nm, c)) as unknown as Observer['curves'] } });
   }
+  if (on.has('profile')) for (const p of profiles) out.push({ key: `profile:${p.key}`, label: `${p.cond.observer.name}, ${p.file}`, value: p.cond.observer });
   return out;
 }
 
@@ -576,10 +587,39 @@ $<HTMLSelectElement>('refLight').value = 'C';
 function syncPasteBoxes(): void {
   $('lightPasteBox').hidden = !checked('lights').has('paste');
   $('obsPasteBox').hidden = !checked('observers').has('paste');
+  $('profileBox').hidden = !checked('lights').has('profile') && !checked('observers').has('profile');
+  $('setsNow').textContent = $<HTMLInputElement>('chooseSets').checked
+    ? 'Your own choice of lights and observers, below; the number of conditions it makes is given under the reference condition.'
+    : `Each material is seen under ${LIGHT_CHOICES.filter((c) => c.checked).length} lights (A, C, D50, D65, E, F2, F11 and the nine CIE LED lamps) `
+      + 'by 12 observers (CIE 1931, CIE 1964 and the 10 categorical observers at 2°): the spread of everyday viewing its color shifts across.';
 }
-for (const id of ['lights', 'observers']) $(id).addEventListener('change', () => { syncPasteBoxes(); schedule(); });
+/** The lights and observers checked when the page opens, put back when the reader stops choosing them. */
+function resetSets(): void {
+  for (const [id, choices] of [['lights', LIGHT_CHOICES], ['observers', OBSERVER_CHOICES]] as const) {
+    $(id).querySelectorAll<HTMLInputElement>('input').forEach((i) => { i.checked = !!choices.find((c) => c.value === i.value)?.checked; });
+  }
+  $<HTMLInputElement>('catField').value = '2';
+  $<HTMLSelectElement>('ageStep').value = '10';
+  $<HTMLSelectElement>('fieldSet').value = '2,10';
+}
+optIn($<HTMLInputElement>('chooseSets'), $('setsBox'), resetSets, () => { syncPasteBoxes(); schedule(); });
+for (const id of ['lights', 'observers']) $(id).addEventListener('change', () => { retryCameras(); syncPasteBoxes(); schedule(); });
+$('profileFiles').addEventListener('change', async (e) => {
+  const files = [...((e.target as HTMLInputElement).files ?? [])], notes: string[] = [];
+  profiles = [];
+  for (const file of files) {
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const cond = profileCondition(bytes);
+      profiles.push({ key: `${file.name}:${hash(String.fromCharCode(...bytes.subarray(0, 4096)))}:${bytes.length}`, file: file.name, cond });
+      notes.push(cond.svcn ? `${file.name}: ${cond.observer.name}, ${cond.lightLabel}` : `${file.name}: no svcn tag, so CIE 1931 (2°) under D50`);
+    } catch (err) { notes.push(`${file.name}: cannot read it (${(err as Error).message})`); }
+  }
+  $('profileNote').textContent = notes.length ? `${notes.join('; ')}.` : '';
+  schedule();
+});
 document.querySelectorAll<HTMLButtonElement>('[data-all]').forEach((b) => b.addEventListener('click', () => {
-  $(b.dataset.all!).querySelectorAll<HTMLInputElement>('input').forEach((i) => { i.checked = i.value !== 'paste'; });
+  $(b.dataset.all!).querySelectorAll<HTMLInputElement>('input').forEach((i) => { i.checked = i.value !== 'paste' && i.value !== 'profile'; });
   syncPasteBoxes(); schedule();
 }));
 document.querySelectorAll<HTMLButtonElement>('[data-none]').forEach((b) => b.addEventListener('click', () => {

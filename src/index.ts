@@ -11,7 +11,7 @@
 export type { Mat3, Vec3 } from './linalg.ts';
 export { inv3, mulMM, mulMV, solve } from './linalg.ts';
 export {
-  illuminants, observers, observersN, resample, responses, scotopic, sensorResponses, sensorWhiteOf, wavelengths, whiteOf,
+  fluorescents, illuminants, observers, observersN, resample, responses, scotopic, sensorResponses, sensorWhiteOf, wavelengths, whiteOf,
   type IlluminantName, type Observer, type ObserverName, type Spectrum,
 } from './spectra.ts';
 export { daylight, planckian } from './lights.ts';
@@ -21,6 +21,7 @@ export {
 export { munsell1600, type SampleSet } from './munsell1600.ts';
 export { munsellBase, wptNormalization, wptNormalizationN, type Base, type WptNormalization, type WptNormalizationN } from './wpt.ts';
 export { deltaEWlab, fromPolar, G0, G1, G2, toPolar, wlabToWpt, wptToWlab } from './wlab.ts';
+export { deltaEsOf, oce, ome, wlabsOf } from './metrics.ts';
 export { deltaE00, deltaEab, labToXyz, xyzToLab } from './cielab.ts';
 export { apply, BRADFORD, cat, CAT02, mat } from './transforms.ts';
 export { inGamut, rgbToWlab, rgbToXyz, wlabToRgb, xyzToRgb, type RgbSpace } from './rgb.ts';

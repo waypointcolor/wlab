@@ -86,6 +86,29 @@
   td.where { text-align: left; white-space: normal; min-width: 14em; }
   .count { font-weight: 600; margin-top: 12px; }
   details { margin-top: 8px; }
+  /* the sets a lab computes over: what they are is always said; choosing them is opt-in */
+  .optin { border-left: 3px solid var(--accent-soft); padding: 2px 0 4px 12px; margin: 10px 0 14px; }
+  .optin > .note { margin: 4px 0 8px; }
+  label.check { display: inline-flex; gap: 6px; align-items: baseline; font-weight: 600; }
+  .sets { display: flex; flex-direction: column; gap: 8px; }
+  .sets label { display: flex; gap: 8px; align-items: baseline; }
+  .sets .about { display: block; color: var(--quiet); font-size: 0.88rem; }
+  .sets .credit { display: block; color: var(--quiet); font-size: 0.8rem; }
+  .big { font-size: 1.6rem; font-weight: 650; }
+  /* a summary: one row per item, its name on the left */
+  table.kv th { text-align: left; font-weight: 600; white-space: nowrap; padding-right: 16px; }
+  table.kv td { text-align: left; white-space: normal; }
+  table.kv .big { font-size: 1.35rem; line-height: 1.2; }
+  /* Lab D's ways of converting an observer: numbers centred under two-line headings, the description left-aligned */
+  table.methods th, table.methods td { text-align: center; vertical-align: middle; }
+  table.methods thead th { vertical-align: bottom; line-height: 1.25; }
+  table.methods th:first-child, table.methods td:first-child { text-align: left; white-space: normal; min-width: 6.5em; max-width: 8em; }
+  table.methods .what { text-align: left; white-space: normal; min-width: 13em; max-width: 20em; }
+  /* a finding worth stopping at, such as two observers that are one */
+  .flag { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; }
+  tr.own td { font-weight: 600; }                                 /* the row of the condition's own light */
+  tr.without td { color: var(--quiet); border-top: 2px solid var(--line); }
+  #xmlPreview { max-height: 420px; overflow: auto; }
   summary { cursor: pointer; color: var(--accent); }
   footer { margin-top: 44px; color: var(--quiet); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 12px; }
   a { color: var(--accent); }

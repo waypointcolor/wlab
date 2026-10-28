@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "noEmit": true, "rootDir": ".", "lib": ["ES2022", "DOM", "DOM.Iterable"] },
-  "include": ["web/*.ts", "web/labs/*.ts", "src"]
+  "compilerOptions": { "noEmit": true, "rootDir": ".", "lib": ["ES2022", "DOM", "DOM.Iterable"], "resolveJsonModule": true },
+  "include": ["web/*.ts", "web/labs/*.ts", "src", "data/objects/*.json", "data/observers/*.json"]
 }

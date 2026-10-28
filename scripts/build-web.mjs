@@ -6,6 +6,7 @@
 //   web/labs/normalization.html    (web/labs/normalization.ts)  Lab A: Wpt normalization and MATs
 //   web/labs/differences.html      (web/labs/differences.ts)    Lab B: WLab and color differences
 //   web/labs/objects.html          (web/labs/objects.ts)        Lab C: materials across lights and observers
+//   web/labs/observer.html         (web/labs/observer.ts)       Lab D: observers for observing conditions, and their profiles
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
 // <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables). Every
@@ -13,10 +14,19 @@
 // <!--LOGO--> becomes the logo itself, inline; <!--LABS-LOGO--> becomes the Waypoint Labs logo
 // (web/assets/waypointlabs-logo.svg), inline.
 //
+// The data files the labs load when they are chosen (scripts in web/labs/fetchdata.ts) are copied beside the pages,
+// into web/labs/data/: the object sets (data/objects/) and the camera sensitivities with their license
+// (data/observers/cameras.json, LICENSE-rawtoaces-data.txt).
+//
 //   npm run build:web
 
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+
+for (const dir of ['objects', 'observers']) mkdirSync(`web/labs/data/${dir}`, { recursive: true });
+for (const f of readdirSync('data/objects').filter((f) => f.endsWith('.json'))) copyFileSync(`data/objects/${f}`, `web/labs/data/objects/${f}`);
+copyFileSync('data/observers/cameras.json', 'web/labs/data/observers/cameras.json');
+copyFileSync('LICENSE-rawtoaces-data.txt', 'web/labs/data/observers/LICENSE-rawtoaces-data.txt');
 
 const pages = [
   { entry: 'web/app.ts', template: 'web/robustness.template.html', out: 'web/robustness-report.html' },
@@ -25,6 +35,7 @@ const pages = [
   { entry: 'web/labs/normalization.ts', template: 'web/labs/normalization.template.html', out: 'web/labs/normalization.html' },
   { entry: 'web/labs/differences.ts', template: 'web/labs/differences.template.html', out: 'web/labs/differences.html' },
   { entry: 'web/labs/objects.ts', template: 'web/labs/objects.template.html', out: 'web/labs/objects.html' },
+  { entry: 'web/labs/observer.ts', template: 'web/labs/observer.template.html', out: 'web/labs/observer.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();
@@ -33,6 +44,14 @@ const logoInline = logo.replace(/ width="\d+" height="\d+"/, ' class="logo" role
 const labsLogo = readFileSync('web/assets/waypointlabs-logo.svg', 'utf8').trim()
   .replace(/ width="\d+" height="\d+"/, ' class="labs-logo" role="img" aria-label="Waypoint Labs"');
 const notice = `<!--\n${readFileSync('LICENSE-psychtoolbox.txt', 'utf8').trim().replace(/--/g, '- -')}\n-->`;
+const cameraNotice = `<!--
+The camera spectral sensitivities in this page are from rawtoaces-data (Academy Software Foundation,
+https://github.com/AcademySoftwareFoundation/rawtoaces-data), licensed under the Apache License 2.0, whose text follows.
+Changed: the R, G, B columns of each camera file put in wlab's layout (data/observers/cameras.json) and rounded to 6
+significant digits.
+
+${readFileSync('LICENSE-rawtoaces-data.txt', 'utf8').trim().replace(/--/g, '- -')}
+-->`;
 for (const { entry, template, out } of pages) {
   let page = readFileSync(template, 'utf8').replace('<!--LABS-CSS-->', () => labsCss).replace('<!--PSYCHTOOLBOX-NOTICE-->', () => notice)
     .replace('<!--FAVICON-->', () => favicon).replace('<!--LOGO-->', () => logoInline)
@@ -43,6 +62,7 @@ for (const { entry, template, out } of pages) {
     });
     const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
     page = page.replace('<!--APP-->', () => `<script>${js}</script>`);
+    if (js.includes('rawtoaces-data')) page = page.replace('</body>', () => `${cameraNotice}\n</body>`);
   }
   writeFileSync(out, page);
   console.log(`wrote ${out} (${Math.round(page.length / 1024)} kB)`);

@@ -1,6 +1,6 @@
 /** Spectra on the package's grid (380 to 780 nm, 5 nm), the CIE observers and illuminants, and sensor responses. */
 
-import { illuminantData, observerData, scotopicData, wavelengths } from './data.ts';
+import { fluorescentData, illuminantData, observerData, scotopicData, wavelengths } from './data.ts';
 import type { Vec3 } from './linalg.ts';
 
 export { wavelengths };
@@ -43,6 +43,9 @@ export const observersN = {
 export const illuminants = illuminantData satisfies Record<string, Spectrum>;
 
 export type IlluminantName = keyof typeof illuminants;
+
+/** The twelve CIE fluorescent illuminants F1 to F12 (CIE 15), relative spectral power; F2 and F11 are also in `illuminants`. */
+export const fluorescents = fluorescentData satisfies Record<string, Spectrum>;
 
 const N = wavelengths.length;
 

@@ -5,6 +5,8 @@ import {
   categoricalObserver, categoricalObserverAges, cie2006, daylight, illuminants, observers, observersN, planckian,
   resample, wavelengths, type IlluminantName, type Mat3, type Observer, type ObserverName, type Spectrum,
 } from '../../src/index.ts';
+import { CAMERA_CREDIT, CAMERAS, camerasNow, retryCameras } from './cameras.ts';
+import { profileCondition } from './svcn.ts';
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -39,7 +41,11 @@ export function parseTable(text: string, minColumns = 1): { names: string[]; nm:
 // ---------------------------------------------------------------------------------------------------------------
 // Observing conditions
 
-export interface Condition { readonly observer: Observer; readonly light: Spectrum; readonly label: string; readonly lightLabel: string }
+export interface Condition {
+  readonly observer: Observer; readonly light: Spectrum; readonly label: string; readonly lightLabel: string;
+  /** iccMAX's name and color temperature for a light read from a profile */
+  readonly lightStd?: { name: string; cct: number };
+}
 
 export const OBSERVER_LABEL: Record<ObserverName, string> = {
   cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)',
@@ -64,6 +70,7 @@ const SENSOR_COLORS = ['#c0306a', '#1f8a5b', '#2f74c0', '#8a6d00', '#7a3fb0', '#
 /** Names for the three curves of an observer: x̄ ȳ z̄ for CIE color-matching functions, l̄ m̄ s̄ for cone fundamentals. */
 function curveNames(o: Observer): string[] {
   if (/cones plus rods/.test(o.name)) return ['l̄', 'm̄', 's̄', 'V′ (rods)'];
+  if (/\(camera\)$/.test(o.name)) return ['R', 'G', 'B'];
   if (/^(CIE 2006|Categorical)/.test(o.name)) return ['l̄', 'm̄', 's̄'];
   if (o.name.startsWith('CIE')) return ['x̄', 'ȳ', 'z̄'];
   return o.curves.map((_, i) => `sensor ${i + 1}`);
@@ -74,24 +81,27 @@ export function conditionPlots(cond: Condition): string {
   const names = curveNames(cond.observer);
   const k = 100 / cond.light[36];
   return `<div>${spectrumPlot('Sensors', cond.observer.curves.map((c, i) => ({ values: c, color: SENSOR_COLORS[i % SENSOR_COLORS.length], label: names[i] })))}</div>`
-    + `<div>${spectrumPlot('Light (560 nm = 100)', [{ values: cond.light.map((v) => v * k), color: 'var(--accent2)', label: cond.lightLabel }])}</div>`;
+    + (cond.lightLabel ? `<div>${spectrumPlot('Light (560 nm = 100)', [{ values: cond.light.map((v) => v * k), color: 'var(--accent2)', label: cond.lightLabel }])}</div>` : '');
 }
 
 /**
  * A condition picker: sensors (a CIE observer, CIE 2006 cone fundamentals for any age and field size, Asano's
  * categorical observers for any field size, or three pasted curves) and a light (a CIE illuminant, daylight
  * or a Planckian radiator at a chosen temperature, or a pasted spectrum), with an option to plot both. `get()`
- * returns the condition or throws; `set()` chooses a built-in observer and light.
+ * returns the condition or throws; `set()` chooses a built-in observer and light. With `light: false` it picks
+ * sensors only (the light is then E, and not shown). The observer, the light or both can also come from an iccMAX
+ * profile: the observing condition of its spectral viewing conditions (svcn), or CIE 1931 (2°) under D50 without them.
  */
-export function conditionPicker(host: HTMLElement, start: { observer: ObserverName; light: IlluminantName }, onChange: () => void):
-  { get(): Condition; set(observer: ObserverName, light: IlluminantName): void } {
+export function conditionPicker(host: HTMLElement, start: { observer: ObserverName; light: IlluminantName }, onChange: () => void,
+  opts: { light?: boolean; threeSensors?: boolean } = {}): { get(): Condition; set(observer: ObserverName, light: IlluminantName): void } {
   host.innerHTML = `
     <div class="row">
       <label>Sensors <select data-k="obs"></select></label>
       <label data-k="catBox" hidden>Category <select data-k="cat"></select></label>
+      <label data-k="camBox" hidden>Camera <select data-k="cam"></select></label>
       <label data-k="ageBox" hidden>Age <input type="number" data-k="age" min="20" max="80" step="1" value="32"> years</label>
       <label data-k="fieldBox" hidden>Field size <input type="number" data-k="field" min="1" max="10" step="0.5" value="2">°</label>
-      <label>Light <select data-k="light"></select></label>
+      <label data-k="lightBox">Light <select data-k="light"></select></label>
       <label data-k="kelvinBox" hidden><span data-k="kelvinLabel">Temperature</span>
         <input type="number" data-k="kelvin" min="1000" max="25000" step="100" value="5500"> K</label>
       <label><input type="checkbox" data-k="show"> Show the curves</label>
@@ -105,13 +115,25 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
     fundamentals at each category's age with its own lens and macular density and its own photopigment densities and
     peak wavelengths, chosen so that together they stand for the variety of color-normal observers. Each curve is
     scaled to an area of 100.</p>
+    <p class="note" data-k="camNote" hidden></p>
     <p class="note" data-k="kelvinNote" hidden></p>
     <div data-k="obsPasteBox" hidden>
-      <p class="note">Wavelength in nm, then three or more sensitivity curves (color-matching functions, cone
+      <p class="note">${opts.threeSensors
+        ? `Wavelength in nm, then three sensitivity curves (color-matching functions, cone fundamentals, for example an
+      individual's from a custom-observer measurement platform, or a camera's sensors), any scale; comma, tab or space
+      separated, header row optional, at least 420 to 680 nm.`
+        : `Wavelength in nm, then three or more sensitivity curves (color-matching functions, cone
       fundamentals, for example an individual's from a custom-observer measurement platform, a camera's sensors, or cones
       plus rods for mesopic vision), any scale; comma, tab or space separated, header row optional, at least 420 to 680
-      nm. More than three sensors give a 3 × N normalization to Wpt and no MAT.</p>
+      nm. More than three sensors give a 3 × N normalization to Wpt and no MAT.`}</p>
       <textarea data-k="obsPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
+    </div>
+    <div data-k="profileBox" hidden>
+      <div class="row"><label>ICC or iccMAX profile <input type="file" data-k="profileFile" accept=".icc,.icm,.xml"></label></div>
+      <p class="note" data-k="profileNote">An ICC (version 2 or 4) or iccMAX (version 5) profile, binary (.icc) or as XML
+      (as iccDEV's iccToXml writes it). The spectral viewing conditions of an iccMAX profile (its svcn tag, or that of
+      the version 5 profile inside a hybrid profile) give the observer and the light; a profile without them, as every
+      version 2 or 4 profile, is on the standard PCS, CIE 1931 (2°) under D50.</p>
     </div>
     <div data-k="lightPasteBox" hidden>
       <p class="note">Wavelength in nm and relative power, any scale.</p>
@@ -121,20 +143,46 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
   const el = <T extends HTMLElement>(k: string) => host.querySelector(`[data-k="${k}"]`) as T;
   const obs = el<HTMLSelectElement>('obs'), light = el<HTMLSelectElement>('light'), show = el<HTMLInputElement>('show');
   obs.replaceChildren(...(Object.keys(OBSERVER_LABEL) as ObserverName[]).map((k) => new Option(OBSERVER_LABEL[k], k)),
-    new Option('CIE 2006 for any age and field size…', 'cie2006'), new Option('CIE 2006 (10°) cones plus rods, for mesopic vision (4 sensors)', 'rods'),
-    new Option('Categorical observer (category, field size)…', 'categorical'), new Option('Your own sensors (paste)…', 'paste'));
+    new Option('CIE 2006 for any age and field size…', 'cie2006'),
+    ...(opts.threeSensors ? [] : [new Option('CIE 2006 (10°) cones plus rods, for mesopic vision (4 sensors)', 'rods')]),
+    new Option('Categorical observer (category, field size)…', 'categorical'), new Option('A camera (open data)…', 'camera'),
+    new Option('Your own sensors (paste)…', 'paste'),
+    new Option('From an ICC/iccMAX profile…', 'profile'));
+  // the cameras grouped by maker
+  const makers = new Map<string, HTMLOptGroupElement>();
+  CAMERAS.forEach((c, i) => {
+    const maker = c.name.split(' ')[0];
+    if (!makers.has(maker)) { const g = document.createElement('optgroup'); g.label = maker; makers.set(maker, g); }
+    makers.get(maker)!.append(new Option(c.name, String(i)));
+  });
+  el<HTMLSelectElement>('cam').replaceChildren(...makers.values());
   el<HTMLSelectElement>('cat').replaceChildren(...categoricalObserverAges.map((age, i) => new Option(`${i + 1} (${age} years)`, String(i + 1))));
   light.replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)),
     new Option('Candlelight (Planckian, 1850 K), for mesopic viewing', 'candle'),
     new Option('Daylight at a temperature…', 'daylight'), new Option('Planckian at a temperature…', 'planckian'),
-    new Option('Your own light (paste)…', 'paste'));
+    new Option('Your own light (paste)…', 'paste'), new Option('From the ICC/iccMAX profile…', 'profile'));
   obs.value = start.observer;
-  light.value = start.light;
+  light.value = opts.light === false ? 'E' : start.light;
+  el('lightBox').hidden = opts.light === false;
+  // the condition of a loaded profile, or why it could not be read
+  let loaded: { cond: ReturnType<typeof profileCondition>; file: string } | { error: string } | undefined;
+  let lastObs = obs.value;
   const sync = () => {
     const o = obs.value;
+    // choosing the profile's observer brings its light along (it can still be changed)
+    if (o === 'profile' && lastObs !== 'profile' && opts.light !== false) light.value = 'profile';
+    lastObs = o;
     el('obsPasteBox').hidden = o !== 'paste';
+    el('profileBox').hidden = o !== 'profile' && light.value !== 'profile';
     el('ageBox').hidden = el('cfNote').hidden = o !== 'cie2006';
     el('catBox').hidden = el('catNote').hidden = o !== 'categorical';
+    el('camBox').hidden = el('camNote').hidden = o !== 'camera';
+    if (o === 'camera') {
+      retryCameras();
+      const c = CAMERAS[Number(el<HTMLSelectElement>('cam').value)];
+      el('camNote').textContent = `A camera's red, green and blue sensitivities, as sensors: measured by ${c.measuredBy}. `
+        + `A camera rarely meets the Luther-Ives condition, so its MAT to an observer carries some materials better than others. ${CAMERA_CREDIT}`;
+    }
     el('fieldBox').hidden = o !== 'cie2006' && o !== 'categorical';
     el('lightPasteBox').hidden = light.value !== 'paste';
     // the temperature field only for the lights made from one: daylight (a CCT) and Planckian radiators (a temperature)
@@ -153,12 +201,35 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
   };
   host.addEventListener('input', sync);
   host.addEventListener('change', sync);
+  el<HTMLInputElement>('profileFile').addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    try {
+      loaded = { cond: profileCondition(new Uint8Array(await file.arrayBuffer())), file: file.name };
+      const c = loaded.cond;
+      el('profileNote').textContent = c.svcn
+        ? `${file.name}: ${c.observer.name}, ${c.lightLabel}.`
+        : `${file.name} has no spectral viewing conditions: CIE 1931 (2°) under D50, the standard PCS.`;
+    } catch (err) {
+      loaded = { error: `${file.name}: ${(err as Error).message}` };
+      el('profileNote').textContent = `Cannot read ${loaded.error}.`;
+    }
+    sync();
+  });
+  const fromProfile = () => {
+    if (!loaded) throw new Error('choose an ICC or iccMAX profile to read');
+    if ('error' in loaded) throw new Error(`cannot read ${loaded.error}`);
+    return loaded.cond;
+  };
   sync();
   const read = (): Condition => {
     let observer: Observer;
     const field = Number(el<HTMLInputElement>('field').value);
-    if (obs.value === 'paste') {
+    if (obs.value === 'profile') {
+      observer = fromProfile().observer;
+    } else if (obs.value === 'paste') {
       const t = parseTable(el<HTMLTextAreaElement>('obsPaste').value, 3);
+      if (opts.threeSensors && t.columns.length !== 3) throw new Error(`give exactly three sensor curves here, not ${t.columns.length}`);
       observer = { name: 'Your sensors', curves: t.columns.map((c) => resample(t.nm, c)) as unknown as Observer['curves'] };
     } else if (obs.value === 'rods') {
       observer = observersN.cie2006_10_rods;
@@ -166,10 +237,16 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
       observer = cie2006(field, Number(el<HTMLInputElement>('age').value));
     } else if (obs.value === 'categorical') {
       observer = categoricalObserver(Number(el<HTMLSelectElement>('cat').value), field);
+    } else if (obs.value === 'camera') {
+      observer = camerasNow(onChange)[Number(el<HTMLSelectElement>('cam').value)];
     } else observer = observers[obs.value as ObserverName];
-    let spd: Spectrum, lightLabel: string;
+    let spd: Spectrum, lightLabel: string, lightStd: Condition['lightStd'];
     const kelvin = Number(el<HTMLInputElement>('kelvin').value);
-    if (light.value === 'paste') {
+    if (light.value === 'profile') {
+      const c = fromProfile();
+      ({ light: spd, lightLabel } = c);
+      lightStd = c.svcn ? { name: c.svcn.stdIlluminant, cct: c.svcn.colorTemperature } : { name: 'Illuminant D50', cct: 5000 };
+    } else if (light.value === 'paste') {
       const t = parseTable(el<HTMLTextAreaElement>('lightPaste').value, 1);
       spd = resample(t.nm, t.columns[0]);
       lightLabel = 'your light';
@@ -188,7 +265,8 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
       lightLabel = light.value;
     }
     if (spd.some((v) => v < 0) || !spd.some((v) => v > 0)) throw new Error('the light needs positive power');
-    return { observer, light: spd, label: `${observer.name}, ${lightLabel}`, lightLabel };
+    if (opts.light === false) return { observer, light: spd, label: observer.name, lightLabel: '' };
+    return { observer, light: spd, label: `${observer.name}, ${lightLabel}`, lightLabel, lightStd };
   };
   return {
     get(): Condition {
@@ -242,9 +320,9 @@ export async function copy(text: string, button: HTMLButtonElement): Promise<voi
   setTimeout(() => { button.textContent = was; }, 1400);
 }
 
-export function download(name: string, text: string, type = 'text/plain'): void {
+export function download(name: string, data: string | Uint8Array, type = 'text/plain'): void {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.href = URL.createObjectURL(new Blob([data as BlobPart], { type }));
   a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
@@ -356,6 +434,88 @@ export function scatter(o: {
     <text x="${l0 + 4}" y="${top + 12}">${escapeHtml(o.yLabel)}</text>
     <defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--quiet)"/></marker></defs>
     ${links}${dots}</svg><div class="legend">${legend}</div>`;
+}
+
+// one hue, light to dark, for magnitudes (heat maps); in dark mode the darkest step is the smallest, so that small
+// values recede into the page in either mode
+const SEQUENTIAL = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab',
+  '#184f95', '#104281', '#0d366b'];
+const darkMode = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches;
+
+/** The sequential color of t, from 0 (smallest) to 1 (largest). */
+export function sequential(t: number): string {
+  const ramp = darkMode() ? [...SEQUENTIAL].reverse() : SEQUENTIAL;
+  const x = Math.min(1, Math.max(0, t)) * (ramp.length - 1), i = Math.min(ramp.length - 2, Math.floor(x)), f = x - i;
+  const rgb = (h: string) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const [a, b] = [rgb(ramp[i]), rgb(ramp[i + 1])];
+  return `rgb(${a.map((v, k) => Math.round(v + f * (b[k] - v))).join(',')})`;
+}
+
+/**
+ * A grid of values as colored cells (rows top to bottom, columns left to right), each with its value on hover, a
+ * ring around one cell, and the color scale under it.
+ */
+export function heatMap(o: {
+  title: string; rowLabel: string; colLabel: string; rows: string[]; cols: string[]; values: number[][];
+  ring?: [number, number]; tip: (r: number, c: number) => string;
+}): string {
+  const cw = 26, ch = 18, l0 = 62, top = 24, W = l0 + o.cols.length * cw + 12, ph = o.rows.length * ch, H = top + ph + 84;
+  const all = o.values.flat().filter(Number.isFinite), lo = Math.min(...all), hi = Math.max(...all);
+  const t = (v: number) => (hi > lo ? (v - lo) / (hi - lo) : 0);
+  const cells = o.values.map((row, r) => row.map((v, c) => Number.isFinite(v)
+    ? `<rect x="${l0 + c * cw + 1}" y="${top + r * ch + 1}" width="${cw - 2}" height="${ch - 2}" rx="2" fill="${sequential(t(v))}"><title>${escapeHtml(o.tip(r, c))}</title></rect>` : '').join('')).join('');
+  const ring = o.ring ? `<rect x="${l0 + o.ring[1] * cw - 0.5}" y="${top + o.ring[0] * ch - 0.5}" width="${cw + 1}" height="${ch + 1}" rx="3"
+    fill="none" stroke="var(--ink)" stroke-width="2" pointer-events="none"/>` : '';
+  const every = (n: number) => Math.max(1, Math.ceil(n / 14));
+  const rowTicks = o.rows.map((l, r) => (r % every(o.rows.length) ? '' : `<text x="${l0 - 6}" y="${top + r * ch + ch / 2 + 4}" text-anchor="end">${escapeHtml(l)}</text>`)).join('');
+  const colTicks = o.cols.map((l, c) => (c % every(o.cols.length) ? '' : `<text x="${l0 + c * cw + cw / 2}" y="${top + ph + 14}" text-anchor="middle">${escapeHtml(l)}</text>`)).join('');
+  const id = `seq${++plotId}`, bw = Math.min(200, W - l0 - 12), by = top + ph + 48;
+  const stops = Array.from({ length: 11 }, (_, k) => `<stop offset="${k / 10}" stop-color="${sequential(k / 10)}"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width: ${W * 1.6}px" role="img" aria-label="${escapeHtml(o.title)}">
+    <defs><linearGradient id="${id}">${stops}</linearGradient></defs>
+    <text class="title" x="${l0}" y="14">${escapeHtml(o.title)}</text>
+    ${cells}${ring}${rowTicks}${colTicks}
+    <text x="${l0 + (o.cols.length * cw) / 2}" y="${top + ph + 30}" text-anchor="middle">${escapeHtml(o.colLabel)}</text>
+    <text transform="translate(12 ${top + ph / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(o.rowLabel)}</text>
+    <rect x="${l0}" y="${by}" width="${bw}" height="8" rx="2" fill="url(#${id})"/>
+    <text x="${l0}" y="${by + 22}">${fmtTick(lo)}</text><text x="${l0 + bw}" y="${by + 22}" text-anchor="end">${fmtTick(hi)}</text></svg>`;
+}
+
+/** Lines through points on two axes, the smallest point of each line marked, every point with its hover text. */
+export function linePlot(o: {
+  xLabel: string; yLabel: string;
+  series: { pts: [number, number][]; color: string; dash?: string; label: string; tips: string[] }[];
+}): string {
+  const W = 460, H = 262, l0 = 46, top = 24, pw = W - l0 - 26, ph = H - top - 44;
+  const xs = o.series.flatMap((s) => s.pts.map((p) => p[0])), ys = o.series.flatMap((s) => s.pts.map((p) => p[1]));
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y1 = Math.max(...ys) * 1.05 || 1;
+  const X = (v: number) => l0 + ((v - x0) / (x1 - x0 || 1)) * pw, Y = (v: number) => top + ph - (v / y1) * ph;
+  const ys0 = niceStep(y1 / 4), xs0 = niceStep((x1 - x0) / 5);
+  const yt: number[] = []; for (let v = 0; v <= y1 + 1e-9; v += ys0) yt.push(+v.toFixed(10));
+  const xt: number[] = []; for (let v = Math.ceil(x0 / xs0) * xs0; v <= x1 + 1e-9; v += xs0) xt.push(v);
+  const lines = o.series.map((s) => {
+    const best = s.pts.reduce((b, p, i) => (p[1] < s.pts[b][1] ? i : b), 0);
+    return `<path d="${s.pts.map(([x, y], i) => `${i ? 'L' : 'M'}${X(x).toFixed(1)} ${Y(y).toFixed(1)}`).join('')}" fill="none" stroke="${s.color}"
+      stroke-width="2" stroke-dasharray="${s.dash ?? ''}" stroke-linejoin="round"/>
+      <circle cx="${X(s.pts[best][0]).toFixed(1)}" cy="${Y(s.pts[best][1]).toFixed(1)}" r="4.5" fill="${s.color}" stroke="var(--bg)" stroke-width="2"/>
+      ${s.pts.map(([x, y], i) => `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="6" fill="transparent"><title>${escapeHtml(s.tips[i])}</title></circle>`).join('')}`;
+  }).join('');
+  const legend = o.series.map((s) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"
+    stroke="${s.color}" stroke-width="2" stroke-dasharray="${s.dash ?? ''}"/></svg>${escapeHtml(s.label)}</span>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.yLabel)} against ${escapeHtml(o.xLabel)}">
+    ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
+    ${xt.map((t) => `<text x="${X(t)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(t)}</text>`).join('')}
+    <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel)}</text>
+    <text x="${l0}" y="12">${escapeHtml(o.yLabel)}</text>${lines}</svg><div class="legend">${legend}</div>`;
+}
+
+/**
+ * An opt-in box: shown only while its checkbox is ticked. Unticking puts the defaults back (`reset`) and hides it,
+ * so that what the page computes with is always either the defaults or what the reader chose in the box.
+ */
+export function optIn(check: HTMLInputElement, box: HTMLElement, reset: () => void, onChange: () => void): void {
+  box.hidden = !check.checked;
+  check.addEventListener('change', () => { box.hidden = !check.checked; if (!check.checked) reset(); onChange(); });
 }
 
 /** Views that turn together: turning one turns every view drawn with the group. */
