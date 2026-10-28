@@ -89,6 +89,7 @@
   /* the sets a lab computes over: what they are is always said; choosing them is opt-in */
   .optin { border-left: 3px solid var(--accent-soft); padding: 2px 0 4px 12px; margin: 10px 0 14px; }
   .optin > .note { margin: 4px 0 8px; }
+  .optin > h3 { margin-top: 6px; }
   label.check { display: inline-flex; gap: 6px; align-items: baseline; font-weight: 600; }
   .sets { display: flex; flex-direction: column; gap: 8px; }
   .sets label { display: flex; gap: 8px; align-items: baseline; }
