@@ -368,7 +368,7 @@ async function chosenSets(): Promise<Sets> {
 // The sweep of sections 4 and 5: each test light's IRE against every Planckian and daylight reference
 
 /** The mean ΔE_WLab between two packed WLab sets of the same objects (as from `wlabsOf`). */
-function meanDelta(a: Float64Array, b: Float64Array): number {
+function meanDelta(a: ArrayLike<number>, b: ArrayLike<number>): number {
   let s = 0;
   for (let j = 0; j < a.length; j += 3) {
     const x = a[j] - b[j], y = a[j + 1] - b[j + 1], z = a[j + 2] - b[j + 2];
@@ -378,17 +378,36 @@ function meanDelta(a: Float64Array, b: Float64Array): number {
 }
 
 /**
+ * The references' WLab of every object, one array per observer (every reference in REFS's order), kept for the objects
+ * and observers they were computed for, so that a new test light needs only its own WLab: 32-bit (far finer than the
+ * 0.001 the tables show), and only while they fit in about 64 MB (the defaults take about 54 MB).
+ */
+let kept: { key: string; w: Float32Array[] } | undefined;
+const KEEP_BYTES = 64e6;
+
+/**
  * The IRE of each test light against each reference of REFS, observer by observer (each reference's WLab computed once
- * for every test light), reporting progress after each observer; undefined if a newer run took over.
+ * for every test light, or taken from those kept), reporting progress after each observer; undefined if a newer run
+ * took over.
  */
 async function ireSweep(tests: readonly Spectrum[], sets: Sets, progress: (done: number) => Promise<boolean>): Promise<number[][] | undefined> {
-  const out = tests.map(() => new Array<number>(REFS.length).fill(0)), objs = sets.objects;
+  const out = tests.map(() => new Array<number>(REFS.length).fill(0)), objs = sets.objects, J3 = 3 * objs.reflectances.length;
+  const keep = sets.observers.length * REFS.length * J3 * 4 <= KEEP_BYTES;
+  if (!keep) kept = undefined;
+  else if (kept?.key !== sets.key) kept = { key: sets.key, w: [] };
   for (let i = 0; i < sets.observers.length; i++) {
     const o = sets.observers[i], tw = tests.map((t) => wlabsOf(o, t, objs));
+    // an observer's references are kept only once all are computed, so that a run cut short leaves none half done
+    const had = kept?.w[i], w = had ?? (keep ? new Float32Array(REFS.length * J3) : undefined);
     for (let r = 0; r < REFS.length; r++) {
-      const rw = wlabsOf(o, REFS[r].spd, objs);
+      let rw: ArrayLike<number>;
+      if (w) {
+        if (!had) w.set(wlabsOf(o, REFS[r].spd, objs), r * J3);
+        rw = w.subarray(r * J3, (r + 1) * J3);
+      } else rw = wlabsOf(o, REFS[r].spd, objs);
       for (let k = 0; k < tests.length; k++) out[k][r] += meanDelta(tw[k], rw);
     }
+    if (w && !had) kept!.w[i] = w;
     if (!(await progress(i + 1))) return undefined;
   }
   return out.map((row) => row.map((v) => v / sets.observers.length));
@@ -642,9 +661,13 @@ async function render(): Promise<void> {
   const tests = [...(need4 ? [test.spd] : []), ...(need5 ? lights5.map((l) => l.spd) : [])];
   if (!tests.length) return;
   const progress = $('sweepProgress'), total = sets.observers.length;
+  // the page gets its turn after about 40 ms of work (with the references kept, many observers fit in one slice)
+  let slice = performance.now();
   const rows = await ireSweep(tests, sets, async (n) => {
+    if (performance.now() - slice < 40) return true;
     progress.textContent = `Computing sections 4${need5 ? ' and 5' : ''}: ${n} of ${total} observers…`;
     await new Promise((r) => setTimeout(r, 0));
+    slice = performance.now();
     return me === run;
   });
   if (!rows || me !== run) return;
