@@ -114,9 +114,11 @@
   table.indices td:first-child { white-space: normal; min-width: 11em; }
   table.indices td:nth-child(3) { text-align: left; white-space: normal; min-width: 14em; }
   table.indices thead th:nth-child(3) { text-align: left; }
+  table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
   table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
   table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }
-  table.many .what { display: block; color: var(--quiet); font-size: 0.82em; }   /* what a light is, under its name */
+  table.many .what, table.indices .what { display: block; color: var(--quiet); font-size: 0.82em; font-weight: 400; }   /* what a light or measure is, under its name */
+  table.indices thead th { vertical-align: bottom; line-height: 1.25; }
   table.methods thead th { vertical-align: bottom; line-height: 1.25; }
   table.methods th:first-child, table.methods td:first-child { text-align: left; white-space: normal; min-width: 6.5em; max-width: 8em; }
   table.methods .what { text-align: left; white-space: normal; min-width: 13em; max-width: 20em; }
@@ -454,7 +456,7 @@
     ${G("90th percentile",P(I(.9)))}
     ${G("Largest",`${P(C[i].d[M])}: ${k(E.names[M])}, for ${k(e[i].name)}`)}
     </tbody></table></div>${U}
-    <p class="note">Over the ${D.length.toLocaleString("en")} WLab differences, one for each object and each observer.</p>`;let S=Float64Array.from(t).sort();l("moveHist").innerHTML=EB([Array.from(S)],["each object's mean over the observers"],["var(--accent)"],{xLabel:"\u0394E_WLab between the two lights (the last bin holds everything above)",yLabel:"objects"});let F=Array.from(t,(n,r)=>r).sort((n,r)=>t[r]-t[n]),H=F.slice(0,Lg);l("movers").innerHTML=`<div class="table-wrap"><table class="bylight"><thead>
+    <p class="note">Over the ${D.length.toLocaleString("en")} WLab differences, one for each object and each observer.</p>`;let S=Float64Array.from(t).sort();l("moveHist").innerHTML=EB([Array.from(S)],["each object's mean over the observers"],["var(--accent)"],{xLabel:"\u0394E_WLab between the two lights (the last bin holds everything above)",yLabel:"objects"});let F=Array.from(t,(n,r)=>r).sort((n,r)=>t[r]-t[n]),H=F.slice(0,Lg);l("movers").innerHTML=`<div class="table-wrap"><table class="bylight movers"><thead>
     <tr><th></th><th class="sep" colspan="3">\u0394E<sub>WLab</sub> over the observers</th><th class="sep" colspan="3">share of \u03A3\u0394E<sup>2</sup> in</th></tr>
     <tr><th>Object</th><th class="sep">mean</th><th>largest</th><th style="text-align: left">for</th><th class="sep">lightness</th><th>chroma</th><th>hue</th></tr></thead>
     <tbody>${H.map(n=>{let r=s[n],J=r[0]+r[1]+r[2]+r[3],T=J<1e-18?'<td class="sep">\u2013</td><td>\u2013</td><td>\u2013</td>':r[3]>0?`<td class="sep">${UA(r[0]/J)}</td><td colspan="2">${UA((r[1]+r[2]+r[3])/J)} (chroma and hue)</td>`:`<td class="sep">${UA(r[0]/J)}</td><td>${UA(r[1]/J)}</td><td>${UA(r[2]/J)}</td>`;return`<tr><td>${k(E.names[n])}</td><td class="sep">${P(t[n])}</td><td>${P(o[n])}</td>
@@ -480,15 +482,15 @@
     ${w.map(o=>`<line x1="${E(o.u[0])}" y1="${e(o.u[1])}" x2="${E(o.t[0])}" y2="${e(o.t[1])}" stroke="var(--accent)" marker-end="url(#${t})"/>`).join("")}
     <text x="160" y="314" text-anchor="middle">dashed: the reference; solid: the test light</text></svg>`}var M0="",ZB="";function D0(A,B,g,Q){let E=A0(A.spd,g.tcs),e=g0(A.spd,g.ces),w=fB(E.cct),C=WB(e.cct),t=hA(A.spd,w.spd,B.observers,B.objects),o=hA(A.spd,C.spd,B.observers,B.objects),c=I=>`${I>=0?"+":"\u2212"}${Math.abs(I).toFixed(4)}`,s=Math.abs(E.duv)<5e-5?"on the Planckian locus":E.duv>0?"above the Planckian locus, toward green":"below the Planckian locus, toward magenta",D=Q&&(()=>{let[I,a]=[b(Q.planck),b(Q.day)];return I[1]<=a[1]?{t:I[0],v:I[1],kind:"Planckian"}:{t:a[0],v:a[1],kind:"daylight"}})();l("indices").innerHTML=`<p><b>${k(A.label)}</b>: CCT <span class="big">${Math.round(E.cct)} K</span>, from its chromaticity;
     Duv ${c(E.duv)} (${s}).</p>
-    <div class="table-wrap"><table class="indices"><thead><tr><th>Measure</th><th class="sep">value</th><th class="sep">its reference</th>
-    <th class="sep">IRE against that reference</th></tr></thead><tbody>
-    <tr class="own"><td>Color rendering index Ra (CIE 13.3)</td><td class="sep">${E.ra.toFixed(1)}</td>
-      <td class="sep">${k(w.label)}, at the CCT (chromaticity distance DC ${E.dc.toExponential(1)})</td><td class="sep">${P(t)}</td></tr>
-    <tr class="own"><td>Color fidelity index R<sub>f</sub> (CIE 224, TM-30)</td><td class="sep">${e.rf.toFixed(1)}</td>
+    <div class="table-wrap"><table class="indices"><thead><tr><th>Measure</th><th class="sep">Value</th><th class="sep">Its reference</th>
+    <th class="sep">IRE against<br>that reference</th></tr></thead><tbody>
+    <tr class="own"><td>Color rendering index Ra<span class="what">CIE 13.3</span></td><td class="sep">${E.ra.toFixed(1)}</td>
+      <td class="sep">${k(w.label)}, at the CCT<span class="what">chromaticity distance DC ${E.dc.toExponential(1)}</span></td><td class="sep">${P(t)}</td></tr>
+    <tr class="own"><td>Color fidelity index R<sub>f</sub><span class="what">CIE 224, TM-30</span></td><td class="sep">${e.rf.toFixed(1)}</td>
       <td class="sep" rowspan="2">${k(C.label)}, at the CCT</td><td class="sep" rowspan="2">${P(o)}</td></tr>
-    <tr class="own"><td>Gamut index R<sub>g</sub> (TM-30)</td><td class="sep">${e.rg.toFixed(1)}</td></tr>
-    <tr><td>Lowest IRE (section 4)</td><td class="sep">\u2013</td>
-      <td class="sep">${D?`${D.kind} ${D.t} K, the Planckian or daylight light with the lowest IRE`:"computing\u2026"}</td><td class="sep">${D?P(D.v):""}</td></tr>
+    <tr class="own"><td>Gamut index R<sub>g</sub><span class="what">TM-30</span></td><td class="sep">${e.rg.toFixed(1)}</td></tr>
+    <tr><td>Lowest IRE<span class="what">section 4</span></td><td class="sep">\u2013</td>
+      <td class="sep">${D?`${D.kind} ${D.t} K<span class="what">the Planckian or daylight light with the lowest IRE</span>`:"computing\u2026"}</td><td class="sep">${D?P(D.v):""}</td></tr>
     </tbody></table></div>
     <p class="note">The IRE column measures, with the objects and observers of section 3, how far objects move between the test
     light and each reference; the last row is the reference with the lowest IRE, for comparison.</p>`,l("riTable").innerHTML=`<div class="table-wrap"><table class="bylight"><thead><tr><th>Test color sample</th><th class="sep">R<sub>i</sub></th></tr></thead>

@@ -114,9 +114,11 @@
   table.indices td:first-child { white-space: normal; min-width: 11em; }
   table.indices td:nth-child(3) { text-align: left; white-space: normal; min-width: 14em; }
   table.indices thead th:nth-child(3) { text-align: left; }
+  table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
   table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
   table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }
-  table.many .what { display: block; color: var(--quiet); font-size: 0.82em; }   /* what a light is, under its name */
+  table.many .what, table.indices .what { display: block; color: var(--quiet); font-size: 0.82em; font-weight: 400; }   /* what a light or measure is, under its name */
+  table.indices thead th { vertical-align: bottom; line-height: 1.25; }
   table.methods thead th { vertical-align: bottom; line-height: 1.25; }
   table.methods th:first-child, table.methods td:first-child { text-align: left; white-space: normal; min-width: 6.5em; max-width: 8em; }
   table.methods .what { text-align: left; white-space: normal; min-width: 13em; max-width: 20em; }

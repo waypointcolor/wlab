@@ -501,7 +501,7 @@ function drawMove(test: Light, ref: Light, refNote: string, sets: Sets): void {
   $('moveHist').innerHTML = histogram([Array.from(sorted)], ['each object\'s mean over the observers'], ['var(--accent)'],
     { xLabel: 'ΔE_WLab between the two lights (the last bin holds everything above)', yLabel: 'objects' });
   const order = Array.from(mean, (_, j) => j).sort((x, y) => mean[y] - mean[x]), top = order.slice(0, TOP);
-  $('movers').innerHTML = `<div class="table-wrap"><table class="bylight"><thead>
+  $('movers').innerHTML = `<div class="table-wrap"><table class="bylight movers"><thead>
     <tr><th></th><th class="sep" colspan="3">ΔE<sub>WLab</sub> over the observers</th><th class="sep" colspan="3">share of ΣΔE<sup>2</sup> in</th></tr>
     <tr><th>Object</th><th class="sep">mean</th><th>largest</th><th style="text-align: left">for</th><th class="sep">lightness</th><th>chroma</th><th>hue</th></tr></thead>
     <tbody>${top.map((j) => {
@@ -643,15 +643,15 @@ function drawIndices(test: Light, sets: Sets, s: { tcs: SampleSet; ces: SampleSe
   const low = curves && (() => { const [p, d] = [lowest(curves.planck), lowest(curves.day)]; return p[1] <= d[1] ? { t: p[0], v: p[1], kind: 'Planckian' } : { t: d[0], v: d[1], kind: 'daylight' }; })();
   $('indices').innerHTML = `<p><b>${escapeHtml(test.label)}</b>: CCT <span class="big">${Math.round(r.cct)} K</span>, from its chromaticity;
     Duv ${sgn(r.duv)} (${where}).</p>
-    <div class="table-wrap"><table class="indices"><thead><tr><th>Measure</th><th class="sep">value</th><th class="sep">its reference</th>
-    <th class="sep">IRE against that reference</th></tr></thead><tbody>
-    <tr class="own"><td>Color rendering index Ra (CIE 13.3)</td><td class="sep">${r.ra.toFixed(1)}</td>
-      <td class="sep">${escapeHtml(refC.label)}, at the CCT (chromaticity distance DC ${r.dc.toExponential(1)})</td><td class="sep">${f3(ireC)}</td></tr>
-    <tr class="own"><td>Color fidelity index R<sub>f</sub> (CIE 224, TM-30)</td><td class="sep">${f.rf.toFixed(1)}</td>
+    <div class="table-wrap"><table class="indices"><thead><tr><th>Measure</th><th class="sep">Value</th><th class="sep">Its reference</th>
+    <th class="sep">IRE against<br>that reference</th></tr></thead><tbody>
+    <tr class="own"><td>Color rendering index Ra<span class="what">CIE 13.3</span></td><td class="sep">${r.ra.toFixed(1)}</td>
+      <td class="sep">${escapeHtml(refC.label)}, at the CCT<span class="what">chromaticity distance DC ${r.dc.toExponential(1)}</span></td><td class="sep">${f3(ireC)}</td></tr>
+    <tr class="own"><td>Color fidelity index R<sub>f</sub><span class="what">CIE 224, TM-30</span></td><td class="sep">${f.rf.toFixed(1)}</td>
       <td class="sep" rowspan="2">${escapeHtml(refF.label)}, at the CCT</td><td class="sep" rowspan="2">${f3(ireF)}</td></tr>
-    <tr class="own"><td>Gamut index R<sub>g</sub> (TM-30)</td><td class="sep">${f.rg.toFixed(1)}</td></tr>
-    <tr><td>Lowest IRE (section 4)</td><td class="sep">–</td>
-      <td class="sep">${low ? `${low.kind} ${low.t} K, the Planckian or daylight light with the lowest IRE` : 'computing…'}</td><td class="sep">${low ? f3(low.v) : ''}</td></tr>
+    <tr class="own"><td>Gamut index R<sub>g</sub><span class="what">TM-30</span></td><td class="sep">${f.rg.toFixed(1)}</td></tr>
+    <tr><td>Lowest IRE<span class="what">section 4</span></td><td class="sep">–</td>
+      <td class="sep">${low ? `${low.kind} ${low.t} K<span class="what">the Planckian or daylight light with the lowest IRE</span>` : 'computing…'}</td><td class="sep">${low ? f3(low.v) : ''}</td></tr>
     </tbody></table></div>
     <p class="note">The IRE column measures, with the objects and observers of section 3, how far objects move between the test
     light and each reference; the last row is the reference with the lowest IRE, for comparison.</p>`;
