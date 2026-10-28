@@ -7,7 +7,6 @@ import {
   categoricalObserver, cie2006, daylight, deltaEsOf, fluorescents, illuminants, observers, planckian, resample, wlabsOf,
   type IlluminantName, type Observer, type SampleSet, type Spectrum,
 } from '../../src/index.ts';
-import { madeUpLed } from '../demo-data.ts';
 import { CAMERA_CREDIT, cameraObservers } from './cameras.ts';
 import { fromDisk } from './fetchdata.ts';
 import { hueTurn } from './shifts.ts';
@@ -36,7 +35,6 @@ const builtIn = (k: IlluminantName): Light => ({ key: k, label: LIGHT_LABEL[k], 
 const FL_KIND = (n: number) => (n <= 6 ? 'standard fluorescent' : n <= 9 ? 'broadband fluorescent' : 'tri-band fluorescent');
 const FLUORESCENT: Light[] = Object.entries(fluorescents).map(([k, spd]) => ({ key: k, label: `${k} (${FL_KIND(Number(k.slice(1)))})`, spd, group: FL_KIND(Number(k.slice(1))) }));
 const LEDS: Light[] = (Object.keys(illuminants) as IlluminantName[]).filter((k) => k.startsWith('LED-')).map((k) => ({ ...builtIn(k), group: 'CIE LED' }));
-const MADE_UP: Light = { key: 'madeup', label: 'the made-up white LED', spd: resample(madeUpLed.nm, madeUpLed.values), group: 'other' };
 
 const range = (a: number, b: number, s: number) => Array.from({ length: Math.round((b - a) / s) + 1 }, (_, i) => a + s * i);
 const PLANCK = range(1750, 12000, 250), DAY = range(4000, 14000, 250);
@@ -70,7 +68,7 @@ type Closest = 'any' | 'planck' | 'day';
 interface Picked { light?: Light; closest?: Closest }
 
 /**
- * A light picker: the common lights, the CIE fluorescent lights, the made-up LED, daylight or Planckian at a
+ * A light picker: the common lights, the CIE fluorescent lights, daylight or Planckian at a
  * temperature, or your own (pasted or from a file). With `closest`, it also offers the closest reference by IRE
  * (section 4), which `get()` returns as a choice to resolve rather than a light.
  */
@@ -92,11 +90,11 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, clo
   const light = el<HTMLSelectElement>('light');
   const group = (label: string, options: HTMLOptionElement[]) => { const g = document.createElement('optgroup'); g.label = label; g.append(...options); return g; };
   light.replaceChildren(
-    ...(closest ? [group('The closest by IRE (section 4)', [new Option('The closest Planckian or daylight', 'closest:any'),
+    ...(closest ? [group('Rendering the objects most alike (section 4)', [new Option('The closest Planckian or daylight', 'closest:any'),
       new Option('The closest Planckian', 'closest:planck'), new Option('The closest daylight', 'closest:day')])] : []),
     group('Common lights', (Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k))),
     group('CIE fluorescent lights', FLUORESCENT.map((l) => new Option(l.label, `fl:${l.key}`))),
-    group('Others', [new Option('The made-up white LED (of the guide)', 'madeup'), new Option('Daylight at a temperature…', 'daylight'),
+    group('Others', [new Option('Daylight at a temperature…', 'daylight'),
       new Option('Planckian at a temperature…', 'planckian'), new Option('Your own light (paste or file)…', 'paste')]),
   );
   light.value = start;
@@ -127,7 +125,6 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, clo
       const v = light.value, kelvin = Number(el<HTMLInputElement>('kelvin').value);
       if (v.startsWith('closest:')) return { closest: v.slice(8) as Closest };
       if (v.startsWith('fl:')) return { light: FLUORESCENT.find((l) => l.key === v.slice(3))! };
-      if (v === 'madeup') return { light: MADE_UP };
       if (v === 'daylight') {
         if (!(kelvin >= 4000 && kelvin <= 25000)) throw new Error('give a daylight CCT from 4000 to 25000 K');
         return { light: { key: `day${kelvin}`, label: `daylight ${kelvin} K`, spd: daylight(kelvin) } };
@@ -159,7 +156,7 @@ let yourLights: Light[] = [], fileLights: Light[] = [], pastedLights: Light[] = 
 const LIGHT_SETS: LightSet[] = [
   {
     id: 'fluorescent', title: 'The CIE fluorescent lights F1 to F12 (12 lights)',
-    about: 'Standard halophosphate lamps (F1 to F6), broadband lamps (F7 to F9) and narrow tri-band lamps (F10 to F12): the test lights of the thesis\'s table.',
+    about: 'Standard halophosphate lamps (F1 to F6), broadband lamps (F7 to F9) and narrow tri-band lamps (F10 to F12), the fluorescent lamp types of CIE 15.',
     lights: () => FLUORESCENT,
   },
   {
@@ -172,7 +169,6 @@ const LIGHT_SETS: LightSet[] = [
     about: 'Incandescent light, older and newer daylight and equal energy: lights a reference is often made from.',
     lights: () => (['A', 'C', 'D50', 'D65', 'E'] as IlluminantName[]).map((k) => ({ ...builtIn(k), group: 'other' })),
   },
-  { id: 'madeup', title: 'The made-up white LED (1 light)', about: 'The guide\'s example of a custom light: a blue peak and two broad phosphor bands.', lights: () => [MADE_UP] },
   {
     id: 'yours', title: 'Your own lights',
     about: 'From files or pasted below: wavelength in nm in the first column and one light per column (a header row can name them), relative power at any scale, covering at least 420 to 680 nm. Read in this page; they go nowhere.',
@@ -229,8 +225,9 @@ function testLights(): Light[] {
 
 interface ObserverSet { id: string; title: string; about: string; credit?: string; observers(): Promise<readonly Observer[]> }
 
-let thesisObservers: Observer[] | undefined;
-const THESIS_OBSERVERS = () => (thesisObservers ??= [observers.cie1931, observers.cie1964,
+// the observers the thesis computed its IRE over
+let commonObservers: Observer[] | undefined;
+const COMMON_OBSERVERS = () => (commonObservers ??= [observers.cie1931, observers.cie1964,
   ...range(1, 10, 1).flatMap((f) => range(20, 80, 10).map((a) => cie2006(f, a)))]);
 let categorical: Observer[] | undefined;
 
@@ -243,9 +240,9 @@ const readObserver = (text: string, name: string): Observer => {
 
 const OBSERVER_SETS: ObserverSet[] = [
   {
-    id: 'thesis', title: 'The thesis\'s 72 observers',
-    about: 'CIE 1931 (2°), CIE 1964 (10°) and the CIE 2006 observers for field sizes 1° to 10° and ages 20 to 80 in steps of 10 years: the observers the thesis computed the IRE over, so that a light is judged across the variety of color-normal vision.',
-    observers: async () => THESIS_OBSERVERS(),
+    id: 'common', title: 'Common observers (72)',
+    about: 'CIE 1931 (2°), CIE 1964 (10°) and the CIE 2006 observers for field sizes 1° to 10° and ages 20 to 80 in steps of 10 years, so that a light is judged across the variety of color-normal vision.',
+    observers: async () => COMMON_OBSERVERS(),
   },
   {
     id: 'cie', title: 'The CIE standard observers (4)',
@@ -273,7 +270,7 @@ const OBSERVER_SETS: ObserverSet[] = [
     },
   },
 ];
-const DEFAULT_OBJECTS = ['munsell271', 'cie-ces99', 'pmcc', 'morimoto-natural-objects'], DEFAULT_OBSERVERS = ['thesis'];
+const DEFAULT_OBJECTS = ['cie-ces99'], DEFAULT_OBSERVERS = ['common'];
 
 /** The sets the reader loaded from files, after the library's. */
 let ownSets: ObjectSet[] = [];
@@ -357,7 +354,7 @@ async function chosenSets(): Promise<Sets> {
   const custom = $<HTMLInputElement>('chooseSets').checked;
   $('setsNow').textContent = custom
     ? `Your choice: ${objects.reflectances.length.toLocaleString('en')} objects (${objects.sets.map((s) => s.title).join('; ')}) and ${obs.length} observer${obs.length > 1 ? 's' : ''} (${chosen.map((s) => s.title).join('; ')}).`
-    : 'Sections 3 to 5 use 759 objects, 271 of the corrected Munsell colors (ten hues at every Value and at Chroma 4 to 16, and the neutrals), the CIE\'s 99 color evaluation samples (those of TM-30-18), the 30 patches of the PMCC and 359 natural objects measured in Japan (flowers, leaves, fruit, vegetables, bark and stones), seen by the thesis\'s 72 observers: CIE 1931, CIE 1964 and the CIE 2006 observers for field sizes 1° to 10° and ages 20 to 80. The thesis\'s own objects (all 1,600 Munsell colors) are among the choices below.';
+    : 'Sections 3 to 5 use the CIE\'s 99 color evaluation samples (those of TM-30-18), chosen from about 105,000 measured objects to span the colors of real objects evenly (natural objects, skin, textiles, paints, plastics, printed colors and color systems), seen by 72 common observers: CIE 1931, CIE 1964 and the CIE 2006 observers for field sizes 1° to 10° and ages 20 to 80. The other sets, all 1,600 corrected Munsell colors among them, are among the choices below.';
   return {
     objects, observers: obs, observerTitles: chosen.map((s) => s.title),
     key: `${objects.sets.map((s) => s.id).join('+')}|${[...seen].join('+')}`,

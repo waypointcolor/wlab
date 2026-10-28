@@ -43,6 +43,30 @@
     leaves out the color of the light itself.</p>
     <div id="move"></div>
     <div id="moveHist" style="max-width: 520px"></div>
+    <div class="optin">
+      <h3>Selecting objects and observers for the IRE</h3>
+      <p id="setsNow" class="note"></p>
+      <label class="check"><input type="checkbox" id="chooseSets" autocomplete="off"> Choose the objects and observers myself</label>
+      <div id="setsBox" hidden>
+        <p class="note">The objects are the materials the lights are compared on, and the observers those who see them;
+        the more varied the objects' spectra, the more a difference between lights shows. They apply to sections 3 to
+        5.</p>
+        <h3>Objects</h3>
+        <div id="objectSets" class="sets"></div>
+        <div class="row"><label>Your own objects <input type="file" id="ownFiles" accept=".txt,.csv,.tsv,.cgats,.cgt,.it8,.ti3" multiple></label></div>
+        <p class="note">A CGATS measurement file (with spectral fields such as SPECTRAL_NM380, as spectrophotometers and
+        chart software write them) or a table: wavelength in the first column and one object per column, or one object
+        per row with the wavelengths across the header row; values from 0 to 1 or in percent, covering at least 420 to
+        680 nm. A chart you measured yourself can be used this way. The file is read in this page and goes nowhere.</p>
+        <p id="ownNote" class="note"></p>
+        <h3>Observers</h3>
+        <div id="observerSets" class="sets"></div>
+        <div class="row"><label>Your own observers <input type="file" id="observerFiles" accept=".txt,.csv,.tsv" multiple></label></div>
+        <p id="observerNote" class="note"></p>
+        <textarea id="observerPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
+        <p id="observerPasteNote" class="note"></p>
+      </div>
+    </div>
     <h3>The objects that move most</h3>
     <div id="movers"></div>
     <p class="note">The 15 objects with the largest mean ΔE<sub>WLab</sub> over the observers. The shares split each one's
@@ -85,32 +109,6 @@
     <div id="many"></div>
     <div class="cols" id="manyPlots"></div>
     <div class="row"><button id="downloadMany" disabled>Download the IRE of every test light (CSV)</button></div>
-  </div>
-
-  <h2>6. The objects and observers</h2>
-  <div class="card">
-    <p>The objects are the materials the lights are compared on, and the observers those who see them; the more varied
-    the objects' spectra, the more a difference between lights shows. They apply to sections 3 to 5.</p>
-    <p id="setsNow" class="note"></p>
-    <div class="optin">
-      <label class="check"><input type="checkbox" id="chooseSets" autocomplete="off"> Choose the objects and observers myself</label>
-      <div id="setsBox" hidden>
-        <h3>Objects</h3>
-        <div id="objectSets" class="sets"></div>
-        <div class="row"><label>Your own objects <input type="file" id="ownFiles" accept=".txt,.csv,.tsv,.cgats,.cgt,.it8,.ti3" multiple></label></div>
-        <p class="note">A CGATS measurement file (with spectral fields such as SPECTRAL_NM380, as spectrophotometers and
-        chart software write them) or a table: wavelength in the first column and one object per column, or one object
-        per row with the wavelengths across the header row; values from 0 to 1 or in percent, covering at least 420 to
-        680 nm. A chart you measured yourself can be used this way. The file is read in this page and goes nowhere.</p>
-        <p id="ownNote" class="note"></p>
-        <h3>Observers</h3>
-        <div id="observerSets" class="sets"></div>
-        <div class="row"><label>Your own observers <input type="file" id="observerFiles" accept=".txt,.csv,.tsv" multiple></label></div>
-        <p id="observerNote" class="note"></p>
-        <textarea id="observerPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
-        <p id="observerPasteNote" class="note"></p>
-      </div>
-    </div>
   </div>
 
   <footer>

@@ -60,8 +60,7 @@ const fromIndex = (m: SetMeta): ObjectSet => {
 const munsell: ObjectSet = {
   id: 'munsell1600', title: 'The corrected Munsell colors', builtIn: true,
   description: 'The 1,600 glossy chips of a Munsell Book of Color, measured by the University of Eastern Finland and '
-    + 'corrected to the Munsell renotation: every hue, lightness and chroma of one maker\'s pigments. The thesis '
-    + 'computed its metrics over these.',
+    + 'corrected to the Munsell renotation: every hue, lightness and chroma of one maker\'s pigments.',
   count: 1600, url: 'https://sites.uef.fi/spectral/?p=423', license: 'credit both sources',
   credit: 'Measurements © University of Eastern Finland; corrected by M. W. Derhak and R. S. Berns, "Analysis and '
     + 'correction of the Joensuu Munsell glossy spectral database," Proc. 20th Color and Imaging Conference (2012).',
