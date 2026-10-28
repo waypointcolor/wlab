@@ -67,8 +67,8 @@ function render(): void {
   $('c2sp').innerHTML = matrixTable(conv.c2sp);
   $('s2cp').innerHTML = matrixTable(conv.s2cp);
   $('pccNote').textContent = conv.standard
-    ? 'The target condition is the standard PCS\'s own, CIE 1931 (2°) under D50: the converted observer approximates it, the profile\'s PCS is the standard one, and c2sp and s2cp are the identity.'
-    : `The target condition is not the standard PCS's, so the profile has a custom PCS: the converted observer under ${cond.lightLabel}. c2sp is the MAT from it to the standard PCS (CIE 1931 (2°) under D50), and s2cp the MAT back.`;
+    ? 'The target condition is the standard PCS\'s own, CIE 1931 (2°) under D50: the converted observer approximates it, the profile\'s PCS is the standard one, and the profile connection conditions tags hold the identity.'
+    : `The target condition is not the standard PCS's, so the profile has a custom PCS: the converted observer under ${cond.lightLabel}. The profile connection conditions tags hold the MAT from it to the standard PCS (CIE 1931 (2°) under D50) and the MAT back.`;
   drawCurves(cond, conv);
   void drawMetrics(src, cond);
   showProfile();
@@ -341,7 +341,7 @@ function drawOme(src: Condition, cond: Condition, sets: Sets): void {
   // without the MAT: the source observer's responses taken as the target condition's
   const b = wptNormalization(cond.observer, cond.light);
   const raw = objs.reflectances.map((r) => deltaEWlab(wptToWlab(mulMV(b.toWpt as Mat3, responses(r, src.observer, cond.light))), b.wlabOf(r)));
-  $('metrics').innerHTML = `<div class="table-wrap"><table><thead>
+  $('metrics').innerHTML = `<div class="table-wrap"><table class="bylight"><thead>
     <tr><th></th><th class="sep" colspan="5">ΔE<sub>WLab</sub> over the objects</th></tr>
     <tr><th>Light</th><th class="sep">mean</th><th>median</th><th>90th percentile</th><th>largest</th><th>where it is largest</th></tr></thead>
     <tbody><tr class="own"><td>${escapeHtml(cond.lightLabel)} (the target condition's)</td>${summary(moved(cond.light))}</tr>
@@ -511,8 +511,8 @@ function showProfile(): void {
   // the binary profile, written when it is downloaded (with the date of that moment)
   icc = () => encodingProfileIcc(conv, cond.light, options);
   fileName = `${slug(src.observer.name)}-for-${slug(cond.label)}-${encoding}_${numbers}`;
-  $('stdNames').textContent = `In the svcn: StdObserver "${names.observer ?? 'Custom observer'}"${names.observer ? ', named by its index without its functions' : ', with the functions of the converted observer, as a custom observer'}; `
-    + `StdIlluminant "${names.illuminant ?? 'Illuminant Unknown'}"${names.cct ? `, ${names.cct} K` : ''}${isD50(cond.light) ? ', named by its index without its spectrum' : ', with the spectrum of the light'}.`;
+  $('stdNames').textContent = `In the spectral viewing conditions tag: the observer "${names.observer ?? 'Custom observer'}"${names.observer ? ', named by its index without its functions' : ', with the functions of the converted observer, as a custom observer'}; `
+    + `the illuminant "${names.illuminant ?? 'Illuminant Unknown'}"${names.cct ? `, ${names.cct} K` : ''}${isD50(cond.light) ? ', named by its index without its spectrum' : ', with the spectrum of the light'}.`;
   $('commands').textContent = `iccFromXml ${fileName}.xml ${fileName}.icc\niccDumpProfile -v ${fileName}.icc`;
   $('xmlPreview').textContent = xml;
 }

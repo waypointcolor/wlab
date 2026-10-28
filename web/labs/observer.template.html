@@ -150,11 +150,11 @@
   <div class="card">
     <p>An iccMAX (version 5) colorimetric encoding profile, of class <code>spac</code> and subclass <code>pcc</code>,
     ready to use (.icc) or as XML for iccDEV's <code>iccFromXml</code>, laid out like the profiles of the ICC's
-    Colorimetric Encoding conformance package. Its spectral viewing conditions (<code>svcn</code>) hold the converted observer and the
-    target condition's light; <code>c2sp</code> and <code>s2cp</code> convert between its PCS and the standard one.</p>
+    Colorimetric Encoding conformance package. Its spectral viewing conditions tag holds the converted observer and the
+    target condition's light, and its profile connection conditions tags convert between its PCS and the standard one.</p>
     <div class="cols">
-      <div><h3>c2sp, custom PCS to standard PCS</h3><div id="c2sp"></div><button data-copy="c2sp">Copy</button></div>
-      <div><h3>s2cp, standard PCS to custom PCS</h3><div id="s2cp"></div><button data-copy="s2cp">Copy</button></div>
+      <div><h3>Custom PCS to standard PCS</h3><div id="c2sp"></div><button data-copy="c2sp">Copy</button></div>
+      <div><h3>Standard PCS to custom PCS</h3><div id="s2cp"></div><button data-copy="s2cp">Copy</button></div>
     </div>
     <p id="pccNote" class="note"></p>
     <div class="row"><label>Write matrices as <select id="fmt2"></select></label></div>

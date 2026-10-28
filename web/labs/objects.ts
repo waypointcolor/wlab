@@ -612,7 +612,7 @@ $('profileFiles').addEventListener('change', async (e) => {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const cond = profileCondition(bytes);
       profiles.push({ key: `${file.name}:${hash(String.fromCharCode(...bytes.subarray(0, 4096)))}:${bytes.length}`, file: file.name, cond });
-      notes.push(cond.svcn ? `${file.name}: ${cond.observer.name}, ${cond.lightLabel}` : `${file.name}: no svcn tag, so CIE 1931 (2°) under D50`);
+      notes.push(cond.svcn ? `${file.name}: ${cond.observer.name}, ${cond.lightLabel}` : `${file.name}: no spectral viewing conditions tag, so CIE 1931 (2°) under D50`);
     } catch (err) { notes.push(`${file.name}: cannot read it (${(err as Error).message})`); }
   }
   $('profileNote').textContent = notes.length ? `${notes.join('; ')}.` : '';

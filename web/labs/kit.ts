@@ -131,8 +131,8 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
     <div data-k="profileBox" hidden>
       <div class="row"><label>ICC or iccMAX profile <input type="file" data-k="profileFile" accept=".icc,.icm,.xml"></label></div>
       <p class="note" data-k="profileNote">An ICC (version 2 or 4) or iccMAX (version 5) profile, binary (.icc) or as XML
-      (as iccDEV's iccToXml writes it). The spectral viewing conditions of an iccMAX profile (its svcn tag, or that of
-      the version 5 profile inside a hybrid profile) give the observer and the light; a profile without them, as every
+      (as iccDEV's iccToXml writes it). The spectral viewing conditions tag of an iccMAX profile (or that of the version
+      5 profile inside a hybrid profile) gives the observer and the light; a profile without them, as every
       version 2 or 4 profile, is on the standard PCS, CIE 1931 (2°) under D50.</p>
     </div>
     <div data-k="lightPasteBox" hidden>

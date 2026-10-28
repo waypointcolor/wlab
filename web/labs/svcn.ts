@@ -163,12 +163,12 @@ function onGrid(nm: readonly number[], values: readonly number[]): Spectrum {
  */
 export function profileCondition(data: Uint8Array | string): { observer: Observer; light: Spectrum; lightLabel: string; svcn?: Svcn } {
   const svcn = readSvcn(data);
-  if (!svcn) return { observer: observers.cie1931, light: illuminants.D50, lightLabel: 'D50 (the profile has no svcn tag)' };
+  if (!svcn) return { observer: observers.cie1931, light: illuminants.D50, lightLabel: 'D50 (the profile has no spectral viewing conditions tag)' };
   const light = svcn.light && svcn.lightNm ? resample(svcn.lightNm, svcn.light) : namedLight(svcn.stdIlluminant, svcn.colorTemperature);
   const lightLabel = `the profile's light (${svcn.stdIlluminant.replace(/^Illuminant /, '')})`;
   if (!svcn.curves || !svcn.observerNm) return { observer: namedObserver(svcn.stdObserver), light, lightLabel, svcn };
   const curves = svcn.curves.map((c) => onGrid(svcn.observerNm!, c));
   if (!curves.every((c) => c.some((v) => v !== 0))) throw new Error('the observer functions of the profile are empty between 380 and 780 nm');
-  const name = svcn.description ? `${svcn.description} (svcn)` : `the profile's observer (${svcn.stdObserver})`;
+  const name = svcn.description ? `${svcn.description} (from the profile)` : `the profile's observer (${svcn.stdObserver})`;
   return { observer: { name, curves }, light, lightLabel, svcn };
 }

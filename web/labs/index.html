@@ -114,6 +114,9 @@
   table.methods thead th { vertical-align: bottom; line-height: 1.25; }
   table.methods th:first-child, table.methods td:first-child { text-align: left; white-space: normal; min-width: 6.5em; max-width: 8em; }
   table.methods .what { text-align: left; white-space: normal; min-width: 13em; max-width: 20em; }
+  /* Lab D's light-by-light table: the lights' names wrap, so that the first column stays narrow */
+  table.bylight td:first-child { white-space: normal; min-width: 12em; max-width: 15em; }
+  table.bylight thead tr:last-child th:last-child { text-align: left; }   /* over the left-aligned names below it */
   /* a finding worth stopping at, such as two observers that are one */
   .flag { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; }
   tr.own td { font-weight: 600; }                                 /* the row of the condition's own light */
