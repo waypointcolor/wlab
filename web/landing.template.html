@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WLab and Wpt</title>
 <!--FAVICON-->
-<meta name="description" content="WLab and Wpt describe the color of a material for every light and observer. Interactive demos, the guide, and a robustness report.">
+<meta name="description" content="WLab and Wpt describe the color of a material for every light and observer. An interactive demo, the guide, the Waypoint Labs and a robustness report.">
 <style>
   :root {
     --bg: #ffffff; --surface: #f6f7f8; --ink: #1d2125; --quiet: #5c636b; --line: #d9dde1;
@@ -39,7 +39,6 @@
   select, button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; }
   button { cursor: pointer; }
   button.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-  input[type=range] { width: 260px; accent-color: var(--accent); }
   svg text { fill: var(--quiet); font-size: 11px; }
   svg .title { fill: var(--ink); font-size: 12px; font-weight: 600; }
   .chips { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; }
@@ -52,8 +51,6 @@
   thead th { border-bottom: 2px solid var(--ink); }
   .verdict { margin-top: 10px; font-weight: 600; }
   .note { color: var(--quiet); font-size: 0.9rem; }
-  .plane-wrap { overflow-x: auto; }
-  canvas { display: block; }
   pre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto;
         font: 13px/1.45 ui-monospace, Consolas, monospace; }
   footer { margin-top: 48px; color: var(--quiet); font-size: 0.88rem; border-top: 1px solid var(--line); padding-top: 14px; }
@@ -68,12 +65,12 @@
       <div class="sub">Color without the fine print: a material's color for every light and every viewer</div>
     </div></div>
     <p>Every CIELAB value comes with fine print: it holds for one light and one standard viewer. Wpt (pronounced
-    "Waypoint") describes the material instead, and WLab (Waypoint Lab) reshapes Wpt so that distances read like familiar
-    ΔE color differences. Try the two demos below, then read the guide.</p>
+    "Waypoint") describes the color of a material instead, and WLab (Waypoint Lab) reshapes Wpt so that distances read like familiar
+    ΔE color differences. Try the demo below, then read the guide.</p>
     <div class="actions">
       <a class="btn primary" href="WLab-Color-Without-the-Fine-Print.pdf">Read the guide (PDF)</a>
-      <a class="btn" href="WLab-robustness-report.html">Robustness report</a>
       <a class="btn" href="labs/index.html">Waypoint Labs</a>
+      <a class="btn" href="WLab-robustness-report.html">Robustness report</a>
       <a class="btn" href="#developers">For developers</a>
     </div>
   </header>
@@ -82,22 +79,28 @@
   <ul class="short">
     <li>A CIELAB value describes a sample under one light, as one standard viewer sees it. Change the light or the viewer
     and the value changes, by a different amount for each sample.</li>
+    <li>Three things set a measured color: the object (its spectral reflectance), the light, and the observer (a standard
+    one, a person's own eyes, or a camera's sensors). Wpt and WLab follow the object; the Waypoint Labs let you change
+    the light and the observer and see what moves.</li>
     <li>That is why two samples that match in the viewing booth (a cabinet lit by one standard light, where colors are
     checked) can stop matching in the store. The name for it is metamerism.</li>
     <li>Wpt and WLab are coordinates for the material itself: for typical materials they stay nearly the same whatever
     the light and whoever is looking, and how far a material does move is useful information in itself. WLab
     differences are designed to be similar in size to familiar ΔE values.</li>
-    <li>With them you can ask questions that a check under the booth's one light cannot answer. Will this match hold
+    <li>With them you can ask questions that a check under a viewing booth's one light cannot answer. Will this match hold
     under store lighting? Does this ink hold its color? Do these two viewers, or a camera and a person, agree?</li>
     <li>A material adjustment transform (MAT) carries measurements from one light and/or viewer to another by way of the
     material.</li>
-    <li>Keep CIELAB and ΔE<sub>00</sub> for work under one light and for contracts. Reach for WLab when a comparison
-    crosses lights, viewers or devices.</li>
+    <li>Keep CIELAB and ΔE<sub>00</sub> for work under one light and for contracts. Reach for Wpt and WLab when a
+    comparison is needed that crosses lights, viewers or devices, or when the question is about the lights and viewers
+    themselves: how alike two lights render materials, or how far an observer or a camera is from the standard
+    ones.</li>
   </ul>
 
-  <h2>Demo 1: two materials that match, until the light changes</h2>
-  <p>The two materials below have different spectra but match exactly under one light. Change the light (or the
-  observer) and watch them part, and compare how far each one moves from itself in CIELAB and in WLab.</p>
+  <h2>Demo: two materials that match, until the light or viewer changes</h2>
+  <p>The two materials below have different spectra but match exactly under one light (<span id="matchLight">D65</span>),
+  for one viewer (the CIE 1931 standard observer). Change the light or the viewer and watch them part, and compare how far each one moves from
+  itself in CIELAB and in WLab.</p>
   <div class="card">
     <div class="controls">
       <label>Pair <select id="pair"></select></label>
@@ -115,33 +118,29 @@
     from its patch to match it exactly under D65.</p>
   </div>
 
-  <h2>Demo 2: try it yourself, constant hue</h2>
-  <p>Each row is one lightness, from gray (left) to the most vivid color your screen can show. Each chip is split: the
-  lower-right half holds WLab hue constant; the upper-left half has the same CIELAB lightness and chroma but holds
-  CIELAB hue constant, at the hue of the ringed chip. Judge for yourself which half stays closer to the ringed chip's
-  hue as the colors get lighter and grayer.</p>
-  <div class="card">
-    <div class="controls">
-      <label>WLab hue <input type="range" id="hue" min="0" max="359" step="1" value="294"> <b id="hueVal">294°</b></label>
-      <span><button data-h="29">Red</button> <button data-h="138">Green</button> <button data-h="294">Blue</button></span>
-      <label>Anchor <select id="anchor"><option value="dark">darkest of the most vivid</option><option value="light">lightest of the most vivid</option></select></label>
-      <label>Screen <select id="space"></select></label>
-    </div>
-    <div class="plane-wrap"><canvas id="plane" aria-label="Constant WLab hue against constant CIELAB hue, as split chips"></canvas></div>
-    <p class="note" id="planeNote"></p>
-  </div>
+  <h2>Waypoint Labs</h2>
+  <p>Work with the ideas on your own data, in this browser (nothing you enter is sent anywhere). Each lab takes up one
+  question:</p>
+  <ul class="short">
+    <li>Does a material keep its color across lights and observers, and do two that match here match everywhere?
+    <a href="labs/objects.html">Objects</a></li>
+    <li>How far apart are two colors measured under one light? <a href="labs/differences.html">WLab and color differences</a></li>
+    <li>Does WLab hold hue constant as colors get lighter and grayer? <a href="labs/uniformity.html">Uniformity and
+    hue</a> (begun, with the constant-hue experiment)</li>
+    <li>How different is an observer (a person's own, or a camera's) from the standard ones, and how is it carried in
+    an iccMAX profile? <a href="labs/observer.html">Observers</a></li>
+    <li>How alike do two lights render materials, and how does that sit beside the color rendering index and TM-30?
+    <a href="labs/lighting.html">Lighting</a></li>
+    <li>How do I give my sensors a Wpt, and carry colors to another light or observer with a MAT?
+    <a href="labs/normalization.html">Wpt normalization and MATs</a></li>
+  </ul>
+  <div class="actions"><a class="btn" href="labs/index.html">Open Waypoint Labs</a></div>
 
   <h2>The robustness report</h2>
   <p>Paste the spectral reflectance of a standard and its samples, choose the lights that matter (including your own
   measured lights), and read ΔE<sub>WLab</sub> for each sample under each light, plus ΔE<sub>00</sub> in the booth.
   One page that runs in your browser; nothing is sent anywhere.</p>
   <div class="actions"><a class="btn" href="WLab-robustness-report.html">Open the robustness report</a></div>
-
-  <h2>Waypoint Labs</h2>
-  <p>Work with the ideas on your own data: build the Wpt normalization of any sensors and light, see its four steps,
-  and get the MAT to another observing condition. More labs, for color differences, objects, observers and lighting,
-  are on the way.</p>
-  <div class="actions"><a class="btn" href="labs/index.html">Open Waypoint Labs</a></div>
 
   <h2 id="developers">For developers</h2>
   <p>Everything on this page runs on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>, a small TypeScript implementation of Wpt, WLab and MATs with no

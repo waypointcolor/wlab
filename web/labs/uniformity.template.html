@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WLab Uniformity Lab</title>
+<!--FAVICON-->
+<meta name="description" content="Is WLab a uniform space for material color? Begun with the constant-hue experiment: chips of one WLab hue at every lightness and chroma, beside the same chips at constant CIELAB hue.">
+<!--LABS-CSS-->
+<style>
+  .hue-wrap { overflow-x: auto; }
+  .hue-wrap canvas { display: block; }
+  input[type=range] { width: 260px; accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Uniformity and hue</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Uniformity and hue</h1></div>
+  <p class="lead">WLab is meant to be a uniform space for material color: equal distances in it should be seen as about
+  equal color differences, and a line of one WLab hue should keep one hue as its colors get lighter and grayer. This
+  page tests that claim. It is being built; its first part, below, is the constant-hue experiment.</p>
+  <p>Still to come: the loci of constant Munsell hue and chroma in WLab beside CIELAB; constant-hue lines for any
+  observer and light; the object-color solid (the most chromatic colors any material can have) of an observing
+  condition in WLab, and how it changes from one condition to another; and checks against published sets of
+  color-difference and constant-hue data where their licenses allow.</p>
+
+  <h2>1. Constant hue</h2>
+  <div class="card">
+    <p>Each row is one lightness, from gray (left) to the most vivid color your screen can show. Each chip is split: the
+    lower-right half holds WLab hue constant; the upper-left half has the same CIELAB lightness and chroma but holds
+    CIELAB hue constant, at the hue of the ringed chip. Judge for yourself which half stays closer to the ringed chip's
+    hue as the colors get lighter and grayer.</p>
+    <div class="row">
+      <label>WLab hue <input type="range" id="hue" min="0" max="359" step="1" value="294" autocomplete="off"> <b id="hueVal">294°</b></label>
+      <span><button data-h="29">Red</button> <button data-h="138">Green</button> <button data-h="294">Blue</button></span>
+      <label>Anchor <select id="anchor" autocomplete="off"><option value="dark">darkest of the most vivid</option><option value="light">lightest of the most vivid</option></select></label>
+      <label>Screen <select id="space" autocomplete="off"></select></label>
+    </div>
+    <div class="hue-wrap"><canvas id="plane" aria-label="Constant WLab hue against constant CIELAB hue, as split chips"></canvas></div>
+    <p class="note" id="planeNote"></p>
+  </div>
+
+  <footer>
+    <p>Wpt and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color
+    Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
+    40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed
+    in this page. CIE data CC BY-SA 4.0.</p>
+  </footer>
+</main>
+<!--APP-->
+</body>
+</html>

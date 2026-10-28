@@ -1,10 +1,10 @@
-// The landing page: a metamerism demo (two materials that match under one light) and the constant-hue experiment.
+// The landing page: a metamerism demo (two materials that match under one light). The constant-hue experiment that
+// was its second demo is now section 1 of the uniformity lab (web/labs/uniformity.ts).
 // Bundled into wlab-onramp.html by scripts/build-web.mjs.
 
 import {
-  cat, deltaE00, deltaEWlab, illuminants, inGamut, labToXyz, mulMV, observers, resample, responses, toPolar,
-  whiteOf, wlabToRgb, wlabToWpt, wptNormalization, xyzToLab, xyzToRgb,
-  type ObserverName, type RgbSpace, type Spectrum, type Vec3, type WptNormalization,
+  cat, deltaE00, deltaEWlab, illuminants, mulMV, observers, resample, responses, whiteOf, wptNormalization, xyzToLab,
+  xyzToRgb, type ObserverName, type Spectrum, type WptNormalization,
 } from '../src/index.ts';
 import { madeUpLed, pairs } from './demo-data.ts';
 
@@ -96,6 +96,8 @@ function demo1(): void {
   $('chips').innerHTML = [[p.a.name, p.ra], [p.b.name, p.rb]].map(([name, r]) =>
     `<div class="chip"><div style="background:${chipColor(r as Spectrum, light)}"></div><span>${name}</span></div>`).join('');
   const matchLabel = LIGHT_OF_MATCH[p.match].replace(/ \(.*/, '');
+  // the light the chosen pair matches under, named in the text above the demo
+  $('matchLight').textContent = matchLabel;
   $('pairTable').innerHTML = `<table>
     <thead><tr><th>Under ${lightName}, ${OBSERVERS[obs]}</th><th>${p.a.name}</th><th>${p.b.name}</th></tr></thead>
     <tbody>
@@ -114,75 +116,6 @@ function demo1(): void {
   $('verdict').textContent = verdict;
 }
 
-// ---------- Demo 2: constant hue ----------
-
-const D65 = wptNormalization('cie1931', 'D65');
-const WHITE = whiteOf(observers.cie1931, illuminants.D65);
-const p3 = typeof CSS !== 'undefined' && CSS.supports('color', 'color(display-p3 1 0 0)')
-  && matchMedia('(color-gamut: p3)').matches;
-
-function demo2(): void {
-  const H = Number($<HTMLInputElement>('hue').value);
-  const anchorAt = $<HTMLSelectElement>('anchor').value;
-  const space = $<HTMLSelectElement>('space').value as RgbSpace;
-  $('hueVal').textContent = `${H}°`;
-  const Ls = Array.from({ length: 19 }, (_, i) => 95 - 5 * i);
-  const Cs = Array.from({ length: 31 }, (_, i) => 5 * i);
-  type Chip = { L: number; C: number; wl: Vec3; rgb: Vec3; lab: Vec3 };
-  const chips: Chip[] = [];
-  for (const L of Ls) for (const C of Cs) {
-    const wl: Vec3 = [L, C * Math.cos((H * Math.PI) / 180), C * Math.sin((H * Math.PI) / 180)];
-    const rgb = wlabToRgb(wl, space);
-    if (!inGamut(rgb)) continue;
-    chips.push({ L, C, wl, rgb, lab: xyzToLab(mulMV(D65.fromWpt, wlabToWpt(wl)), WHITE) });
-  }
-  const cmax = Math.max(...chips.map((c) => c.C));
-  const top = chips.filter((c) => c.C === cmax).sort((a, b) => (anchorAt === 'dark' ? a.L - b.L : b.L - a.L))[0];
-  const hab = toPolar(top.lab)[2];
-  const cols = cmax / 5 + 1, chip = 24, gap = 2, x0 = 44, y0 = 8;
-  const width = x0 + cols * (chip + gap) + 8, height = y0 + Ls.length * (chip + gap) + 34;
-  const canvas = $<HTMLCanvasElement>('plane');
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = width * dpr; canvas.height = height * dpr;
-  canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
-  const ctx = canvas.getContext('2d', space === 'display-p3' && p3 ? { colorSpace: 'display-p3' } : undefined)!;
-  ctx.scale(dpr, dpr);
-  const css = (v: Vec3) => {
-    const c = v.map((x) => Math.min(1, Math.max(0, x)));
-    return space === 'display-p3' && p3 ? `color(display-p3 ${c.join(' ')})` : `rgb(${c.map((x) => Math.round(255 * x)).join(',')})`;
-  };
-  const ink = getComputedStyle(document.body).color;
-  ctx.font = '11px system-ui, sans-serif';
-  Ls.forEach((L, r) => {
-    const y = y0 + r * (chip + gap);
-    ctx.fillStyle = css(wlabToRgb([L, 0, 0], space));
-    ctx.fillRect(x0, y - gap / 2, cols * (chip + gap), chip + gap);
-    if (L % 20 === 15) { ctx.fillStyle = ink; ctx.textAlign = 'right'; ctx.fillText(String(L), x0 - 6, y + chip / 2 + 4); }
-  });
-  const gaps: number[] = [];
-  for (const c of chips) {
-    const x = x0 + (c.C / 5) * (chip + gap) + gap / 2, y = y0 + Ls.indexOf(c.L) * (chip + gap);
-    const [Ll, Cab] = toPolar(c.lab);
-    const labHeld: Vec3 = [Ll, Cab * Math.cos((hab * Math.PI) / 180), Cab * Math.sin((hab * Math.PI) / 180)];
-    const rgbHeld = xyzToRgb(labToXyz(labHeld, WHITE), space);
-    // CIELAB's half upper left, WLab's lower right
-    ctx.fillStyle = css(rgbHeld);
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + chip, y); ctx.lineTo(x, y + chip); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = css(c.rgb);
-    ctx.beginPath(); ctx.moveTo(x + chip, y); ctx.lineTo(x + chip, y + chip); ctx.lineTo(x, y + chip); ctx.closePath(); ctx.fill();
-    if (!inGamut(rgbHeld)) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(x + chip * 0.28, y + chip * 0.28, 1.8, 0, 7); ctx.fill(); }
-    if (c === top) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(x - 1.5, y - 1.5, chip + 3, chip + 3); }
-    if (c.C >= 10) gaps.push(((toPolar(c.lab)[2] - hab + 540) % 360) - 180);
-  }
-  ctx.fillStyle = ink; ctx.textAlign = 'center';
-  for (let k = 0; k < cols; k += 2) ctx.fillText(String(5 * k), x0 + k * (chip + gap) + gap / 2 + chip / 2, height - 18);
-  ctx.fillText('chroma (WLab)', x0 + (cols * (chip + gap)) / 2, height - 4);
-  ctx.save(); ctx.translate(12, y0 + (Ls.length * (chip + gap)) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('lightness', 0, 0); ctx.restore();
-  $('planeNote').textContent = `WLab hue ${H}°, against CIELAB hue ${Math.round(hab)}°. Across the chips of WLab chroma 10 and up, `
-    + `their CIELAB hue runs ${Math.min(...gaps).toFixed(1)}° to ${Math.max(...gaps).toFixed(1)}° from the anchor's. `
-    + `CIE 1931 observer, D65; a dot marks a CIELAB half outside the screen's colors.`;
-}
-
 // ---------- start ----------
 
 fill($('pair'), PAIRS.map((p) => [p.key, p.title]));
@@ -190,15 +123,10 @@ fill($('pair'), PAIRS.map((p) => [p.key, p.title]));
 const START_LIGHT: Record<string, string> = { smurf: 'D50 (graphic arts booth)', ublue: 'A (incandescent bulb)', red: 'A (incandescent bulb)' };
 fill($('light'), Object.keys(LIGHTS).map((k) => [k, k]), START_LIGHT[PAIRS[0].key]);
 fill($('observer'), (Object.keys(OBSERVERS) as ObserverName[]).map((k) => [k, OBSERVERS[k]]));
-fill($('space'), [['srgb', 'sRGB'], ...(p3 ? [['display-p3', 'Display P3 (wide gamut)'] as [string, string]] : [])]);
 $('pair').addEventListener('change', () => {
   const start = START_LIGHT[$<HTMLSelectElement>('pair').value];
   if (start) $<HTMLSelectElement>('light').value = start;
   demo1();
 });
 for (const id of ['light', 'observer']) $(id).addEventListener('change', demo1);
-for (const id of ['hue', 'anchor', 'space']) $(id).addEventListener('input', demo2);
-document.querySelectorAll<HTMLButtonElement>('button[data-h]').forEach((b) =>
-  b.addEventListener('click', () => { $<HTMLInputElement>('hue').value = b.dataset.h!; demo2(); }));
 demo1();
-demo2();
