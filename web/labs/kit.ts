@@ -481,14 +481,18 @@ export function heatMap(o: {
     <text x="${l0}" y="${by + 22}">${fmtTick(lo)}</text><text x="${l0 + bw}" y="${by + 22}" text-anchor="end">${fmtTick(hi)}</text></svg>`;
 }
 
-/** Lines through points on two axes, the smallest point of each line marked, every point with its hover text. */
+/**
+ * Lines through points on two axes, the smallest point of each line marked, every point with its hover text. With
+ * many lines, `legend` (HTML) can stand in for the line-by-line legend, `title` names the plot, and `y` fixes the
+ * top of the axis (for plots compared side by side).
+ */
 export function linePlot(o: {
-  xLabel: string; yLabel: string;
+  xLabel: string; yLabel: string; title?: string; y?: number; legend?: string;
   series: { pts: [number, number][]; color: string; dash?: string; label: string; tips: string[] }[];
 }): string {
   const W = 460, H = 262, l0 = 46, top = 24, pw = W - l0 - 26, ph = H - top - 44;
   const xs = o.series.flatMap((s) => s.pts.map((p) => p[0])), ys = o.series.flatMap((s) => s.pts.map((p) => p[1]));
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y1 = Math.max(...ys) * 1.05 || 1;
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y1 = o.y ?? (Math.max(...ys) * 1.05 || 1);
   const X = (v: number) => l0 + ((v - x0) / (x1 - x0 || 1)) * pw, Y = (v: number) => top + ph - (v / y1) * ph;
   const ys0 = niceStep(y1 / 4), xs0 = niceStep((x1 - x0) / 5);
   const yt: number[] = []; for (let v = 0; v <= y1 + 1e-9; v += ys0) yt.push(+v.toFixed(10));
@@ -500,13 +504,13 @@ export function linePlot(o: {
       <circle cx="${X(s.pts[best][0]).toFixed(1)}" cy="${Y(s.pts[best][1]).toFixed(1)}" r="4.5" fill="${s.color}" stroke="var(--bg)" stroke-width="2"/>
       ${s.pts.map(([x, y], i) => `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="6" fill="transparent"><title>${escapeHtml(s.tips[i])}</title></circle>`).join('')}`;
   }).join('');
-  const legend = o.series.map((s) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"
+  const legend = o.legend ?? o.series.map((s) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"
     stroke="${s.color}" stroke-width="2" stroke-dasharray="${s.dash ?? ''}"/></svg>${escapeHtml(s.label)}</span>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.yLabel)} against ${escapeHtml(o.xLabel)}">
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.title ?? `${o.yLabel} against ${o.xLabel}`)}">
     ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
     ${xt.map((t) => `<text x="${X(t)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(t)}</text>`).join('')}
     <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel)}</text>
-    <text x="${l0}" y="12">${escapeHtml(o.yLabel)}</text>${lines}</svg><div class="legend">${legend}</div>`;
+    <text x="${l0}" y="12">${escapeHtml(o.title ? `${o.title}: ${o.yLabel}` : o.yLabel)}</text>${lines}</svg><div class="legend">${legend}</div>`;
 }
 
 /**

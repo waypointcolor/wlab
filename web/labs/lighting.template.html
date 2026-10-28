@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WLab Lighting Lab</title>
+<!--FAVICON-->
+<meta name="description" content="Give a test light and see how far objects move between it and a reference light in WLab, over libraries of objects and observers (the IRE), which objects move most, and the closest Planckian and daylight references.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Lighting</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Lighting</h1></div>
+  <p class="lead">A light changes the colors of the objects it falls on, and no two lights change them alike. An
+  observing condition (hereafter "condition") is an observer under a light, and each condition has its own Wpt
+  normalization, which puts its light's white at the same place: what is left is how the light renders the objects.
+  This lab takes a test light and a reference light, and measures how far each object moves in WLab between the two,
+  for many objects and many observers at once.</p>
+
+  <h2>1. The test light</h2>
+  <div class="card">
+    <div id="test"></div>
+    <p id="status" class="note"></p>
+  </div>
+
+  <h2>2. The reference light</h2>
+  <div class="card">
+    <p>The light the test light is compared with. By default, the Planckian (blackbody) or daylight light that renders
+    the objects most like the test light does, found in section 4; any other light can be chosen.</p>
+    <div id="reference"></div>
+    <div id="lightPlot" style="max-width: 640px"></div>
+  </div>
+
+  <h2>3. How far objects move between the two lights</h2>
+  <div class="card">
+    <p>Take an object and an observer. The object's Wpt under the test light and under the reference light, each
+    through the observer's own Wpt normalization for that light, would be the same if the two lights rendered it alike;
+    the WLab difference between them (ΔE<sub>WLab</sub>) is how far the object moves between the two lights. The mean of
+    that difference over every object and every observer is the <b>Illuminant Rendering Equivalency</b> (IRE). It is 0
+    when the two lights render every object alike for every observer, and the larger it is, the more the two lights
+    differ in how they render objects. Because each normalization puts its light's white at the same Wpt, the IRE
+    leaves out the color of the light itself.</p>
+    <div id="move"></div>
+    <div id="moveHist" style="max-width: 520px"></div>
+    <h3>The objects that move most</h3>
+    <div id="movers"></div>
+    <p class="note">The 15 objects with the largest mean ΔE<sub>WLab</sub> over the observers. The shares split each one's
+    differences (their squares, summed over the observers) into lightness, chroma (toward or away from neutral) and hue
+    (around neutral), along the object's own hue under the reference light; the three add to 100%.</p>
+    <div class="row"><label>Observer <select id="planeObserver" autocomplete="off"></select></label></div>
+    <div id="plane" style="max-width: 520px"></div>
+    <p class="note">Every object under the reference light in the a<sub>w</sub>–b<sub>w</sub> plane of WLab, and for the
+    15 that move most, an arrow to where the test light puts them, for the observer chosen. Hover over a ring for the
+    object.</p>
+    <details><summary>Observer by observer</summary>
+      <div id="byObserver"></div>
+      <p class="note">Each row is one observer's share of the IRE: the WLab differences of the objects between the two
+      lights for that observer.</p>
+    </details>
+    <div class="row"><button id="downloadMove" disabled>Download every object's differences (CSV)</button></div>
+  </div>
+
+  <h2>4. The closest Planckian and daylight references</h2>
+  <div class="card">
+    <p>The IRE of the test light against every Planckian light from 1750 to 12000 K and every CIE daylight from 4000 to
+    14000 K, in steps of 250 K. The lowest point of each line is the reference of that kind that renders the objects
+    most like the test light does. It need not be at the test light's correlated color temperature: the IRE compares
+    renderings, not the color of the lights.</p>
+    <p id="sweepProgress" class="note"></p>
+    <div id="curves" style="max-width: 640px"></div>
+    <div id="closestTable"></div>
+    <div class="row"><button id="downloadCurves" disabled>Download the IRE by temperature (CSV)</button></div>
+  </div>
+
+  <h2>5. Many test lights at once</h2>
+  <div class="card">
+    <p>The same for a set of test lights: for each, the closest Planckian and the closest daylight reference and their
+    IRE, the smaller of the two in italics, and the curves, colored by the kind of light.</p>
+    <div id="lightSets" class="sets"></div>
+    <div class="row"><label>Your own lights <input type="file" id="lightFiles" accept=".txt,.csv,.tsv" multiple></label></div>
+    <p id="lightNote" class="note"></p>
+    <textarea id="lightPaste" spellcheck="false" placeholder="nm, my lamp, my other lamp&#10;380, 2.1, 0.4&#10;385, 2.3, 0.5&#10;…"></textarea>
+    <p id="lightPasteNote" class="note"></p>
+    <div id="many"></div>
+    <div class="cols" id="manyPlots"></div>
+    <div class="row"><button id="downloadMany" disabled>Download the IRE of every test light (CSV)</button></div>
+  </div>
+
+  <h2>6. The objects and observers</h2>
+  <div class="card">
+    <p>The objects are the materials the lights are compared on, and the observers those who see them; the more varied
+    the objects' spectra, the more a difference between lights shows. They apply to sections 3 to 5.</p>
+    <p id="setsNow" class="note"></p>
+    <div class="optin">
+      <label class="check"><input type="checkbox" id="chooseSets" autocomplete="off"> Choose the objects and observers myself</label>
+      <div id="setsBox" hidden>
+        <h3>Objects</h3>
+        <div id="objectSets" class="sets"></div>
+        <div class="row"><label>Your own objects <input type="file" id="ownFiles" accept=".txt,.csv,.tsv,.cgats,.cgt,.it8,.ti3" multiple></label></div>
+        <p class="note">A CGATS measurement file (with spectral fields such as SPECTRAL_NM380, as spectrophotometers and
+        chart software write them) or a table: wavelength in the first column and one object per column, or one object
+        per row with the wavelengths across the header row; values from 0 to 1 or in percent, covering at least 420 to
+        680 nm. A chart you measured yourself can be used this way. The file is read in this page and goes nowhere.</p>
+        <p id="ownNote" class="note"></p>
+        <h3>Observers</h3>
+        <div id="observerSets" class="sets"></div>
+        <div class="row"><label>Your own observers <input type="file" id="observerFiles" accept=".txt,.csv,.tsv" multiple></label></div>
+        <p id="observerNote" class="note"></p>
+        <textarea id="observerPaste" spellcheck="false" placeholder="nm, s1, s2, s3&#10;380, 0.0014, 0.00004, 0.0065&#10;…"></textarea>
+        <p id="observerPasteNote" class="note"></p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Wpt and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color
+    Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
+    40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed
+    in this page. The object sets and cameras not built into it are files of this site, loaded from it when chosen;
+    nothing you enter or load is sent anywhere. The IRE: M. W. Derhak, <i>Spectrally Based Material Color Equivalency:
+    Modeling and Manipulation</i>, PhD dissertation, Rochester Institute of Technology, 2015. The objects: the corrected
+    Munsell colors (measurements © University of Eastern Finland; corrected by Derhak and Berns, 2012), the CIE's 99
+    color evaluation samples (CIE 224:2017, CC BY-SA 4.0), natural objects measured in Japan (Morimoto, Zhang, Fukuda
+    and Uchikawa, 2021, CC BY 4.0), human skin (NIST, Cooksey, Allen and Tsai, 2017) and the Munsell soil color chart
+    (2023 dataset, CC BY 4.0); each set's source and changes are shown where it is chosen. CIE data (observers,
+    illuminants, the fluorescent and LED lights) CC BY-SA 4.0. Categorical observers of Asano and Fairchild, used with
+    permission. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL database) come
+    from Psychtoolbox-3, MIT license (its notice is in this page's source and in <code>wlab</code>'s
+    LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>

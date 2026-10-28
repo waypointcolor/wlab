@@ -3,7 +3,8 @@
  * RIT 2015, chapter on Wpt shift manifolds): mean WLab differences between corresponding points of the manifolds
  * that objects, observers and lights span. For observers, the Observer Matching Equivalency (OME) compares two
  * observers over the same objects and lights; for observing conditions, the Observing Conditions Equivalency (OCE)
- * compares two observer + light pairs over the same objects. Lower is closer; 0 is the same in every case.
+ * compares two observer + light pairs over the same objects; for lights, the Illuminant Rendering Equivalency (IRE)
+ * compares two lights over the same objects and observers. Lower is closer; 0 is the same in every case.
  */
 
 import type { SampleSet } from './munsell1600.ts';
@@ -66,6 +67,19 @@ export function ome(test: Observer, alternate: Observer, lights: readonly Spectr
   let s = 0;
   for (const l of lights) s += meanOf(deltaEsOf(wlabsOf(test, l, objects, base), wlabsOf(alternate, l, objects, base)));
   return s / lights.length;
+}
+
+/**
+ * Illuminant Rendering Equivalency (thesis eq. "IRE"): the mean ΔE_WLab between the Wpt of each object under the
+ * test light and under the alternate one, each observer through its own Wpt normalization under each light, over
+ * every object and observer. It is 0 when the two lights render every object alike for every observer (the lights'
+ * whites do not count: each normalization puts its light's white at the same Wpt).
+ */
+export function ire(test: Spectrum, alternate: Spectrum, observers: readonly Observer[], objects: SampleSet, base: Base = munsellBase): number {
+  if (!observers.length) throw new Error('wlab: the IRE needs at least one observer');
+  let s = 0;
+  for (const o of observers) s += meanOf(deltaEsOf(wlabsOf(o, test, objects, base), wlabsOf(o, alternate, objects, base)));
+  return s / observers.length;
 }
 
 /**

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import {
-  cie2006, deltaEsOf, fluorescents, illuminants, munsell1600, observers, observersN, oce, ome, wavelengths, wlabsOf,
+  cie2006, daylight, deltaEsOf, fluorescents, illuminants, ire, munsell1600, observers, observersN, oce, ome, planckian, wavelengths, wlabsOf,
   wptNormalizationN, type Observer,
 } from '../src/index.ts';
 import { pairs as demoPairs } from '../web/demo-data.ts';
@@ -49,6 +49,36 @@ test('OCE of a condition with itself is 0, and with one light it is the OME', ()
   assert.ok(Math.abs(oce(observers.cie1931, illuminants.D65, observers.cie1964, illuminants.D65, few)
     - ome(observers.cie1931, observers.cie1964, [illuminants.D65], few)) < 1e-12);
   assert.ok(oce(observers.cie1931, illuminants.D65, observers.cie1931, illuminants.A, few) > 0);
+});
+
+test('IRE of a light and itself, or a scaled copy, is 0; it is symmetric, and one observer\'s IRE is its OCE', () => {
+  const obs = [observers.cie1931, cie2006(4, 65)];
+  assert.equal(ire(illuminants.F11, illuminants.F11, obs, few), 0);
+  assert.ok(ire(illuminants.F11, illuminants.F11.map((v) => 3.7 * v), obs, few) < 1e-9);
+  const a = ire(illuminants.F11, illuminants.D65, obs, few);
+  assert.ok(a > 0.3);
+  assert.ok(Math.abs(a - ire(illuminants.D65, illuminants.F11, obs, few)) < 1e-12);
+  assert.ok(Math.abs(ire(illuminants.A, illuminants.D65, [observers.cie1964], few)
+    - oce(observers.cie1964, illuminants.A, observers.cie1964, illuminants.D65, few)) < 1e-12);
+  assert.throws(() => ire(illuminants.A, illuminants.D65, [], few), /at least one observer/);
+});
+
+// The thesis's IRE table (plotIllRenderEq.m): F lights against Planckian (1750 to 12000 K) and daylight (4000 to
+// 14000 K) references every 250 K, over the corrected Munsell colors and 72 observers (CIE 1931, CIE 1964 and CIE
+// 2006 for 1° to 10° and 20 to 80 years by 10). For F2, F4, F8 and F9 the closest references come out at the
+// thesis's temperatures, and the minima in its order (F8 < F9 < F2 < F4); the values run lower than the thesis's
+// (about 0.7 of them), as the OME's do.
+test('the closest Planckian and daylight references of F2, F4, F8 and F9 are the thesis\'s', () => {
+  const obs = [observers.cie1931, observers.cie1964, ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].flatMap((f) => [20, 30, 40, 50, 60, 70, 80].map((a) => cie2006(f, a)))];
+  const minima: number[] = [];
+  for (const [k, p, d] of [['F8', 4750, 5000], ['F9', 4000, 4250], ['F2', 3750, 4250], ['F4', 2750, 4000]] as const) {
+    const at = (light: (t: number) => number[], t: number) => ire(fluorescents[k], light(t), obs, objects);
+    const [pc, dc] = [at(planckian, p), at(daylight, d)];
+    for (const t of [p - 250, p + 250]) assert.ok(at(planckian, t) > pc, `${k}: Planckian ${t} K is closer than ${p} K`);
+    for (const t of [d - 250, d + 250].filter((t) => t >= 4000)) assert.ok(at(daylight, t) > dc, `${k}: daylight ${t} K is closer than ${d} K`);
+    minima.push(Math.min(pc, dc));
+  }
+  assert.deepEqual([...minima].sort((x, y) => x - y), minima);
 });
 
 // The thesis's OME tables: the CIE 1964 10° observer is closest to the CIE 2006 observer of 10° and 40 years, the

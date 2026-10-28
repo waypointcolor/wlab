@@ -21,7 +21,7 @@ export {
 export { munsell1600, type SampleSet } from './munsell1600.ts';
 export { munsellBase, wptNormalization, wptNormalizationN, type Base, type WptNormalization, type WptNormalizationN } from './wpt.ts';
 export { deltaEWlab, fromPolar, G0, G1, G2, toPolar, wlabToWpt, wptToWlab } from './wlab.ts';
-export { deltaEsOf, oce, ome, wlabsOf } from './metrics.ts';
+export { deltaEsOf, ire, oce, ome, wlabsOf } from './metrics.ts';
 export { deltaE00, deltaEab, labToXyz, xyzToLab } from './cielab.ts';
 export { apply, BRADFORD, cat, CAT02, mat } from './transforms.ts';
 export { inGamut, rgbToWlab, rgbToXyz, wlabToRgb, xyzToRgb, type RgbSpace } from './rgb.ts';

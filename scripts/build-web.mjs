@@ -7,6 +7,7 @@
 //   web/labs/differences.html      (web/labs/differences.ts)    Lab B: WLab and color differences
 //   web/labs/objects.html          (web/labs/objects.ts)        Lab C: materials across lights and observers
 //   web/labs/observer.html         (web/labs/observer.ts)       Lab D: observers for observing conditions, and their profiles
+//   web/labs/lighting.html         (web/labs/lighting.ts)       Lab E: lighting, a test light against a reference light (IRE)
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
 // <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables). Every
@@ -36,6 +37,7 @@ const pages = [
   { entry: 'web/labs/differences.ts', template: 'web/labs/differences.template.html', out: 'web/labs/differences.html' },
   { entry: 'web/labs/objects.ts', template: 'web/labs/objects.template.html', out: 'web/labs/objects.html' },
   { entry: 'web/labs/observer.ts', template: 'web/labs/observer.template.html', out: 'web/labs/observer.html' },
+  { entry: 'web/labs/lighting.ts', template: 'web/labs/lighting.template.html', out: 'web/labs/lighting.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();
