@@ -534,27 +534,32 @@ export const viewGroup = (from?: { yaw: number; pitch: number }): ViewGroup => (
  * redraws, or are shared by a group of views.
  */
 export function cloud3d(canvas: HTMLCanvasElement, o: {
-  sets: { pts: number[][]; color: string; colors?: string[] }[]; axes: [string, string, string];
+  /** each set's points, with its own radius if `dot` is given */
+  sets: { pts: number[][]; color: string; colors?: string[]; dot?: number }[]; axes: [string, string, string];
   /** an outline around each point, so that a point of any color shows against the page */
   outline?: boolean;
   /** lines, each from one point to another, drawn under the points */
-  lines?: { from: number[][]; to: number[][]; color: string };
+  lines?: { from: number[][]; to: number[][]; color: string; colors?: string[] };
   /** the radius of each point, in pixels (2.4 by default; smaller where lines should show) */
   dot?: number;
   /** a view that does not turn (for example straight down, { yaw: 0, pitch: π/2 }): many points drawn fast */
   fixed?: { yaw: number; pitch: number };
   /** views that turn together */
   group?: ViewGroup;
+  /** the view to open on (by default { yaw: −0.6, pitch: 0.45 }); turned from there by dragging */
+  start?: { yaw: number; pitch: number };
   /** the extent of every axis (the same for views to be compared at one scale); by default the points' own */
   range?: number;
 }): void {
   const c = canvas as HTMLCanvasElement & { view?: { yaw: number; pitch: number }; data?: typeof o; bound?: boolean };
-  c.view = o.fixed ?? o.group ?? c.view ?? { yaw: -0.6, pitch: 0.45 };
+  c.view = o.fixed ?? o.group ?? c.view ?? { ...(o.start ?? { yaw: -0.6, pitch: 0.45 }) };
   c.data = o;
   const draw = () => {
     const d = c.data!, v = c.view!;
     const css = getComputedStyle(document.documentElement);
     const ink = css.getPropertyValue('--quiet').trim() || '#5c636b', line = css.getPropertyValue('--line').trim() || '#d9dde1';
+    // a canvas cannot read CSS variables: var(--name) is looked up here
+    const paint = (color: string) => color.replace(/var\((--[\w-]+)\)/g, (_, name: string) => css.getPropertyValue(name).trim() || ink);
     const w = c.clientWidth || 440, h = Math.round(w * 0.8), dpr = window.devicePixelRatio || 1;
     c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
     const g = c.getContext('2d')!;
@@ -580,20 +585,30 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
       g.fillText(d.axes[i], p1.sx + 4, p1.sy - 4);
     });
     if (d.lines) {
-      g.strokeStyle = d.lines.color; g.globalAlpha = 0.75;
-      g.beginPath();
-      d.lines.from.forEach((p, k) => {
-        const q = d.lines!.to[k], a = project(p[0], p[1], p[2]), b = project(q[0], q[1], q[2]);
-        g.moveTo(a.sx, a.sy); g.lineTo(b.sx, b.sy);
+      g.globalAlpha = 0.75;
+      // one path per color, so a color per line costs no more than one color for all
+      const byColor = new Map<string, number[]>();
+      d.lines.from.forEach((_, k) => {
+        const color = paint(d.lines!.colors?.[k] ?? d.lines!.color);
+        byColor.set(color, [...(byColor.get(color) ?? []), k]);
       });
-      g.stroke(); g.globalAlpha = 1;
+      for (const [color, ks] of byColor) {
+        g.strokeStyle = color;
+        g.beginPath();
+        for (const k of ks) {
+          const p = d.lines.from[k], q = d.lines.to[k], a = project(p[0], p[1], p[2]), b = project(q[0], q[1], q[2]);
+          g.moveTo(a.sx, a.sy); g.lineTo(b.sx, b.sy);
+        }
+        g.stroke();
+      }
+      g.globalAlpha = 1;
     }
-    const dots = d.sets.flatMap((s) => s.pts.map((p, i) => ({ ...project(p[0], p[1], p[2]), color: s.colors?.[i] ?? s.color })));
-    dots.sort((a, b) => b.depth - a.depth);
     const r = d.dot ?? (d.outline ? 3.2 : 2.4);
+    const dots = d.sets.flatMap((s) => s.pts.map((p, i) => ({ ...project(p[0], p[1], p[2]), color: paint(s.colors?.[i] ?? s.color), r: s.dot ?? r })));
+    dots.sort((a, b) => b.depth - a.depth);
     g.strokeStyle = ink; g.lineWidth = 0.6;
     for (const p of dots) {
-      g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, r, 0, 2 * Math.PI); g.fill();
+      g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, p.r, 0, 2 * Math.PI); g.fill();
       if (d.outline) g.stroke();
     }
     g.fillStyle = ink;

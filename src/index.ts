@@ -16,7 +16,7 @@ export {
 } from './spectra.ts';
 export { daylight, planckian } from './lights.ts';
 export { cct, uv1960 } from './cct.ts';
-export { cam02, cam02ucs, type Cam02Viewing } from './cam02.ts';
+export { cam02, cam02ucs, cam02ucsToXyz, cam16, cam16ucs, cam16ucsToXyz, type Cam02Viewing } from './cam02.ts';
 export {
   categoricalObserver, categoricalObserverAges, checkCie2006Tables, cie2006, cie2006Tables, type Cie2006Tables,
 } from './cie2006.ts';

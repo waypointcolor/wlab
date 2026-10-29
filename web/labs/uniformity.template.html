@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WLab Uniformity Lab</title>
 <!--FAVICON-->
-<meta name="description" content="Is WLab a uniform space for material color? Begun with the constant-hue experiment: chips of one WLab hue at every lightness and chroma, beside the same chips at constant CIELAB hue.">
+<meta name="description" content="Is WLab a uniform space for material color? Constant-hue lines against CIELAB and CAM16-UCS for any condition, the Munsell loci of constant Hue and Chroma in WLab beside CIELAB and CAM16-UCS, and the object-color solid of two conditions.">
 <!--LABS-CSS-->
 <style>
   .hue-wrap { overflow-x: auto; }
   .hue-wrap canvas { display: block; }
   input[type=range] { width: 260px; accent-color: var(--accent); }
+  #solid3d { width: 100%; max-width: 520px; display: block; touch-action: none; }
 </style>
 </head>
 <body>
@@ -19,35 +20,105 @@
   <div class="brand small"><!--LABS-LOGO--><h1>Uniformity and hue</h1></div>
   <p class="lead">WLab is meant to be a uniform space for material color: equal distances in it should be seen as about
   equal color differences, and a line of one WLab hue should keep one hue as its colors get lighter and grayer. This
-  page tests that claim. It is being built; its first part, below, is the constant-hue experiment.</p>
-  <p>Still to come: the loci of constant Munsell hue and chroma in WLab beside CIELAB; constant-hue lines for any
-  observer and light; the object-color solid (the most chromatic colors any material can have) of an observing
-  condition in WLab, and how it changes from one condition to another; and checks against published sets of
-  color-difference and constant-hue data where their licenses allow.</p>
+  page looks at that claim beside CIELAB and CAM16-UCS, with numbers and pictures, and leaves the judging to you.</p>
+  <p>An observing condition (hereafter "condition") is an observer under a light. WLab describes the color of a material,
+  whatever the condition; CIELAB and CAM16-UCS describe a color in one condition. Where they are compared below, theirs
+  are the chosen condition's coordinates of the material the WLab color stands for. CAM16-UCS is the uniform color space
+  of the CIE's color appearance model CAM16, computed here for an adapting luminance of 100 cd/m², a background of
+  Y<sub>b</sub> 20, an average surround and full adaptation to the condition's white. The page opens on CIE 1931 (2°)
+  under illuminant C, the condition of the Munsell renotation and of WLab's own reference.</p>
 
   <h2>1. Constant hue</h2>
   <div class="card">
     <p>Each row is one lightness, from gray (left) to the most vivid color your screen can show. Each chip is split: the
-    lower-right half holds WLab hue constant; the upper-left half has the same CIELAB lightness and chroma but holds
-    CIELAB hue constant, at the hue of the ringed chip. Judge for yourself which half stays closer to the ringed chip's
-    hue as the colors get lighter and grayer.</p>
+    lower-right half holds WLab hue constant; the upper-left half has the same lightness and chroma in the space it is
+    compared with (CIELAB or CAM16-UCS, in the chosen condition) but holds that space's hue constant, at the hue of the
+    ringed chip. Judge for yourself which half stays closer to the ringed chip's hue as the colors get lighter and
+    grayer.</p>
     <div class="row">
       <label>WLab hue <input type="range" id="hue" min="0" max="359" step="1" value="294" autocomplete="off"> <b id="hueVal">294°</b></label>
       <span><button data-h="29">Red</button> <button data-h="138">Green</button> <button data-h="294">Blue</button></span>
       <label>Anchor <select id="anchor" autocomplete="off"><option value="dark">darkest of the most vivid</option><option value="light">lightest of the most vivid</option></select></label>
+    </div>
+    <div class="row">
+      <label>Compare with <select id="compare" autocomplete="off"><option value="cielab" selected>CIELAB</option>
+        <option value="cam16">CAM16-UCS</option></select></label>
+      <label>Observer <select id="hueObserver" autocomplete="off"></select></label>
+      <label>Light <select id="hueLight" autocomplete="off"></select></label>
       <label>Screen <select id="space" autocomplete="off"></select></label>
     </div>
     <div class="hue-wrap"><canvas id="plane" aria-label="Constant WLab hue against constant CIELAB hue, as split chips"></canvas></div>
     <p class="note" id="planeNote"></p>
+    <p class="note">Both halves show the material each color stands for as it would look under D65, the screen's white,
+    so that only the hue line differs between them. The observers are the CIE color-matching functions, for which CIELAB
+    and CAM16 are defined.</p>
+  </div>
+
+  <h2>2. Munsell loci</h2>
+  <div class="card">
+    <p>The Munsell system was built by eye so that its steps look even: its Hues are lines of constant hue, and its
+    Chromas rings of equal color strength. Here are the corrected Munsell colors of one Value (lightness) in WLab, in
+    CIELAB and in CAM16-UCS: each Hue's chips joined from gray outward (a spoke), and each Chroma's chips joined around
+    the circle (a ring). A space that holds hue constant along Munsell's Hues draws the spokes straight, and one whose steps are even
+    draws the rings round and evenly spaced.</p>
+    <div class="row">
+      <label>Value <select id="munValue" autocomplete="off"></select></label>
+      <label>Observer <select id="munObserver" autocomplete="off"></select></label>
+      <label>Light <select id="munLight" autocomplete="off"></select></label>
+    </div>
+    <div id="munSummary"></div>
+    <div class="cols" id="munPlots"></div>
+    <p class="note">Each dot is a chip in the color it has under D65; hover over one for its notation. The 40 Hues (2.5,
+    5, 7.5 and 10 of each of the ten families) at the Book's even Chromas, from the corrected Munsell colors.</p>
+    <details><summary>Hue by Hue</summary>
+      <div id="munTable"></div>
+      <p class="note">For each Hue at this Value, the hue angles of its chips: their spread from the smallest to the
+      largest, and their RMS about their mean. 0 means every chip of the Hue has one hue angle.</p>
+    </details>
+  </div>
+
+  <h2>3. The object-color solid</h2>
+  <div class="card">
+    <p>No material can be more chromatic than the colors at the surface of the object-color solid: those of reflectances
+    that are 0 or 1, jumping between them once or twice across the spectrum. Each condition has its own solid. In WLab,
+    which describes materials whatever the condition, the solids of two conditions would be the same if the two
+    conditions told the same set of materials apart; where they differ, one condition gives more room to some colors
+    than the other does. Cut across at one WLab lightness, each solid gives an outline in the a<sub>w</sub>–b<sub>w</sub>
+    plane.</p>
+    <h3>Condition A</h3>
+    <div id="solidA"></div>
+    <h3>Condition B</h3>
+    <div id="solidB"></div>
+    <p id="solidStatus" class="note"></p>
+    <div class="row"><label>Lightness Lw <select id="solidL" autocomplete="off"></select></label></div>
+    <div id="solidSection" style="max-width: 520px"></div>
+    <div id="solidTable"></div>
+    <h3>The solid in 3D</h3>
+    <div class="row"><label>Show <select id="solidWhich" autocomplete="off"><option value="a" selected>condition A's solid</option>
+      <option value="b">condition B's solid</option></select></label></div>
+    <canvas id="solid3d" aria-label="The object-color solid in WLab, turned by dragging"></canvas>
+    <p class="note">The 6,480 colors on the solid's surface (every band of the spectrum at 0 or 1, on the 5 nm grid), in
+    the colors they have under D65; drag to turn it. Each cross-section is found exactly in Wpt, where the cut at one
+    lightness is flat, and drawn in WLab.</p>
+  </div>
+
+  <h2>4. Published data</h2>
+  <div class="card">
+    <p>Still to come: checks against published sets of constant-hue loci and of color differences judged by observers,
+    where their licenses allow. The sets in view are not yet cleared for use here.</p>
   </div>
 
   <footer>
     <p>Wpt and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color
     Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
     40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed
-    in this page. CIE data CC BY-SA 4.0.</p>
+    in this page. The corrected Munsell colors: measurements © University of Eastern Finland; corrected by Derhak and
+    Berns (2012). CIE data CC BY-SA 4.0. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from
+    the CVRL database) come from Psychtoolbox-3, MIT license (its notice is in this page's source and in
+    <code>wlab</code>'s LICENSE-psychtoolbox.txt). Categorical observers of Asano and Fairchild, used with permission.</p>
   </footer>
 </main>
 <!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
 </body>
 </html>

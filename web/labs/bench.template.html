@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparing MATs and CATs</title>
+<!--FAVICON-->
+<meta name="description" content="How well the Wpt MAT and chromatic adaptation transforms predict material color (what a material will measure under another light): for one material, for a library of objects, and for many lights at once; and the guide's MAT result rerun.">
+<!--LABS-CSS-->
+<style>
+  .swatches { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; }
+  .swatch { width: 132px; }
+  .swatch div { height: 64px; border-radius: 8px; border: 1px solid var(--line); }
+  .swatch span { display: block; font-size: 0.85rem; color: var(--quiet); margin-top: 4px; line-height: 1.3; }
+  .swatch b { color: var(--ink); font-weight: 600; }
+  #anim3d { width: 100%; max-width: 720px; display: block; touch-action: none; }
+  .tile { background: var(--accent-soft); border-radius: 8px; padding: 6px 12px; font-weight: 600; max-width: none; margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Comparing MATs and CATs</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Comparing MATs and CATs</h1></div>
+  <p class="lead">A measurement made in one observing condition (hereafter "condition": an observer under a light) often
+  has to be carried to another. There are two different things to predict there, and two kinds of transform made for
+  them.</p>
+  <ul>
+    <li><b>Corresponding color</b>: the color that looks the same, in the new condition, as the original did in its own,
+    to a viewer adapted to each. It is about appearance, and is measured by asking observers. A chromatic adaptation
+    transform (CAT) is made to predict it.</li>
+    <li><b>Material color</b>: the color the same material will measure in the new condition. It is about the material,
+    and is measured with an instrument. A material adjustment transform (MAT) is made to predict it.</li>
+  </ul>
+  <p>The two are not the same: a material whose color changes with the light does not look the same to an adapted viewer
+  under both, and its corresponding color is not what it measures. This page tests material color: it takes objects
+  whose spectra are known, so that their colors under every light can be computed, and asks how close each transform
+  comes to them. That is the MAT's job; for the CATs, it is a job they were not made for. How well they predict
+  corresponding colors, their own job, needs data from observers and is not tested here (on such data, the Wpt paper
+  found CAT02 ahead of the MAT). Here the observer stays the same and the light changes, as a CAT assumes; for a change
+  of observer, where no CAT applies, the observer lab compares the MAT with other ways of converting an observer
+  (<a href="observer.html">Observers</a>, section 4).</p>
+
+  <h2>1. One shape for every transform</h2>
+  <div class="card">
+    <p>Every transform here works the same way. It takes a color measured under the first light, c<sub>measured</sub>,
+    into a common representation, one meant to hold whatever the light, and brings it back out as the color it predicts
+    under the second light, c<sub>predicted</sub>:</p>
+    <p class="formula">c<sub>predicted</sub> = T<sub>dest</sub><sup>−1</sup> T<sub>src</sub> c<sub>measured</sub></p>
+    <p>T<sub>src</sub>, for the first light (the source), takes the color into the common representation, and
+    T<sub>dest</sub><sup>−1</sup>, for the second light (the destination), brings it out under that light. The
+    transforms differ only in T, the matrix that takes a condition's colors into the common representation, and so in
+    what the common representation holds:</p>
+    <div class="table-wrap"><table class="many transforms"><thead><tr><th>Transform</th><th class="sep">What its T does</th>
+      <th class="sep">Built from</th></tr></thead><tbody>
+      <tr><td>von Kries scaling</td><td class="sep">scales each channel of XYZ so that the light's white becomes 1</td>
+        <td class="sep">the light's white point</td></tr>
+      <tr><td>Bradford, CAT02</td><td class="sep">first turns XYZ into cone-like channels (each its own matrix), then scales
+        them so that white becomes 1: a model of how the eye adapts to a light's white</td><td class="sep">the light's white
+        point</td></tr>
+      <tr><td>Wpt MAT</td><td class="sep">the condition's Wpt normalization: it puts white at W = 100, then places a set of
+        base materials (40 Munsell colors) where they belong in the reference's material coordinates, so that materials,
+        not only white, land together</td><td class="sep">the light's spectrum, as the observer's sensors see it through
+        those materials</td></tr>
+    </tbody></table></div>
+    <p>That makes two families. <b>White point based</b> transforms (von Kries, Bradford, CAT02) are built from the two
+    lights' white points alone: the color a perfect white measures under each. <b>Spectrally based</b> transforms (the
+    Wpt MAT) are built from the two lights' whole spectra, through the colors materials measure under each. The
+    difference shows most plainly with two lights of the same white point but different spectra, such as daylight and
+    an LED made to match its white. To every white point based transform they are the same light: it predicts no change
+    at all, for any material. Materials do change between such lights, by how far depends on their spectra, and a
+    spectrally based transform sees that.</p>
+    <p>Every one of them carries white exactly: a perfect white under the first light comes out as a perfect white under
+    the second. They differ in what they do to everything else. A CAT moves every color by the same rule that moves
+    white, as an eye adapting to the new light would; that is what corresponding color asks for. A MAT moves each color
+    as materials of that color move between the two lights; that is what material color asks for. A CAT keeps one
+    observer and changes the light; the MAT can change the light, the observer or both, because its T is built for each
+    condition from its own sensors. The sections below put the transforms to the test of material color: first for one
+    material, then for many, then for many lights.</p>
+  </div>
+
+  <h2>2. One material, one change of light</h2>
+  <div class="card">
+    <p>A material is measured under one light. What will it measure under another? Each transform takes the first
+    measurement and predicts the second; here are its predictions beside the color the material actually measures there.
+    The chips show each color as its numbers would look on a screen (so the measurement under the first light keeps
+    that light's color cast).</p>
+    <div class="row">
+      <label>Observer <select id="observer" autocomplete="off"><option value="cie1931" selected>CIE 1931 (2°)</option>
+        <option value="cie1964">CIE 1964 (10°)</option></select></label>
+      <label>Measured under <select id="fromLight" autocomplete="off"></select></label>
+      <label>Predicted for <select id="toLight" autocomplete="off"></select></label>
+    </div>
+    <div class="row"><label style="flex: 1">Material <select id="material" autocomplete="off" style="max-width: 100%"></select></label></div>
+    <div class="cols" id="spectra"></div>
+    <p id="whiteNote" class="note"></p>
+    <div id="one"></div>
+    <div class="row"><label class="check"><input type="checkbox" id="split" autocomplete="off" checked> <span id="splitLabel">Show the measurement
+      under the light predicted for in the upper triangle of each prediction</span></label></div>
+    <div id="oneTable"></div>
+    <p class="note">The material opens on the one, among the objects of section 3, whose CAT02 prediction is furthest from
+    its MAT prediction under these lights; any other can be chosen. ΔE<sub>00</sub> is in the CIELAB of the second light
+    (its white as the white), as the guide and the Wpt paper report it; ΔE<sub>WLab</sub> beside it.</p>
+    <div class="optin">
+      <h3>A challenge</h3>
+      <p>Find two lights in the menus above whose white points nearly match but whose spectra differ. To every white point
+      based transform they are nearly the same light, so its prediction hardly differs from the measurement it started
+      from; but the material's measurement still moves between them. The line under the plots says how far apart the two
+      white points are (Δu′v′, the distance in the CIE 1976 u′, v′ diagram) and how much the measurement moves and CAT02
+      changes it. Watch the swatches: the CATs' predictions stay with the first measurement, the MAT's goes with the
+      second.</p>
+      <details><summary>Some answers</summary>
+        <p class="note">A and LED-BH1, both near 2850 K (white points 0.0004 apart); LED-B1 and LED-V1, near 2730 K; D65
+        and LED-B5, daylight and a blue-pumped LED of about the same white; F2 and LED-V2, a fluorescent and a
+        violet-pumped LED. Over the Munsell colors, from F2 to LED-V2 the measurements move by a mean ΔE<sub>00</sub> of
+        4.3, CAT02's predictions are 3.9 from where they land and the MAT's 0.7.</p>
+      </details>
+    </div>
+  </div>
+
+  <h2>3. Many materials, the same change of light</h2>
+  <div class="card">
+    <p>The same prediction for every object of a library: how far each transform's predictions are from the colors the
+    objects actually measure under the second light, for the observer and lights of section 2.</p>
+    <div class="optin">
+      <p class="note">By default 759 objects: 271 of the corrected Munsell colors (ten hues at every Value and at Chroma
+      4 to 16, and the neutrals), the CIE's 99 color evaluation samples, the 30 patches of the PMCC and 359 natural
+      objects measured in Japan.</p>
+      <label class="check"><input type="checkbox" id="chooseSets" autocomplete="off"> Choose the objects myself</label>
+      <div id="setsBox" hidden>
+        <div id="objectSets" class="sets"></div>
+        <div class="row"><label>Your own objects <input type="file" id="ownFiles" accept=".txt,.csv,.tsv,.cgats,.cgt,.it8,.ti3" multiple></label></div>
+        <p class="note">A CGATS measurement file (with spectral fields such as SPECTRAL_NM380) or a table: wavelength in
+        the first column and one object per column, or one object per row with the wavelengths across the header row;
+        values from 0 to 1 or in percent, covering at least 420 to 680 nm. Read in this page; it goes nowhere.</p>
+        <p id="ownNote" class="note"></p>
+      </div>
+    </div>
+    <div id="manyStats"></div>
+    <div id="manyHist" style="max-width: 560px"></div>
+    <h3>The materials hardest to predict</h3>
+    <div id="manyWorst"></div>
+    <p class="note">The eight objects whose MAT prediction is furthest from what they measure, with every transform's
+    ΔE<sub>00</sub>. Choose one in section 2 to see its colors.</p>
+    <details><summary>The guide's numbers, checked</summary>
+      <p class="note">The guide to Wpt and WLab, <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt:
+      Color Without the Fine Print</i></a>, quotes a result of the Wpt paper: over 5,162 measured reflectances, the Wpt
+      MAT predicted D65 colorimetry (material color) from illuminant A more closely than CAT02 (mean ΔE<sub>00</sub> 1.24
+      against 2.35, CIE 1964 observer). Not all of the 5,162 are open data, so that test is not rerun here. The code that
+      goes with the guide (<a href="https://github.com/waypointcolor/wpt-onramp">wpt-onramp</a>, its example
+      <code>ex05</code>) reruns a smaller version on the 1,600 corrected Munsell colors (1.09 against 2.26, CIE 1931);
+      this page gives the same, below, with the Munsell colors in place of this section's objects and illuminant A to
+      D65. The Munsell colors include the 40 the Wpt normalization is built from.</p>
+      <div id="guideTable"></div>
+    </details>
+  </div>
+
+  <h2>4. Many lights</h2>
+  <div class="card">
+    <p>The same, for every light of a set: each light's objects predicted for the second light of section 2 (D65 by
+    default), one row per light. Each number is the mean ΔE<sub>00</sub> over the objects of section 3; the smallest of
+    each row is in italics.</p>
+    <h3>Lights to pair reference with</h3>
+    <div id="lightPairSets" class="sets"></div>
+    <details><summary>More choices</summary>
+      <div class="row">
+        <label>Error <select id="metric" autocomplete="off"><option value="de00" selected>ΔE00</option><option value="dewlab">ΔE_WLab</option></select></label>
+        <label>Statistic <select id="statistic" autocomplete="off"><option value="mean" selected>mean</option><option value="p90">90th percentile</option><option value="max">largest</option></select></label>
+      </div>
+    </details>
+    <p id="benchStatus" class="note"></p>
+    <div id="lightTable"></div>
+    <div id="lightPlot"></div>
+    <p class="note">Hover over a dot for its light and value.</p>
+    <p id="recap" class="tile"></p>
+    <div class="row"><button id="downloadBench" disabled>Download every light's errors (CSV)</button></div>
+  </div>
+
+  <h2>5. Watching the transforms work</h2>
+  <div class="card">
+    <p>The formula of section 1, played out. A set of Munsell colors is measured in three conditions at once, each
+    condition's points in its own color: the 40 base colors of the Wpt normalization, a hue circle at Value 5, and ten
+    hue spokes, from gray outward, in three planes, at Values 2, 5 and 8. Press play: each condition's T takes its measurements, step by step, into the common
+    representation, and then they come back out again. In the common representation, colors that are the same material
+    should land together. With a white point based transform only white and the grays do; the other colors keep the
+    spread their conditions gave them. With the Wpt MAT the materials land together, white and color alike, as far as the
+    conditions allow.</p>
+    <div class="row">
+      <label>Transform <select id="animTransform" autocomplete="off"><option value="wpt" selected>Wpt MAT</option>
+        <option value="cat02">CAT02</option><option value="vk">von Kries</option></select></label>
+    </div>
+    <div class="row">
+      <label>Conditions <select id="animConditions" autocomplete="off"><option value="lights" selected>three lights, CIE 1931 (2°)</option>
+        <option value="observers">three observers, under D65</option></select></label>
+      <span id="animLights"><label>Lights <select id="animL1" autocomplete="off"></select> <select id="animL2" autocomplete="off"></select>
+        <select id="animL3" autocomplete="off"></select></label></span>
+      <span id="animObservers" hidden><label>Observers <select id="animO1" autocomplete="off"></select> <select id="animO2" autocomplete="off"></select>
+        <select id="animO3" autocomplete="off"></select></label></span>
+      <label>Back out <select id="animBack" autocomplete="off"><option value="own" selected>each to its own condition</option>
+        <option value="first">all under the first condition (the prediction)</option></select></label>
+    </div>
+    <p id="animNote" class="note"></p>
+    <div class="row">
+      <button id="animPlay" class="primary">Play</button>
+      <input type="range" id="animT" min="0" max="1000" step="1" value="0" autocomplete="off" style="flex: 1; min-width: 160px" aria-label="Where in the animation">
+    </div>
+    <p id="animStage" class="tile"></p>
+    <canvas id="anim3d" aria-label="The colors moving through the transform's steps, turned by dragging"></canvas>
+    <div id="animLegend" class="legend"></div>
+    <p id="animSpread" class="note"></p>
+    <p class="note">Drag the view to turn it; the slider moves through the steps by hand. The scale follows the points,
+    so they fill the view at every step (the extent of each axis is under the view). The view's vertical axis is the
+    first channel of each step (W in Wpt), the other two across. Each condition's measurements are its sensor excitations,
+    scaled so that white's second one is 100; a CAT's common representation is shown with white at 100, 100, 100.</p>
+  </div>
+
+  <footer>
+    <p>Wpt, MATs and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color
+    Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
+    40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed
+    in this page; the object sets not built into it are files of this site, loaded from it when chosen. The objects: the
+    corrected Munsell colors (measurements © University of Eastern Finland; corrected by Derhak and Berns, 2012), the
+    CIE's 99 color evaluation samples (CIE 224:2017, CC BY-SA 4.0), natural objects measured in Japan (Morimoto, Zhang,
+    Fukuda and Uchikawa, 2021, CC BY 4.0) and the other sets, each with its source where it is chosen. CIE data CC BY-SA
+    4.0. Categorical observers of Asano and Fairchild, used with permission. Camera sensitivities from
+    <a href="https://github.com/AcademySoftwareFoundation/rawtoaces-data">rawtoaces-data</a> (Academy Software
+    Foundation, Apache License 2.0; its notice is in this page's source). The page's code carries the tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL
+    database), from Psychtoolbox-3, MIT license (its notice is in this page's source).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>

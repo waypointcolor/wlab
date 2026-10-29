@@ -96,6 +96,7 @@
   .sets .about { display: block; color: var(--quiet); font-size: 0.88rem; }
   .sets .credit { display: block; color: var(--quiet); font-size: 0.8rem; }
   .big { font-size: 1.6rem; font-weight: 650; }
+  .formula { font-size: 1.25rem; text-align: center; margin: 14px 0; }      /* one equation on a line of its own */
   /* a summary: one row per item, its name on the left */
   table.kv th { text-align: left; font-weight: 600; white-space: nowrap; padding-right: 16px; }
   table.kv td { text-align: left; white-space: normal; }
@@ -107,6 +108,9 @@
   table.indices thead th:nth-child(3) { text-align: left; }
   table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
   table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
+  table.bench td:nth-child(2), table.bench thead th:nth-child(2) { text-align: left; }   /* the bench's source column */
+  table.transforms td, table.transforms th { text-align: left; white-space: normal; vertical-align: top; }   /* the words of section 1 of the MAT and CAT comparison */
+  table.transforms td:first-child { min-width: 8em; font-weight: 600; }
   table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }
   table.many .what, table.indices .what { display: block; color: var(--quiet); font-size: 0.82em; font-weight: 400; }   /* what a light or measure is, under its name */
   table.indices thead th { vertical-align: bottom; line-height: 1.25; }

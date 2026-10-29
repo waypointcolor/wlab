@@ -29,8 +29,10 @@
   <div class="card">
     <div id="condition"></div>
     <p id="status" class="note"></p>
-    <p class="note">CIE 1931 (2°) under D50 is the standard PCS's condition. Converted for it, the observer is the
-    standard PCS's; converted for any other target condition, it defines a custom PCS of its own.</p>
+    <p class="note">CIE 1931 (2°) under D50 is the standard PCS's condition. The profile of section 7 takes the converted
+    observer under the target condition's light as its own PCS, and connects it to the standard PCS by the Wpt MAT from
+    that observer under that light to CIE 1931 (2°) under D50. For the standard condition as the target, that MAT is
+    the identity.</p>
   </div>
 
   <h2>3. The MAT and the converted observer</h2>
@@ -151,7 +153,10 @@
     <p>An iccMAX (version 5) colorimetric encoding profile, of class <code>spac</code> and subclass <code>pcc</code>,
     ready to use (.icc) or as XML for iccDEV's <code>iccFromXml</code>, laid out like the profiles of the ICC's
     Colorimetric Encoding conformance package. Its spectral viewing conditions tag holds the converted observer and the
-    target condition's light, and its profile connection conditions tags convert between its PCS and the standard one.</p>
+    target condition's light, which define the profile's PCS. Its profile connection conditions tags hold the Wpt MAT
+    from that observer under that light to CIE 1931 (2°) under D50, the standard PCS (custom to standard), and the
+    inverse of that MAT (standard to custom). The converted observer is a mix of the source observer's curves, so it
+    matches colors as the source does; the MAT carries its colors to the standard PCS.</p>
     <div class="cols">
       <div><h3>Custom PCS to standard PCS</h3><div id="c2sp"></div><button data-copy="c2sp">Copy</button></div>
       <div><h3>Standard PCS to custom PCS</h3><div id="s2cp"></div><button data-copy="s2cp">Copy</button></div>

@@ -1,8 +1,9 @@
 // Lab D's computations: a source observer converted by a MAT for an observing condition, and the iccMAX colorimetric
 // encoding profile (XML for iccDEV's iccFromXml) whose spectral viewing conditions carry it. The spectral viewing
-// conditions define the profile's PCS. A MAT to CIE 1931 (2°) under D50 gives an observer for the standard PCS, and the
-// conversions between custom and standard PCS (c2sp, s2cp) are the identity; a MAT to any other condition gives a
-// custom PCS, and c2sp and s2cp are the MATs from it to the standard PCS and back.
+// conditions (the converted observer and the condition's light) define the profile's PCS. The conversion from it to
+// the standard PCS (c2sp) is the Wpt MAT from the spectral viewing conditions' observer under their light to CIE 1931
+// (2°) under D50, and the conversion back (s2cp) its inverse; for a condition of CIE 1931 under D50 that MAT is the
+// identity.
 
 import {
   illuminants, inv3, mat, observers, wavelengths, wptNormalization, type Mat3, type Observer, type Spectrum, type Vec3,
@@ -27,9 +28,12 @@ export interface Converted {
   mat: Mat3;
   /** the converted observer: the MAT applied to the source's curves */
   curves: number[][];
-  /** whether the condition is the standard PCS's, so that c2sp and s2cp are the identity */
+  /** whether the condition is the standard PCS's, for which c2sp and s2cp are the identity */
   standard: boolean;
-  /** custom PCS to standard PCS, and back */
+  /**
+   * custom PCS to standard PCS: the Wpt MAT from the converted observer under the condition's light to CIE 1931 (2°)
+   * under D50; and back, its inverse
+   */
   c2sp: Mat3;
   s2cp: Mat3;
   /** the condition's light seen by the converted observer, Y = 1 */
@@ -40,8 +44,9 @@ export interface Converted {
  * A source observer (cone fundamentals, color-matching functions or other sensor functions, three curves) converted for
  * an observing condition: the MAT from the source observer under the condition's light to the condition, applied to
  * the source's curves. The converted observer under the condition's light gives the condition's responses as the MAT
- * predicts them, so it defines the profile's PCS. Off the standard condition, c2sp is the MAT from that PCS (the
- * converted observer under the light) to the standard one, and s2cp its inverse.
+ * predicts them, so it defines the profile's PCS. A linear mix of the source's curves, it matches colors as the source
+ * does. c2sp is the Wpt MAT from that PCS (the converted observer under the light) to CIE 1931 (2°) under D50, and s2cp
+ * its inverse; for the standard condition that MAT is the identity, set as such here (a test checks the two agree).
  */
 export function convertObserver(source: Observer, observer: Observer, light: Spectrum): Converted {
   if (source.curves.length !== 3) throw new Error(`a MAT needs three sensors; the source observer has ${source.curves.length}`);

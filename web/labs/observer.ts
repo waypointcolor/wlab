@@ -67,8 +67,8 @@ function render(): void {
   $('c2sp').innerHTML = matrixTable(conv.c2sp);
   $('s2cp').innerHTML = matrixTable(conv.s2cp);
   $('pccNote').textContent = conv.standard
-    ? 'The target condition is the standard PCS\'s own, CIE 1931 (2°) under D50: the converted observer approximates it, the profile\'s PCS is the standard one, and the profile connection conditions tags hold the identity.'
-    : `The target condition is not the standard PCS's, so the profile has a custom PCS: the converted observer under ${cond.lightLabel}. The profile connection conditions tags hold the MAT from it to the standard PCS (CIE 1931 (2°) under D50) and the MAT back.`;
+    ? 'The target condition is the standard PCS\'s own, CIE 1931 (2°) under D50. The tag still carries the converted observer, whose curves differ from CIE 1931\'s, but the Wpt MAT from it under D50 to CIE 1931 under D50 is the identity: the MAT of section 3 has already carried its colors to the standard PCS.'
+    : `The profile's PCS is the converted observer under ${cond.lightLabel}. Custom to standard is the Wpt MAT from that observer under that light to CIE 1931 (2°) under D50; standard to custom is its inverse.`;
   drawCurves(cond, conv);
   void drawMetrics(src, cond);
   showProfile();

@@ -26,6 +26,9 @@ test('converted for the standard condition: the PCS is the standard one, c2sp an
   assert.ok(c.standard);
   assert.deepEqual(c.c2sp, identity);
   assert.deepEqual(c.s2cp, identity);
+  // the identity set for the standard condition is the Wpt MAT from the converted observer under D50 to CIE 1931 under D50
+  const fromSvcn = mat(wptNormalization({ name: 'svcn', curves: c.curves }, illuminants.D50), wptNormalization(STANDARD.observer, STANDARD.light));
+  close(fromSvcn.flat(), identity.flat(), 1e-12);
   // a MAT carries white exactly, so the converted observer sees D50 as CIE 1931 does
   close(c.white, whiteOf(observers.cie1931.curves, illuminants.D50), 1e-12);
   // the converted observer is the MAT applied to the source's curves
@@ -35,6 +38,10 @@ test('converted for the standard condition: the PCS is the standard one, c2sp an
 test('converted for another condition: a custom PCS, with c2sp the MAT from it to the standard PCS', () => {
   const c = convertObserver(cat8, observers.cie1931, illuminants.D65);
   assert.ok(!c.standard);
+  // c2sp is the Wpt MAT from the spectral viewing conditions' observer (the converted one) under their light to CIE 1931
+  // under D50
+  const fromSvcn = mat(wptNormalization({ name: 'svcn', curves: c.curves }, illuminants.D65), wptNormalization(STANDARD.observer, STANDARD.light));
+  close(c.c2sp.flat(), fromSvcn.flat(), 1e-12);
   // MATs compose: c2sp × MAT is the MAT from the source under D65 straight to the standard condition
   const direct = mat(wptNormalization(cat8, illuminants.D65), wptNormalization(STANDARD.observer, STANDARD.light));
   close(mulMM(c.c2sp, c.mat).flat(), direct.flat(), 1e-9);

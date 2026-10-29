@@ -1,10 +1,33 @@
-// The color rendering of lights: CCT and Duv (src/cct.ts), CIECAM02 (src/cam02.ts), and the color rendering indices of
-// web/labs/rendering.ts (CIE 13.3 Ra, CIE 224 Rf, TM-30 Rf and Rg).
+// The color rendering of lights: CCT and Duv (src/cct.ts), CIECAM02 and CAM16 (src/cam02.ts), and the color rendering
+// indices of web/labs/rendering.ts (CIE 13.3 Ra, CIE 224 Rf, TM-30 Rf and Rg).
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { cam02, cam02ucs, cct, daylight, fluorescents, illuminants, planckian } from '../src/index.ts';
+import {
+  cam02, cam02ucs, cam02ucsToXyz, cam16, cam16ucs, cam16ucsToXyz, cct, daylight, fluorescents, illuminants, planckian, type Vec3,
+} from '../src/index.ts';
+
+// colour-science 0.4.7 (XYZ_to_CAM16, with the illuminant discounted where D = 1, and JMh_CAM16_to_CAM16UCS), white
+// 95.05, 100, 108.88, average surround (2026-10-29)
+test('CAM16 and CAM16-UCS as colour-science computes them, and the way back', () => {
+  const white: Vec3 = [95.05, 100, 108.88];
+  const cases: [Vec3, number, number, number | undefined, number, number, number, Vec3][] = [
+    [[19.01, 20, 21.78], 318.31, 20, undefined, 41.73120790512664, 0.10335573870906986, 217.067959767393, [54.90445024274004, -0.08562124562629803, -0.06467960477996716]],
+    [[19.01, 20, 21.78], 100, 20, 1, 41.5794545052853, 0.020158784749587478, 263.57353692876376, [54.74980381940833, -0.002129230708754262, -0.018903697309393497]],
+    [[45, 30, 8], 100, 20, 1, 54.450075100263604, 72.78418711965361, 32.73014737311396, [67.02030368732638, 34.77367176296596, 22.350147190193447]],
+    [[10, 20, 40], 100, 20, 1, 39.16480608143743, 68.5039148497988, 204.4761000705666, [52.254428440942576, -36.16298724450485, -16.462208572492226]],
+    [[60, 70, 20], 64, 18, undefined, 81.80933475885593, 52.14888904615394, 108.87481227499246, [88.4332255946869, -10.400120764074462, 30.419897905079214]],
+  ];
+  for (const [xyz, la, yb, d, J, C, h, ucs] of cases) {
+    const v = { la, yb, d }, r = cam16(xyz, white, v);
+    assert.ok(Math.abs(r.j - J) < 1e-6 && Math.abs(r.c - C) < 1e-6 && Math.abs(r.h - h) < 1e-5, `${xyz}: ${r.j} ${r.c} ${r.h}`);
+    cam16ucs(xyz, white, v).forEach((x, i) => assert.ok(Math.abs(x - ucs[i]) < 1e-6));
+    // back to XYZ, by CAM16-UCS and by CAM02-UCS
+    cam16ucsToXyz(cam16ucs(xyz, white, v), white, v).forEach((x, i) => assert.ok(Math.abs(x - xyz[i]) < 1e-8, `CAM16 back: ${x}`));
+    cam02ucsToXyz(cam02ucs(xyz, white, v), white, v).forEach((x, i) => assert.ok(Math.abs(x - xyz[i]) < 1e-8, `CAM02 back: ${x}`));
+  }
+});
 import { objectsOf } from '../web/labs/library.ts';
 import { cri, fidelity, fidelityReference } from '../web/labs/rendering.ts';
 

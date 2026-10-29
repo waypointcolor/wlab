@@ -8,7 +8,8 @@
 //   web/labs/objects.html          (web/labs/objects.ts)        Lab C: materials across lights and observers
 //   web/labs/observer.html         (web/labs/observer.ts)       Lab D: observers for observing conditions, and their profiles
 //   web/labs/lighting.html         (web/labs/lighting.ts)       Lab E: lighting, a test light against a reference light (IRE)
-//   web/labs/uniformity.html       (web/labs/uniformity.ts)     Lab F: uniformity and hue (begun: constant hue)
+//   web/labs/uniformity.html       (web/labs/uniformity.ts)     Lab F: uniformity and hue
+//   web/labs/bench.html            (web/labs/bench.ts)          Lab G: comparing MATs and CATs
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
 // <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables). Every
@@ -40,6 +41,7 @@ const pages = [
   { entry: 'web/labs/observer.ts', template: 'web/labs/observer.template.html', out: 'web/labs/observer.html' },
   { entry: 'web/labs/lighting.ts', template: 'web/labs/lighting.template.html', out: 'web/labs/lighting.html' },
   { entry: 'web/labs/uniformity.ts', template: 'web/labs/uniformity.template.html', out: 'web/labs/uniformity.html' },
+  { entry: 'web/labs/bench.ts', template: 'web/labs/bench.template.html', out: 'web/labs/bench.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();
