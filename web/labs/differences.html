@@ -118,6 +118,8 @@
   table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
   table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
   table.bench td:nth-child(2), table.bench thead th:nth-child(2) { text-align: left; }   /* the bench's source column */
+  table.words td, table.words th { text-align: left; white-space: normal; vertical-align: top; }   /* tables of words, as on the start page */
+  table.words { margin-top: 8px; }
   table.transforms td, table.transforms th { text-align: left; white-space: normal; vertical-align: top; }   /* the words of section 1 of the MAT and CAT comparison */
   table.transforms td:first-child { min-width: 8em; font-weight: 600; }
   table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }
@@ -223,7 +225,7 @@
 </svg><h1>WLab and color differences</h1></div>
   <p class="lead">Every value here is a measurement of a material's color: the responses of some sensors to the
   material under some light (XYZ for a CIE observer, cone or camera responses for others). The condition's Wpt
-  normalization turns each measurement into WLab, a description of the material, and ΔE<sub>WLab</sub> is the
+  normalization turns each measurement into <a href="start.html#wlab">WLab</a>, a description of the material, and <a href="start.html#wlab">ΔE<sub>WLab</sub></a> is the
   difference between two materials, in units that behave like familiar ΔE units. It reads the same way for every
   observing condition: a difference of 2 means the same for a camera's measurements as for the CIE 1931 observer's.
   Comparing materials across different lights or observers needs their spectra; that is the Objects lab.</p>

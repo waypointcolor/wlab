@@ -6,8 +6,8 @@
 // and ΔE_WLab through the destination's Wpt normalization.
 
 import {
-  cat, deltaE00, deltaEWlab, mat, mulMV, responses, wptNormalization, wptToWlab, xyzToLab, type Mat3, type Observer,
-  type SampleSet, type Spectrum,
+  cat, deltaE00, deltaEWlab, inv3, mat, mulMV, responses, wavelengths, wptNormalization, wptToWlab, xyzToLab, type Mat3,
+  type Observer, type SampleSet, type Spectrum, type Vec3,
 } from '../../src/index.ts';
 import { conversions } from './conversions.ts';
 
@@ -22,7 +22,31 @@ export const LIGHT_TRANSFORMS = ['Wpt MAT', 'Bradford', 'CAT02', 'von Kries (XYZ
 /** The transforms between two observers under one light: Lab D's ways of converting an observer. */
 export const OBSERVER_TRANSFORMS = ['Wpt MAT', 'XYZ based', 'XYZ based, white balanced', 'Primary based', 'Primary based, white balanced'] as const;
 
-const sameObserver = (a: Observer, b: Observer) => a === b || (a.curves.length === b.curves.length && a.curves.every((c, i) => c.every((v, j) => v === b.curves[i][j])));
+/** The RGB LED's three peaks: blue, green and red, each with its full width at half its height, in nm. */
+export const RGB_LED_PEAKS = [{ peak: 455, width: 20 }, { peak: 530, width: 35 }, { peak: 630, width: 18 }] as const;
+
+/**
+ * One LED peak, in a common model of an LED's spectrum: a Gaussian sharpened at its top, (g + 2g⁵) / 3, with g a
+ * Gaussian; it falls to half its height 0.92182 of g's width parameter from side to side.
+ */
+export function ledPeak(peak: number, width: number): Spectrum {
+  const w = width / 0.92182;
+  return wavelengths.map((l) => { const g = Math.exp(-(((l - peak) / w) ** 2)); return (g + 2 * g ** 5) / 3; });
+}
+
+/**
+ * An RGB LED whose three peaks are mixed so that `observer`'s responses to it are exactly its responses to `white`:
+ * the same white point (and luminance) for that observer, from a very different spectrum.
+ */
+export function rgbLed(observer: Observer, white: Spectrum): Spectrum {
+  const peaks = RGB_LED_PEAKS.map((p) => ledPeak(p.peak, p.width));
+  const raw = (s: Spectrum) => observer.curves.slice(0, 3).map((c) => c.reduce((a, v, i) => a + v * s[i], 0)) as unknown as Vec3;
+  const cols = peaks.map(raw), M = [0, 1, 2].map((r) => cols.map((c) => c[r])) as unknown as Mat3;
+  const w = mulMV(inv3(M), raw(white));
+  return wavelengths.map((_, i) => w[0] * peaks[0][i] + w[1] * peaks[1][i] + w[2] * peaks[2][i]);
+}
+
+const sameObserver =(a: Observer, b: Observer) => a === b || (a.curves.length === b.curves.length && a.curves.every((c, i) => c.every((v, j) => v === b.curves[i][j])));
 
 /**
  * The errors of each transform for a pair. A pair of lights needs one observer (whose responses are XYZ, for the

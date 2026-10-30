@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { categoricalObserver, illuminants, munsell1600, observers } from '../src/index.ts';
-import { LIGHT_TRANSFORMS, OBSERVER_TRANSFORMS, predictPair, summarize } from '../web/labs/predictions.ts';
+import { LIGHT_TRANSFORMS, OBSERVER_TRANSFORMS, predictPair, rgbLed, summarize } from '../web/labs/predictions.ts';
 
 // The guide's companion package (ex05): 1,600 Munsell colors, CIE 1931, A to D65, mean ΔE00 1.09 for the Wpt MAT and
 // 2.26 for CAT02 (the guide's larger set of 5,162 reflectances, not all open, gave 1.24 and 2.35 for CIE 1964).
@@ -39,4 +39,14 @@ test('between two observers: the five ways of converting an observer, the MAT ex
   const white = predictPair(p, { names: ['white'], reflectances: [new Array(81).fill(1)] }, true);
   assert.ok(white[0].de00![0] < 1e-9);
   assert.throws(() => predictPair({ ...p, source: { observer: categoricalObserver(3, 2), light: illuminants.A } }, objs, true), /either the light or the observer/);
+});
+
+// An RGB LED mixed to D65's white: the same responses as D65 for the observer it was mixed for, from three peaks.
+test('the RGB LED has exactly D65\'s white for its observer', () => {
+  for (const o of [observers.cie1931, observers.cie1964]) {
+    const led = rgbLed(o, illuminants.D65);
+    assert.ok(led.every((v) => v >= 0));
+    const raw = (s: readonly number[]) => o.curves.map((c) => c.reduce((a, v, i) => a + v * s[i], 0));
+    raw(led).forEach((v, i) => assert.ok(Math.abs(v / raw(illuminants.D65)[i] - 1) < 1e-12));
+  }
 });

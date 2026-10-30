@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using material color in practice</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%2255%2067%20390%20390%22%3E%0A%3Cpath%20d%3D%22M250%20445%20C205%20375%2C125%20310%2C125%20205%20A125%20125%200%201%201%20375%20205%20C375%20310%2C295%20375%2C250%20445%20Z%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23000000%22%20stroke-width%3D%2212%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3Cpath%20d%3D%22M323.27%20184.82%20A76%2076%200%200%201%20326.00%20205.53%22%20fill%3D%22none%22%20stroke%3D%22%23a9677b%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M315.55%20166.54%20A76%2076%200%200%201%20323.55%20185.84%22%20fill%3D%22none%22%20stroke%3D%22%23ab686c%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M303.36%20150.89%20A76%2076%200%200%201%20316.08%20167.46%22%20fill%3D%22none%22%20stroke%3D%22%23a96b5d%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M287.54%20138.92%20A76%2076%200%200%201%20304.11%20151.64%22%20fill%3D%22none%22%20stroke%3D%22%23a46e4f%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M269.16%20131.45%20A76%2076%200%200%201%20288.46%20139.45%22%20fill%3D%22none%22%20stroke%3D%22%239e7242%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M249.47%20129.00%20A76%2076%200%200%201%20270.18%20131.73%22%20fill%3D%22none%22%20stroke%3D%22%23967638%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M229.82%20131.73%20A76%2076%200%200%201%20250.53%20129.00%22%20fill%3D%22none%22%20stroke%3D%22%238c7a34%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M211.54%20139.45%20A76%2076%200%200%201%20230.84%20131.45%22%20fill%3D%22none%22%20stroke%3D%22%23807e37%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M195.89%20151.64%20A76%2076%200%200%201%20212.46%20138.92%22%20fill%3D%22none%22%20stroke%3D%22%23728241%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M183.92%20167.46%20A76%2076%200%200%201%20196.64%20150.89%22%20fill%3D%22none%22%20stroke%3D%22%2361854e%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M176.45%20185.84%20A76%2076%200%200%201%20184.45%20166.54%22%20fill%3D%22none%22%20stroke%3D%22%234d885e%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M174.00%20205.53%20A76%2076%200%200%201%20176.73%20184.82%22%20fill%3D%22none%22%20stroke%3D%22%2339896d%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M176.73%20225.18%20A76%2076%200%200%201%20174.00%20204.47%22%20fill%3D%22none%22%20stroke%3D%22%23248a7b%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M184.45%20243.46%20A76%2076%200%200%201%20176.45%20224.16%22%20fill%3D%22none%22%20stroke%3D%22%23118a87%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M196.64%20259.11%20A76%2076%200%200%201%20183.92%20242.54%22%20fill%3D%22none%22%20stroke%3D%22%23118991%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M212.46%20271.08%20A76%2076%200%200%201%20195.89%20258.36%22%20fill%3D%22none%22%20stroke%3D%22%2323879a%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M230.84%20278.55%20A76%2076%200%200%201%20211.54%20270.55%22%20fill%3D%22none%22%20stroke%3D%22%233884a0%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M250.53%20281.00%20A76%2076%200%200%201%20229.82%20278.27%22%20fill%3D%22none%22%20stroke%3D%22%234d80a5%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M270.18%20278.27%20A76%2076%200%200%201%20249.47%20281.00%22%20fill%3D%22none%22%20stroke%3D%22%23627ca7%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M288.46%20270.55%20A76%2076%200%200%201%20269.16%20278.55%22%20fill%3D%22none%22%20stroke%3D%22%237477a6%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M304.11%20258.36%20A76%2076%200%200%201%20287.54%20271.08%22%20fill%3D%22none%22%20stroke%3D%22%238473a2%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M316.08%20242.54%20A76%2076%200%200%201%20303.36%20259.11%22%20fill%3D%22none%22%20stroke%3D%22%23916e9c%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M323.55%20224.16%20A76%2076%200%200%201%20315.55%20243.46%22%20fill%3D%22none%22%20stroke%3D%22%239c6b93%22%20stroke-width%3D%2242%22%2F%3E%0A%3Cpath%20d%3D%22M326.00%20204.47%20A76%2076%200%200%201%20323.27%20225.18%22%20fill%3D%22none%22%20stroke%3D%22%23a46888%22%20stroke-width%3D%2242%22%2F%3E%0A%3Ccircle%20cx%3D%22250%22%20cy%3D%22205%22%20r%3D%2224%22%20fill%3D%22%237b7b7b%22%2F%3E%0A%3C%2Fsvg%3E">
+<meta name="description" content="From the onramp to using material color in practice: what the guide gave, the questions each Waypoint Lab takes up, the ideas they share, and familiar terms beside their material color counterparts.">
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f6f7f8; --ink: #1d2125; --quiet: #5c636b; --line: #d9dde1;
+    --accent: #0b4f7a; --accent2: #c2570c; --accent-soft: #e3edf4; --warn: #9a3b00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15181b; --surface: #1e2226; --ink: #e8eaec; --quiet: #a3abb3; --line: #343a40;
+            --accent: #7cb7de; --accent2: #f0a46c; --accent-soft: #1f3341; --warn: #f0a46c; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 56px; }
+  nav.crumbs { font-size: 0.9rem; color: var(--quiet); margin-bottom: 14px; }
+  nav.crumbs a { color: var(--accent); text-decoration: none; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 6px; color: var(--accent); }
+  .brand { display: flex; gap: 16px; align-items: center; margin-bottom: 8px; }
+  .brand h1 { margin: 0; }
+  svg.labs-logo { flex: none; width: 150px; height: auto; }    /* the Waypoint Labs logo, 400 x 315 */
+  .brand.small svg.labs-logo { width: 84px; }
+  @media (max-width: 560px) { svg.labs-logo { width: 100px; } .brand.small svg.labs-logo { width: 64px; } }
+  h2 { font-size: 1.2rem; margin: 30px 0 8px; color: var(--accent); }
+  h3 { font-size: 1rem; margin: 14px 0 6px; }
+  p { margin: 6px 0; max-width: 74ch; }
+  .lead { color: var(--quiet); font-size: 1.05rem; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 14px; margin-top: 12px; }
+  .grid .card { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .grid .card h3 { margin: 0; color: var(--accent); }
+  .grid .card .status { font-size: 0.82rem; color: var(--quiet); }
+  .grid a.card { color: inherit; text-decoration: none; }
+  .grid a.card:hover { border-color: var(--accent); }
+  textarea { width: 100%; min-height: 110px; font: 13px/1.4 ui-monospace, Consolas, monospace; color: var(--ink);
+             background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; resize: vertical; }
+  button, select, input[type=text], input[type=number] { font: inherit; color: var(--ink); background: var(--bg);
+             border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; }
+  input[type=number] { width: 7em; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { button.primary { color: #0e1215; } }
+  .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 8px; }
+  .row label { display: flex; gap: 6px; align-items: center; color: var(--quiet); max-width: 100%; }
+  .row label select { min-width: 0; max-width: 100%; }       /* long choices shrink to a phone's width */
+  .note { color: var(--quiet); font-size: 0.9rem; }
+  .error { color: var(--warn); font-weight: 600; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; }
+  .cols.wide { grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
+  .cols > .card { margin: 0; }
+  .cols.compare { grid-template-columns: minmax(0, 1fr); }      /* two conditions side by side within each card */
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+  .pair h4 { margin: 4px 0; font-size: 0.9rem; color: var(--accent); }
+  .inputs3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1.4fr); gap: 10px; margin-top: 8px; }
+  @media (max-width: 640px) { .inputs3 { grid-template-columns: minmax(0, 1fr); } }
+  label.stack { display: flex; flex-direction: column; gap: 4px; color: var(--quiet); font-size: 0.9rem; }
+  textarea.lines { white-space: pre; overflow-wrap: normal; min-height: 180px; }   /* one line per row, never wrapped */
+  table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { border-bottom: 2px solid var(--ink); }
+  th.sep, td.sep { border-left: 1px solid var(--quiet); }      /* a vertical line where a group of columns starts */
+  table.questions thead th.sep { white-space: normal; min-width: 8em; max-width: 12em; vertical-align: bottom; }
+  table.questions thead tr:first-child th { font-weight: 600; border-bottom: 0; }
+  .hint { text-decoration: underline dotted; text-underline-offset: 0.2em; cursor: help; }  /* more on hover */
+  table.matrix td { font-family: ui-monospace, Consolas, monospace; font-size: 13px; border: 0; padding: 2px 10px; }
+  table.matrix { border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto;
+        font: 12.5px/1.45 ui-monospace, Consolas, monospace; margin: 8px 0; }
+  .table-wrap { overflow-x: auto; }
+  svg text { fill: var(--quiet); font-size: 11px; }
+  svg .title { fill: var(--ink); font-size: 12px; font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.88rem; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { display: inline-block; width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 3px; }
+  .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
+  .checks label { display: flex; gap: 6px; align-items: baseline; }
+  canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
+  canvas.cloud.flat { cursor: default; }
+  .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
+  .multiples figure { margin: 0; }
+  .multiples.single { grid-template-columns: minmax(0, 720px); }    /* one view, large */
+  .multiples figcaption { font-size: 0.85rem; color: var(--ink); margin-bottom: 4px; display: flex; gap: 6px; align-items: center; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  table.entries td { vertical-align: middle; }
+  table.entries input[type=range] { width: 120px; }
+  table.entries td.name { text-align: left; white-space: normal; min-width: 12em; }
+  td.where { text-align: left; white-space: normal; min-width: 14em; }
+  .count { font-weight: 600; margin-top: 12px; }
+  details { margin-top: 8px; }
+  /* the sets a lab computes over: what they are is always said; choosing them is opt-in */
+  .optin { border-left: 3px solid var(--accent-soft); padding: 2px 0 4px 12px; margin: 10px 0 14px; }
+  .optin > .note { margin: 4px 0 8px; }
+  .optin > h3 { margin-top: 6px; }
+  label.check { display: inline-flex; gap: 6px; align-items: baseline; font-weight: 600; }
+  .sets { display: flex; flex-direction: column; gap: 8px; }
+  .sets label { display: flex; gap: 8px; align-items: baseline; }
+  .sets .about { display: block; color: var(--quiet); font-size: 0.88rem; }
+  .sets .credit { display: block; color: var(--quiet); font-size: 0.8rem; }
+  .big { font-size: 1.6rem; font-weight: 650; }
+  .formula { font-size: 1.25rem; text-align: center; margin: 14px 0; }      /* one equation on a line of its own */
+  /* a summary: one row per item, its name on the left */
+  table.kv th { text-align: left; font-weight: 600; white-space: nowrap; padding-right: 16px; }
+  table.kv td { text-align: left; white-space: normal; }
+  table.kv .big { font-size: 1.35rem; line-height: 1.2; }
+  /* Lab D's ways of converting an observer: numbers centred under two-line headings, the description left-aligned */
+  table.methods th, table.methods td { text-align: center; vertical-align: middle; }
+  table.indices td:first-child { white-space: normal; min-width: 11em; }
+  table.indices td:nth-child(3) { text-align: left; white-space: normal; min-width: 14em; }
+  table.indices thead th:nth-child(3) { text-align: left; }
+  table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
+  table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
+  table.bench td:nth-child(2), table.bench thead th:nth-child(2) { text-align: left; }   /* the bench's source column */
+  table.words td, table.words th { text-align: left; white-space: normal; vertical-align: top; }   /* tables of words, as on the start page */
+  table.words { margin-top: 8px; }
+  table.transforms td, table.transforms th { text-align: left; white-space: normal; vertical-align: top; }   /* the words of section 1 of the MAT and CAT comparison */
+  table.transforms td:first-child { min-width: 8em; font-weight: 600; }
+  table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }
+  table.many .what, table.indices .what { display: block; color: var(--quiet); font-size: 0.82em; font-weight: 400; }   /* what a light or measure is, under its name */
+  table.indices thead th { vertical-align: bottom; line-height: 1.25; }
+  table.methods thead th { vertical-align: bottom; line-height: 1.25; }
+  table.methods th:first-child, table.methods td:first-child { text-align: left; white-space: normal; min-width: 6.5em; max-width: 8em; }
+  table.methods .what { text-align: left; white-space: normal; min-width: 13em; max-width: 20em; }
+  /* Lab D's light-by-light table: the lights' names wrap, so that the first column stays narrow */
+  table.bylight td:first-child { white-space: normal; min-width: 12em; max-width: 15em; }
+  table.bylight thead tr:last-child th:last-child { text-align: left; }   /* over the left-aligned names below it */
+  /* a finding worth stopping at, such as two observers that are one */
+  .flag { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; }
+  tr.own td { font-weight: 600; }                                 /* the row of the condition's own light */
+  tr.without td { color: var(--quiet); border-top: 2px solid var(--line); }
+  tr.extra td { color: var(--quiet); }                             /* rows outside a summary (R9 to R14, outside Ra) */
+  #xmlPreview { max-height: 420px; overflow: auto; }
+  summary { cursor: pointer; color: var(--accent); }
+  footer { margin-top: 44px; color: var(--quiet); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 12px; }
+  a { color: var(--accent); }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 0.92em; }
+</style>
+<style>
+  .toc { columns: 2 18em; padding-left: 1.2em; margin: 8px 0; }
+  .toc li { margin: 3px 0; }
+  dl.ideas dt { font-weight: 600; margin-top: 14px; color: var(--ink); }
+  dl.ideas dd { margin: 4px 0 0; max-width: 78ch; }
+  ul.questions li { margin: 8px 0; max-width: 78ch; }
+  ul.questions .how { display: block; color: var(--quiet); font-size: 0.92rem; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Start here</nav>
+  <div class="brand small"><svg xmlns="http://www.w3.org/2000/svg" class="labs-logo" role="img" aria-label="Waypoint Labs" viewBox="0 15 400 315">
+<path d="M146 320 Q146 300 168 300 L232 300 Q254 300 254 320 Z" fill="#b07a3b" stroke="#5a3a17" stroke-width="4" stroke-linejoin="round"/>
+<path d="M160 306 L240 306" stroke="#e2b77a" stroke-width="3" stroke-linecap="round"/>
+<rect x="193" y="50" width="14" height="252" rx="3" fill="#b07a3b" stroke="#5a3a17" stroke-width="3.5"/>
+<line x1="197" y1="62" x2="197" y2="292" stroke="#e2b77a" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M188 300 L212 300 L208 288 L192 288 Z" fill="#b07a3b" stroke="#5a3a17" stroke-width="3" stroke-linejoin="round"/>
+<line x1="61.4" y1="69.5" x2="338.6" y2="30.5" stroke="#5a3a17" stroke-width="11" stroke-linecap="round"/><line x1="61.4" y1="69.5" x2="338.6" y2="30.5" stroke="#b07a3b" stroke-width="8" stroke-linecap="round"/>
+<line x1="67.4" y1="67.5" x2="332.6" y2="28.5" stroke="#e2b77a" stroke-width="2" stroke-linecap="round"/>
+<line x1="61.4" y1="69.5" x2="17.4" y2="219.5" stroke="#5a3a17" stroke-width="5.5" stroke-linecap="round"/><line x1="61.4" y1="69.5" x2="17.4" y2="219.5" stroke="#b07a3b" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="61.4" y1="69.5" x2="105.4" y2="219.5" stroke="#5a3a17" stroke-width="5.5" stroke-linecap="round"/><line x1="61.4" y1="69.5" x2="105.4" y2="219.5" stroke="#b07a3b" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M11.4 219.5 Q61.4 259.5 111.4 219.5 Z" fill="#b07a3b" stroke="#5a3a17" stroke-width="4" stroke-linejoin="round"/>
+<path d="M23.4 225.5 Q41.4 235.5 61.4 237.5" fill="none" stroke="#e2b77a" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="61.4" cy="69.5" r="5" fill="#b07a3b" stroke="#5a3a17" stroke-width="2.5"/>
+<line x1="338.6" y1="30.5" x2="294.6" y2="180.5" stroke="#5a3a17" stroke-width="5.5" stroke-linecap="round"/><line x1="338.6" y1="30.5" x2="294.6" y2="180.5" stroke="#b07a3b" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="338.6" y1="30.5" x2="382.6" y2="180.5" stroke="#5a3a17" stroke-width="5.5" stroke-linecap="round"/><line x1="338.6" y1="30.5" x2="382.6" y2="180.5" stroke="#b07a3b" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M288.6 180.5 Q338.6 220.5 388.6 180.5 Z" fill="#b07a3b" stroke="#5a3a17" stroke-width="4" stroke-linejoin="round"/>
+<path d="M300.6 186.5 Q318.6 196.5 338.6 198.5" fill="none" stroke="#e2b77a" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="338.6" cy="30.5" r="5" fill="#b07a3b" stroke="#5a3a17" stroke-width="2.5"/>
+<circle cx="200" cy="50" r="11" fill="#b07a3b" stroke="#5a3a17" stroke-width="3.5"/>
+<circle cx="197" cy="47" r="3.5" fill="#e2b77a"/>
+<g transform="translate(-13.6 98.0) scale(0.3)">
+<path d="M250 445 C205 375,125 310,125 205 A125 125 0 1 1 375 205 C375 310,295 375,250 445 Z" fill="#ffffff" stroke="#000000" stroke-width="16" stroke-linejoin="round"/>
+<path d="M323.27 184.82 A76 76 0 0 1 326.00 205.53" fill="none" stroke="#965b6d" stroke-width="42"/>
+<path d="M315.55 166.54 A76 76 0 0 1 323.55 185.84" fill="none" stroke="#985c60" stroke-width="42"/>
+<path d="M303.36 150.89 A76 76 0 0 1 316.08 167.46" fill="none" stroke="#975e52" stroke-width="42"/>
+<path d="M287.54 138.92 A76 76 0 0 1 304.11 151.64" fill="none" stroke="#936144" stroke-width="42"/>
+<path d="M269.16 131.45 A76 76 0 0 1 288.46 139.45" fill="none" stroke="#8e6437" stroke-width="42"/>
+<path d="M249.47 129.00 A76 76 0 0 1 270.18 131.73" fill="none" stroke="#86682d" stroke-width="42"/>
+<path d="M229.82 131.73 A76 76 0 0 1 250.53 129.00" fill="none" stroke="#7d6c29" stroke-width="42"/>
+<path d="M211.54 139.45 A76 76 0 0 1 230.84 131.45" fill="none" stroke="#72702c" stroke-width="42"/>
+<path d="M195.89 151.64 A76 76 0 0 1 212.46 138.92" fill="none" stroke="#657336" stroke-width="42"/>
+<path d="M183.92 167.46 A76 76 0 0 1 196.64 150.89" fill="none" stroke="#557643" stroke-width="42"/>
+<path d="M176.45 185.84 A76 76 0 0 1 184.45 166.54" fill="none" stroke="#437952" stroke-width="42"/>
+<path d="M174.00 205.53 A76 76 0 0 1 176.73 184.82" fill="none" stroke="#2f7a60" stroke-width="42"/>
+<path d="M176.73 225.18 A76 76 0 0 1 174.00 204.47" fill="none" stroke="#197b6d" stroke-width="42"/>
+<path d="M184.45 243.46 A76 76 0 0 1 176.45 224.16" fill="none" stroke="#017b78" stroke-width="42"/>
+<path d="M196.64 259.11 A76 76 0 0 1 183.92 242.54" fill="none" stroke="#017a81" stroke-width="42"/>
+<path d="M212.46 271.08 A76 76 0 0 1 195.89 258.36" fill="none" stroke="#197889" stroke-width="42"/>
+<path d="M230.84 278.55 A76 76 0 0 1 211.54 270.55" fill="none" stroke="#2f758f" stroke-width="42"/>
+<path d="M250.53 281.00 A76 76 0 0 1 229.82 278.27" fill="none" stroke="#447293" stroke-width="42"/>
+<path d="M270.18 278.27 A76 76 0 0 1 249.47 281.00" fill="none" stroke="#566e95" stroke-width="42"/>
+<path d="M288.46 270.55 A76 76 0 0 1 269.16 278.55" fill="none" stroke="#676a93" stroke-width="42"/>
+<path d="M304.11 258.36 A76 76 0 0 1 287.54 271.08" fill="none" stroke="#756690" stroke-width="42"/>
+<path d="M316.08 242.54 A76 76 0 0 1 303.36 259.11" fill="none" stroke="#81628b" stroke-width="42"/>
+<path d="M323.55 224.16 A76 76 0 0 1 315.55 243.46" fill="none" stroke="#8a5e83" stroke-width="42"/>
+<path d="M326.00 204.47 A76 76 0 0 1 323.27 225.18" fill="none" stroke="#925c79" stroke-width="42"/>
+<circle cx="250" cy="205" r="26" fill="#985c60"/>
+</g>
+<g transform="translate(263.6 59.0) scale(0.3)">
+<path d="M250 445 C205 375,125 310,125 205 A125 125 0 1 1 375 205 C375 310,295 375,250 445 Z" fill="#ffffff" stroke="#000000" stroke-width="16" stroke-linejoin="round"/>
+<path d="M323.27 184.82 A76 76 0 0 1 326.00 205.53" fill="none" stroke="#c97891" stroke-width="42"/>
+<path d="M315.55 166.54 A76 76 0 0 1 323.55 185.84" fill="none" stroke="#cb797e" stroke-width="42"/>
+<path d="M303.36 150.89 A76 76 0 0 1 316.08 167.46" fill="none" stroke="#c77d6d" stroke-width="42"/>
+<path d="M287.54 138.92 A76 76 0 0 1 304.11 151.64" fill="none" stroke="#c1815d" stroke-width="42"/>
+<path d="M269.16 131.45 A76 76 0 0 1 288.46 139.45" fill="none" stroke="#ba864e" stroke-width="42"/>
+<path d="M249.47 129.00 A76 76 0 0 1 270.18 131.73" fill="none" stroke="#b08b43" stroke-width="42"/>
+<path d="M229.82 131.73 A76 76 0 0 1 250.53 129.00" fill="none" stroke="#a58f3e" stroke-width="42"/>
+<path d="M211.54 139.45 A76 76 0 0 1 230.84 131.45" fill="none" stroke="#979441" stroke-width="42"/>
+<path d="M195.89 151.64 A76 76 0 0 1 212.46 138.92" fill="none" stroke="#86984c" stroke-width="42"/>
+<path d="M183.92 167.46 A76 76 0 0 1 196.64 150.89" fill="none" stroke="#729c5b" stroke-width="42"/>
+<path d="M176.45 185.84 A76 76 0 0 1 184.45 166.54" fill="none" stroke="#5aa06e" stroke-width="42"/>
+<path d="M174.00 205.53 A76 76 0 0 1 176.73 184.82" fill="none" stroke="#41a280" stroke-width="42"/>
+<path d="M176.73 225.18 A76 76 0 0 1 174.00 204.47" fill="none" stroke="#26a290" stroke-width="42"/>
+<path d="M184.45 243.46 A76 76 0 0 1 176.45 224.16" fill="none" stroke="#08a29f" stroke-width="42"/>
+<path d="M196.64 259.11 A76 76 0 0 1 183.92 242.54" fill="none" stroke="#04a1ab" stroke-width="42"/>
+<path d="M212.46 271.08 A76 76 0 0 1 195.89 258.36" fill="none" stroke="#229fb5" stroke-width="42"/>
+<path d="M230.84 278.55 A76 76 0 0 1 211.54 270.55" fill="none" stroke="#3d9bbe" stroke-width="42"/>
+<path d="M250.53 281.00 A76 76 0 0 1 229.82 278.27" fill="none" stroke="#5797c4" stroke-width="42"/>
+<path d="M270.18 278.27 A76 76 0 0 1 249.47 281.00" fill="none" stroke="#7192c7" stroke-width="42"/>
+<path d="M288.46 270.55 A76 76 0 0 1 269.16 278.55" fill="none" stroke="#888cc5" stroke-width="42"/>
+<path d="M304.11 258.36 A76 76 0 0 1 287.54 271.08" fill="none" stroke="#9c86c1" stroke-width="42"/>
+<path d="M316.08 242.54 A76 76 0 0 1 303.36 259.11" fill="none" stroke="#ac81b9" stroke-width="42"/>
+<path d="M323.55 224.16 A76 76 0 0 1 315.55 243.46" fill="none" stroke="#b97caf" stroke-width="42"/>
+<path d="M326.00 204.47 A76 76 0 0 1 323.27 225.18" fill="none" stroke="#c379a1" stroke-width="42"/>
+<circle cx="250" cy="205" r="26" fill="#5797c4"/>
+</g>
+</svg><h1>From the onramp to using material color in practice</h1></div>
+  <p class="lead">The guide, <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color Without the
+  Fine Print</i></a>, is the onramp: it takes you from CIELAB's fine print to the color of a material itself. This
+  page leads from there into the Waypoint Labs, where the same ideas are used on your own data. Each lab works on its
+  own and defines what it uses; this page gathers those ideas in one place, beside the familiar terms they stand
+  next to.</p>
+  <ol class="toc">
+    <li><a href="#leaves">Where the onramp leaves you</a></li>
+    <li><a href="#questions">Questions material color opens up</a></li>
+    <li><a href="#ideas">Ideas the labs share</a></li>
+    <li><a href="#terms">Familiar terms and their material color counterparts</a></li>
+    <li><a href="#path">What each lab leans on</a></li>
+    <li><a href="#sources">Where the math and the sources are</a></li>
+  </ol>
+
+  <h2 id="leaves">1. Where the onramp leaves you</h2>
+  <div class="card">
+    <p>The guide gave three things. Materials that look alike in one place can be told apart from materials that
+    stay alike everywhere. Every material has a place, Wpt, that stays nearly the same whatever the light and
+    whoever is looking, and WLab reshapes that place so that distances read like familiar ΔE values. And a material
+    adjustment transform (MAT) carries measurements from one light or viewer to another by way of the material.</p>
+    <p>The labs add the rest of the road: the same ideas tried on your own spectra, sensors and lights, over many
+    lights, observers and objects at once. Everything runs in your browser, and nothing you enter or load is sent
+    anywhere.</p>
+  </div>
+
+  <h2 id="questions">2. Questions material color opens up</h2>
+  <div class="card">
+    <p>Each lab takes up one question. The line under it says how the lab answers.</p>
+    <ul class="questions">
+      <li>How do I give my sensors (an observer's, a camera's) a Wpt, and carry colors from one condition to another?
+      <a href="normalization.html">Wpt normalization and MATs</a>
+      <span class="how">Builds the normalization of any sensors under any light, shows its four steps, and tests the
+      MAT between two conditions.</span></li>
+      <li>How far apart are two colors measured under one light? <a href="differences.html">WLab and color
+      differences</a>
+      <span class="how">ΔE<sub>WLab</sub> for pairs measured in any condition, beside ΔE<sub>00</sub> for the CIE
+      observers, with plots of where the colors sit.</span></li>
+      <li>Does WLab hold hue constant as colors get lighter and grayer? <a href="uniformity.html">Uniformity and
+      hue</a>
+      <span class="how">Lines of constant hue and the Munsell loci in WLab beside CIELAB and CAM16-UCS, and the
+      object-color solid of two conditions.</span></li>
+      <li>Does a material keep its color across lights and observers, and do two that match here match everywhere?
+      <a href="objects.html">Objects</a>
+      <span class="how">Each material's shift manifold over the conditions you choose, and pairs compared condition
+      by condition.</span></li>
+      <li>How different is an observer (a person's own, or a camera's) from the standard ones, and how is it carried in
+      an iccMAX profile? <a href="observer.html">Observers</a>
+      <span class="how">The OME and OCE against the CIE observers, the closest CIE 2006 observer, and a profile that
+      carries the observer.</span></li>
+      <li>How alike do two lights render materials, and how does that sit beside the color rendering index and TM-30?
+      <a href="lighting.html">Lighting</a>
+      <span class="how">The IRE over libraries of objects and observers, the lights that come closest, and the CCT and
+      color rendering indices beside it.</span></li>
+      <li>How closely does a MAT predict what a material will measure under another light, beside a chromatic
+      adaptation transform? <a href="bench.html">Comparing MATs and CATs</a>
+      <span class="how">For one material, a library of objects and many lights, with each transform's steps
+      animated.</span></li>
+    </ul>
+    <p class="note">Planned: metamers and material color equivalency classes (the reflectances that share a Wpt), and
+    profiles run through iccDEV's own tools in the page.</p>
+  </div>
+
+  <h2 id="ideas">3. Ideas the labs share</h2>
+  <div class="card">
+    <dl class="ideas">
+      <dt id="condition">Observing condition</dt>
+      <dd>An observer under a light, shortened to "condition". The observer is any set of sensors: a standard observer's
+      color-matching functions, cone fundamentals (the CIE 2006 model for any age and field size, or curves measured
+      for one person), the categorical observers, or a camera's sensors. A material enters only through its spectral
+      reflectance, so one material can be measured in any number of conditions.</dd>
+
+      <dt id="normalization">Wpt normalization and its four steps</dt>
+      <dd>One 3 × 3 matrix per condition that turns the condition's responses into Wpt, the common representation of
+      materials. It is built in four steps: white is turned onto the first axis, scaled to W = 100, the base colors
+      (40 Munsell colors of Value 5 and Chroma 6, one per hue) are leveled to one W, and their p and t are fitted to
+      the reference's. Wpt has three coordinates: W, for how much light the material reflects (white is 100), and p
+      and t across it (0 for white and every gray).</dd>
+
+      <dt id="wlab">WLab and ΔE<sub>WLab</sub></dt>
+      <dd>WLab reshapes Wpt so that a distance in it, ΔE<sub>WLab</sub>, predicts the color difference the reference
+      observer (CIE 1931 under illuminant C) would see between two materials, whatever condition they were measured in.
+      WLab is not a color appearance model; it is a material color equivalency model: two materials with the same WLab
+      are equivalent as materials.</dd>
+
+      <dt id="mat">MAT, and how it differs from a CAT</dt>
+      <dd>A material adjustment transform (MAT) is the normalization of one condition followed by the inverse of
+      another's: it predicts what a material measured in the first will measure in the second (material color). A
+      chromatic adaptation transform (CAT: von Kries, Bradford, CAT02) has the same shape but is built from the two
+      lights' white points alone, and it predicts what will look the same to a viewer who has adapted to each light
+      (corresponding color). Both carry white exactly; they differ in what they do to every other color.</dd>
+
+      <dt id="shift">Shift and shift manifold</dt>
+      <dd>A material's shift is how far and which way its Wpt (or WLab) moves between two conditions. Measured in many
+      conditions, one material makes a small cloud of points, its Wpt shift manifold. How large the cloud is, and its
+      shape, are the material's own behavior.</dd>
+
+      <dt id="metrics">The equivalency metrics, one family</dt>
+      <dd>Each is a mean ΔE<sub>WLab</sub> over materials, with one thing varied and the rest held, and each is 0 when
+      the thing varied makes no difference to any material.
+        <table class="words">
+          <thead><tr><th>Metric</th><th>Varies</th><th>Averaged over</th><th>In</th></tr></thead>
+          <tbody>
+            <tr><td>Observer Matching Equivalency (OME)</td><td>the observer</td><td>objects and lights</td><td><a href="observer.html">Observers</a></td></tr>
+            <tr><td>Observing Conditions Equivalency (OCE)</td><td>the whole condition, observer and light</td><td>objects</td><td><a href="observer.html">Observers</a></td></tr>
+            <tr><td>Illuminant Rendering Equivalency (IRE)</td><td>the light</td><td>objects and observers</td><td><a href="lighting.html">Lighting</a></td></tr>
+          </tbody>
+        </table></dd>
+
+      <dt id="libraries">The libraries, and your own data</dt>
+      <dd>Every lab draws on the same libraries: objects (the corrected Munsell colors, the CIE's color evaluation
+      samples, natural objects, skin, soils and others, each with its source and terms), lights (the CIE illuminants,
+      fluorescent and LED lights, Planckian and daylight series) and observers (CIE, CIE 2006, categorical, cameras).
+      Your own spectra, sensors and lights can be pasted or loaded beside them.</dd>
+    </dl>
+  </div>
+
+  <h2 id="terms">4. Familiar terms and their material color counterparts</h2>
+  <div class="card">
+    <p>Each familiar term answers a question for one condition, or for one change of it. Its counterpart answers it
+    for the material, across conditions.</p>
+    <table class="words">
+      <thead><tr><th>Familiar</th><th>Material color counterpart</th><th>In</th></tr></thead>
+      <tbody>
+        <tr><td>CIELAB and ΔE<sub>00</sub>, under one light for one observer</td><td>Wpt, WLab and ΔE<sub>WLab</sub>,
+          for measurements from any condition</td><td><a href="differences.html">WLab and color differences</a></td></tr>
+        <tr><td>A CAT: what looks the same to an adapted viewer</td><td>A MAT: what the material will measure</td>
+          <td><a href="bench.html">Comparing MATs and CATs</a></td></tr>
+        <tr><td>A camera's matrix to XYZ</td><td>A MAT from the camera's condition to a CIE observer's</td>
+          <td><a href="normalization.html">Wpt normalization and MATs</a></td></tr>
+        <tr><td>An index of metamerism: how far a matching pair parts under one change of light or observer</td>
+          <td>The pair's WLab difference in every condition, and each material's shift manifold</td>
+          <td><a href="objects.html">Objects</a></td></tr>
+        <tr><td>Observer metamerism: two viewers disagree about a match</td><td>The OME between the two
+          observers</td><td><a href="observer.html">Observers</a></td></tr>
+        <tr><td>The color rendering index (CIE 13.3), CIE 224 R<sub>f</sub>, TM-30 R<sub>f</sub> and R<sub>g</sub></td>
+          <td>The IRE against a reference light</td><td><a href="lighting.html">Lighting</a></td></tr>
+        <tr><td>The correlated color temperature: the Planckian light nearest in chromaticity</td><td>The Planckian or
+          daylight reference with the lowest IRE: the one nearest in how it renders materials</td>
+          <td><a href="lighting.html">Lighting</a></td></tr>
+        <tr><td>Hue angle in CIELAB or CAM16-UCS</td><td>Hue in WLab</td><td><a href="uniformity.html">Uniformity and
+          hue</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="path">5. What each lab leans on</h2>
+  <div class="card">
+    <p>Every lab can be opened first. Where one leans on another, it is this:</p>
+    <table class="words">
+      <thead><tr><th>Lab</th><th>Leans on</th></tr></thead>
+      <tbody>
+        <tr><td><a href="normalization.html">Wpt normalization and MATs</a></td><td>The guide alone. The others build on
+          its normalization and MAT.</td></tr>
+        <tr><td><a href="differences.html">WLab and color differences</a></td><td>The normalization; ΔE<sub>WLab</sub>,
+          defined here, is the measure the later labs report.</td></tr>
+        <tr><td><a href="uniformity.html">Uniformity and hue</a></td><td>WLab.</td></tr>
+        <tr><td><a href="objects.html">Objects</a></td><td>WLab; it introduces shifts and shift manifolds.</td></tr>
+        <tr><td><a href="observer.html">Observers</a></td><td>The MAT and shifts, between observers; its OME and OCE
+          are means of shifts.</td></tr>
+        <tr><td><a href="lighting.html">Lighting</a></td><td>Shifts between lights; the IRE is their mean.</td></tr>
+        <tr><td><a href="bench.html">Comparing MATs and CATs</a></td><td>The MAT, and the CATs it is set beside.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="sources">6. Where the math and the sources are</h2>
+  <div class="card">
+    <p>The equations are in the guide's Technical annex, which maps each one to the function in
+    <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a> that computes it. Math pages, one topic per
+    page and each linked to the lab that computes it, are planned. Each lab names the standards and data it rests on
+    in its own footer.</p>
+    <ul>
+      <li>Wpt, WLab and the MAT: the guide, and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp;
+      Application</i> 40(6), 2015).</li>
+      <li>Shift manifolds and the OME, OCE and IRE: M. W. Derhak, <i>Spectrally Based Material Color Equivalency:
+      Modeling and Manipulation</i>, PhD dissertation, Rochester Institute of Technology, 2015.</li>
+      <li>Colorimetry, the CIE observers and illuminants: CIE 15:2018; the CIE 2006 model: CIE 170-1:2006.</li>
+      <li>Color rendering: CIE 13.3-1995, CIE 224:2017 and ANSI/IES TM-30; CAM16-UCS: CIE 248:2022.</li>
+      <li>Profiles: ICC.2 (iccMAX), built and checked with <a href="https://github.com/InternationalColorConsortium/iccDEV">iccDEV</a>.</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>Maxim W. Derhak (PhD). Method: <i>WLab and Wpt: Color Without the Fine Print</i> and the Wpt and WLab papers
+    (Derhak and Berns, <i>Color Research &amp; Application</i> 40(6), 2015). Text CC BY 4.0; code BSD 3-Clause.</p>
+  </footer>
+</main>
+</body>
+</html>

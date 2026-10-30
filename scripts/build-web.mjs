@@ -35,6 +35,7 @@ const pages = [
   { entry: 'web/app.ts', template: 'web/robustness.template.html', out: 'web/robustness-report.html' },
   { entry: 'web/landing.ts', template: 'web/landing.template.html', out: 'web/wlab-onramp.html' },
   { template: 'web/labs/index.template.html', out: 'web/labs/index.html' },
+  { template: 'web/labs/start.template.html', out: 'web/labs/start.html' },
   { entry: 'web/labs/normalization.ts', template: 'web/labs/normalization.template.html', out: 'web/labs/normalization.html' },
   { entry: 'web/labs/differences.ts', template: 'web/labs/differences.template.html', out: 'web/labs/differences.html' },
   { entry: 'web/labs/objects.ts', template: 'web/labs/objects.template.html', out: 'web/labs/objects.html' },

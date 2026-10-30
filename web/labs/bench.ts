@@ -16,13 +16,15 @@ import { MUNSELL_HUES, munsellChips } from './hue.ts';
 import { $, cloud3d, download, escapeHtml, fmtTick, histogram, LIGHT_LABEL, niceStep, optIn, spectrumPlot } from './kit.ts';
 import { OBJECT_SETS, objectsOf, ownSet, type ObjectSet } from './library.ts';
 import { readObjectFile } from './objectfile.ts';
-import { LIGHT_TRANSFORMS, predictPair, summarize, type Errors, type Pair } from './predictions.ts';
+import { LIGHT_TRANSFORMS, predictPair, rgbLed, summarize, type Errors, type Pair } from './predictions.ts';
 
 const message = (e: unknown) => (e as Error).message;
 const f2 = (v: number) => v.toFixed(2);
 const COLORS = ['var(--accent)', 'var(--accent2)', '#1f8a5b', '#7a3fb0'];
 const range = (a: number, b: number, s: number) => Array.from({ length: Math.round((b - a) / s) + 1 }, (_, i) => a + s * i);
-const shortLight = (k: string) => LIGHT_LABEL[k as IlluminantName]?.replace(/ \(.*$/, '') ?? k;
+const shortLight = (k: string) => (k === 'RGB' ? 'RGB LED' : LIGHT_LABEL[k as IlluminantName]?.replace(/ \(.*$/, '') ?? k);
+// the RGB LED: three LED peaks mixed to D65's white exactly, for the observer it is seen by
+const lightLabel = (k: string) => (k === 'RGB' ? 'RGB LED (D65\'s white)' : LIGHT_LABEL[k as IlluminantName]);
 
 let pending: ReturnType<typeof setTimeout> | undefined;
 const schedule = () => { clearTimeout(pending); pending = setTimeout(() => void render(), 0); };
@@ -30,11 +32,12 @@ const schedule = () => { clearTimeout(pending); pending = setTimeout(() => void 
 // ---------------------------------------------------------------------------------------------------------------
 // The choices of section 2, which sections 3 and 4 follow
 
-for (const id of ['fromLight', 'toLight']) $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)));
+for (const id of ['fromLight', 'toLight']) $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)), new Option(lightLabel('RGB'), 'RGB'));
 $<HTMLSelectElement>('fromLight').value = 'A';
 $<HTMLSelectElement>('toLight').value = 'D65';
 const observerOf = (): Observer => observers[$<HTMLSelectElement>('observer').value as 'cie1931' | 'cie1964'];
-const lightKey = (id: string) => $<HTMLSelectElement>(id).value as IlluminantName;
+const lightKey = (id: string) => $<HTMLSelectElement>(id).value;
+const lightOf = (id: string): Spectrum => (lightKey(id) === 'RGB' ? rgbLed(observerOf(), illuminants.D65) : illuminants[lightKey(id) as IlluminantName]);
 for (const id of ['observer', 'fromLight', 'toLight']) $(id).addEventListener('input', schedule);
 $('material').addEventListener('input', () => drawOne());
 $('split').addEventListener('input', () => drawOne());
@@ -85,7 +88,7 @@ let pickDefault = true;
 
 /** The transforms' matrices for the chosen observer and lights, in the order of LIGHT_TRANSFORMS. */
 function transforms(): { T: Mat3[]; from: Spectrum; to: Spectrum; o: Observer } {
-  const o = observerOf(), from = illuminants[lightKey('fromLight')], to = illuminants[lightKey('toLight')];
+  const o = observerOf(), from = lightOf('fromLight'), to = lightOf('toLight');
   const ns = wptNormalization(o, from), nd = wptNormalization(o, to);
   return { o, from, to, T: [mat(ns, nd), cat(ns.white, nd.white, 'bradford'), cat(ns.white, nd.white, 'cat02'), cat(ns.white, nd.white, 'xyz')] };
 }
@@ -95,11 +98,11 @@ const screen = (xyz: Vec3) => `rgb(${xyzToRgb(xyz, 'srgb').map((v) => Math.round
 
 /** The two lights, at the same luminance (CIE 1931 ȳ), and the material's spectral reflectance. */
 function drawSpectra(name: string, reflectance: Spectrum): void {
-  const from = illuminants[lightKey('fromLight')], to = illuminants[lightKey('toLight')];
+  const from = lightOf('fromLight'), to = lightOf('toLight');
   const k = (s: Spectrum) => 100 / s.reduce((a, v, i) => a + v * observers.cie1931.curves[1][i], 0);
   $('spectra').innerHTML = `<div>${spectrumPlot('The two lights, at the same luminance', [
-    { values: from.map((v) => v * k(from)), color: 'var(--accent)', label: `measured under: ${LIGHT_LABEL[lightKey('fromLight')]}` },
-    { values: to.map((v) => v * k(to)), color: 'var(--accent2)', dash: '5 3', label: `predicted for: ${LIGHT_LABEL[lightKey('toLight')]}` },
+    { values: from.map((v) => v * k(from)), color: 'var(--accent)', label: `measured under: ${lightLabel(lightKey('fromLight'))}` },
+    { values: to.map((v) => v * k(to)), color: 'var(--accent2)', dash: '5 3', label: `predicted for: ${lightLabel(lightKey('toLight'))}` },
   ])}</div><div>${spectrumPlot('The material\'s spectral reflectance', [{ values: reflectance, color: 'var(--ink)', label: name }])}</div>`;
 }
 
@@ -187,7 +190,7 @@ let lightRun = 0;
 async function runLights(): Promise<void> {
   const me = ++lightRun;
   if (!objects) return;
-  const toKey = lightKey('toLight'), to = illuminants[toKey];
+  const toKey = lightKey('toLight'), to = lightOf('toLight');
   const chosen = LIGHT_SETS.filter((s) => [...document.querySelectorAll<HTMLInputElement>('input[name=pairs]:checked')].some((i) => i.value === s.id));
   if (!chosen.length) {
     $('benchStatus').className = 'error';
@@ -209,7 +212,7 @@ async function runLights(): Promise<void> {
     }
   }
   $('benchStatus').className = 'note';
-  $('benchStatus').textContent = `${pairs.length} lights, each predicted for ${LIGHT_LABEL[toKey]}, over the ${objects.reflectances.length.toLocaleString('en')} objects of section 3.`;
+  $('benchStatus').textContent = `${pairs.length} lights, each predicted for ${lightLabel(toKey)}, over the ${objects.reflectances.length.toLocaleString('en')} objects of section 3.`;
   lightRows = rows;
   drawLights();
 }
@@ -262,7 +265,7 @@ function drawLights(): void {
     + `against ${meanOf(1)} for Bradford, ${meanOf(2)} for CAT02 and ${meanOf(3)} for von Kries. That is material color; corresponding color, `
     + 'the CATs\' own job, is not tested here.';
   const cell = (s: string) => (/[",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
-  csv = [`# Comparing MATs and CATs (material color), each light predicted for ${LIGHT_LABEL[lightKey('toLight')]}`, 'observer,measured under,transform,mean dE00,p90 dE00,max dE00,mean dE_WLab,p90 dE_WLab,max dE_WLab',
+  csv = [`# Comparing MATs and CATs (material color), each light predicted for ${lightLabel(lightKey('toLight'))}`, 'observer,measured under,transform,mean dE00,p90 dE00,max dE00,mean dE_WLab,p90 dE_WLab,max dE_WLab',
     ...lightRows.flatMap((r) => r.errors.map((e) => {
       const a = summarize(e.de00!), b = summarize(e.dewlab);
       return [cell(r.pair.group), cell(r.pair.label), cell(e.transform), ...[a.mean, a.p90, a.max, b.mean, b.p90, b.max].map((v) => v.toFixed(4))].join(',');
@@ -288,7 +291,7 @@ async function render(): Promise<void> {
     return;
   }
   if (me !== run) return;
-  const o = observerOf(), from = illuminants[lightKey('fromLight')], to = illuminants[lightKey('toLight')];
+  const o = observerOf(), from = lightOf('fromLight'), to = lightOf('toLight');
   errors = predictPair({ label: '', group: '', source: { observer: o, light: from }, destination: { observer: o, light: to } }, objects, true);
   // the material list, opening on the one whose CAT02 and MAT predictions are furthest apart; after that the material
   // chosen stays, through changes of observer and lights, and by name through changes of the objects while it is there
@@ -387,10 +390,13 @@ async function animObserver(key: string): Promise<Observer> {
   return cams.find((c) => c.name.startsWith(a)) ?? cams[0];
 }
 for (const id of ['animL1', 'animL2', 'animL3']) {
-  $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(shortLight(k), k)), new Option('D93', 'D93'));
+  $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(shortLight(k), k)), new Option('D93', 'D93'), new Option(lightLabel('RGB'), 'RGB'));
 }
 $<HTMLSelectElement>('animL1').value = 'A'; $<HTMLSelectElement>('animL2').value = 'D50'; $<HTMLSelectElement>('animL3').value = 'D93';
-const animLight = (id: string) => { const k = $<HTMLSelectElement>(id).value; return { name: k === 'D93' ? 'D93' : shortLight(k), spd: k === 'D93' ? daylight(9300) : illuminants[k as IlluminantName] }; };
+const animLight = (id: string) => {
+  const k = $<HTMLSelectElement>(id).value;
+  return { name: k === 'D93' ? 'D93' : shortLight(k), spd: k === 'D93' ? daylight(9300) : k === 'RGB' ? rgbLed(observers.cie1931, illuminants.D65) : illuminants[k as IlluminantName] };
+};
 
 /** The three conditions chosen. */
 async function animConditions(): Promise<AnimCondition[]> {
@@ -415,7 +421,7 @@ async function buildAnimation(): Promise<void> {
   if (observersMode && kind === 'cat02') { $<HTMLSelectElement>('animTransform').value = 'wpt'; return buildAnimation(); }
   $('animNote').textContent = observersMode
     ? 'Three observers under D65. CAT02 is made for one observer adapting to a light, so it is not offered here; von Kries scales each observer\'s own sensors.'
-    : 'Three lights seen by the CIE 1931 (2°) observer; D93 is CIE daylight at 9300 K.';
+    : 'Three lights seen by the CIE 1931 (2°) observer; D93 is CIE daylight at 9300 K, and the RGB LED is mixed to D65\'s white.';
   const conds = await animConditions();
   // the same material's three points, carried into the common representation and out under the first condition, for
   // every transform: one measure for all (ΔE00 when the first observer's responses are XYZ, ΔE_WLab otherwise)

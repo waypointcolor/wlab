@@ -109,6 +109,8 @@
   table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
   table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
   table.bench td:nth-child(2), table.bench thead th:nth-child(2) { text-align: left; }   /* the bench's source column */
+  table.words td, table.words th { text-align: left; white-space: normal; vertical-align: top; }   /* tables of words, as on the start page */
+  table.words { margin-top: 8px; }
   table.transforms td, table.transforms th { text-align: left; white-space: normal; vertical-align: top; }   /* the words of section 1 of the MAT and CAT comparison */
   table.transforms td:first-child { min-width: 8em; font-weight: 600; }
   table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comparing MATs and CATs</title>
 <!--FAVICON-->
-<meta name="description" content="How well the Wpt MAT and chromatic adaptation transforms predict material color (what a material will measure under another light): for one material, for a library of objects, and for many lights at once; and the guide's MAT result rerun.">
+<meta name="description" content="How well the Wpt MAT and chromatic adaptation transforms predict material color (what a material will measure under another light): for one material, for a library of objects and for many lights at once, and each transform's steps animated.">
 <!--LABS-CSS-->
 <style>
   .swatches { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; }
@@ -27,9 +27,9 @@
   <ul>
     <li><b>Corresponding color</b>: the color that looks the same, in the new condition, as the original did in its own,
     to a viewer adapted to each. It is about appearance, and is measured by asking observers. A chromatic adaptation
-    transform (CAT) is made to predict it.</li>
+    transform (<a href="start.html#mat">CAT</a>) is made to predict it.</li>
     <li><b>Material color</b>: the color the same material will measure in the new condition. It is about the material,
-    and is measured with an instrument. A material adjustment transform (MAT) is made to predict it.</li>
+    and is measured with an instrument. A material adjustment transform (<a href="start.html#mat">MAT</a>) is made to predict it.</li>
   </ul>
   <p>The two are not the same: a material whose color changes with the light does not look the same to an adapted viewer
   under both, and its corresponding color is not what it measures. This page tests material color: it takes objects
@@ -113,6 +113,13 @@
         and LED-B5, daylight and a blue-pumped LED of about the same white; F2 and LED-V2, a fluorescent and a
         violet-pumped LED. Over the Munsell colors, from F2 to LED-V2 the measurements move by a mean ΔE<sub>00</sub> of
         4.3, CAT02's predictions are 3.9 from where they land and the MAT's 0.7.</p>
+        <p class="note">The limit of the challenge is the last light in the menus, the RGB LED (D65's white): three LED
+        peaks (blue at 455 nm, green at 530 nm and red at 630 nm, 20, 35 and 18 nm wide at half their height), mixed so
+        that the chosen observer's white under it is exactly D65's. Between D65 and the RGB LED every white point based
+        transform changes nothing, so von Kries, Bradford and CAT02 give one prediction: the measurement itself. Over the
+        Munsell colors, for CIE 1931, the measurements move by a mean ΔE<sub>00</sub> of 4.07 between the two lights, and
+        that is how far the CATs' predictions are from where they land; the MAT's are 1.23 from them (D65 to the RGB LED)
+        and 1.19 (back). For CIE 1964: 3.41 for the CATs, 1.44 and 1.34 for the MAT.</p>
       </details>
     </div>
   </div>

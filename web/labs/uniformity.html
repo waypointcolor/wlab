@@ -118,6 +118,8 @@
   table.movers thead tr:first-child th { text-align: center; }    /* the group titles over the objects that move most */
   table.many thead th { text-align: center; vertical-align: bottom; line-height: 1.25; }
   table.bench td:nth-child(2), table.bench thead th:nth-child(2) { text-align: left; }   /* the bench's source column */
+  table.words td, table.words th { text-align: left; white-space: normal; vertical-align: top; }   /* tables of words, as on the start page */
+  table.words { margin-top: 8px; }
   table.transforms td, table.transforms th { text-align: left; white-space: normal; vertical-align: top; }   /* the words of section 1 of the MAT and CAT comparison */
   table.transforms td:first-child { min-width: 8em; font-weight: 600; }
   table.many td:first-child { white-space: normal; min-width: 7em; max-width: 11em; line-height: 1.25; }
@@ -230,7 +232,7 @@
   <p class="lead">WLab is meant to be a uniform space for material color: equal distances in it should be seen as about
   equal color differences, and a line of one WLab hue should keep one hue as its colors get lighter and grayer. This
   page looks at that claim beside CIELAB and CAM16-UCS, with numbers and pictures, and leaves the judging to you.</p>
-  <p>An observing condition (hereafter "condition") is an observer under a light. WLab describes the color of a material,
+  <p>An <a href="start.html#condition">observing condition</a> (hereafter "condition") is an observer under a light. <a href="start.html#wlab">WLab</a> describes the color of a material,
   whatever the condition; CIELAB and CAM16-UCS describe a color in one condition. Where they are compared below, theirs
   are the chosen condition's coordinates of the material the WLab color stands for. CAM16-UCS is the uniform color space
   of the CIE's color appearance model CAM16, computed here for an adapting luminance of 100 cd/m², a background of
