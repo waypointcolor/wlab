@@ -14,6 +14,8 @@
   .swatch span { display: block; font-size: 0.85rem; color: var(--quiet); margin-top: 4px; line-height: 1.3; }
   .swatch b { color: var(--ink); font-weight: 600; }
   #anim3d { width: 100%; max-width: 720px; display: block; touch-action: none; }
+  #animLights label, #animObservers label { flex-wrap: wrap; }
+  #animMaterial, #animLights select, #animObservers select { max-width: 100%; }
   .tile { background: var(--accent-soft); border-radius: 8px; padding: 6px 12px; font-weight: 600; max-width: none; margin: 4px 0 0; }
 </style>
 </head>
@@ -113,12 +115,12 @@
         and LED-B5, daylight and a blue-pumped LED of about the same white; F2 and LED-V2, a fluorescent and a
         violet-pumped LED. Over the Munsell colors, from F2 to LED-V2 the measurements move by a mean ΔE<sub>00</sub> of
         4.3, CAT02's predictions are 3.9 from where they land and the MAT's 0.7.</p>
-        <p class="note">The limit of the challenge is the last light in the menus, the RGB LED (D65's white): three LED
+        <p class="note">The limit of the challenge is the last light in the menus, RGB-D65, an RGB LED mixed to D65's white: three LED
         peaks (blue at 455 nm, green at 530 nm and red at 630 nm, 20, 35 and 18 nm wide at half their height), mixed so
-        that the chosen observer's white under it is exactly D65's. Between D65 and the RGB LED every white point based
+        that the chosen observer's white under it is exactly D65's. Between D65 and RGB-D65 every white point based
         transform changes nothing, so von Kries, Bradford and CAT02 give one prediction: the measurement itself. Over the
         Munsell colors, for CIE 1931, the measurements move by a mean ΔE<sub>00</sub> of 4.07 between the two lights, and
-        that is how far the CATs' predictions are from where they land; the MAT's are 1.23 from them (D65 to the RGB LED)
+        that is how far the CATs' predictions are from where they land; the MAT's are 1.23 from them (D65 to RGB-D65)
         and 1.19 (back). For CIE 1964: 3.41 for the CATs, 1.44 and 1.34 for the MAT.</p>
       </details>
     </div>
@@ -203,16 +205,37 @@
       <span id="animObservers" hidden><label>Observers <select id="animO1" autocomplete="off"></select> <select id="animO2" autocomplete="off"></select>
         <select id="animO3" autocomplete="off"></select></label></span>
       <label>Back out <select id="animBack" autocomplete="off"><option value="own" selected>each to its own condition</option>
-        <option value="first">all under the first condition (the prediction)</option></select></label>
+        <option value="to"></option></select></label>
     </div>
     <p id="animNote" class="note"></p>
+    <div class="row"><label class="check"><input type="checkbox" id="animShowConditions" autocomplete="off"> <span>Show the conditions' curves</span></label></div>
+    <div class="row"><label class="check"><input type="checkbox" id="animHandoff" autocomplete="off"> <span>Show a handoff: one material carried from one condition to another</span></label></div>
+    <div id="animHandoffBox" hidden>
+      <div class="row">
+        <label>Material, from the plane at Value 8 <select id="animMaterial" autocomplete="off"><option value="paste">paste a reflectance</option></select></label>
+        <label>Starting condition <select id="animFrom" autocomplete="off"></select></label>
+        <label>Carried to <select id="animTo" autocomplete="off"></select></label>
+      </div>
+      <div id="animPasteBox" hidden>
+        <label for="animPaste">Wavelength (nm) and reflectance, one pair to a row; 0 to 1, or percent; 420 to 680 nm at least</label>
+        <textarea id="animPaste" rows="5" spellcheck="false" autocomplete="off" placeholder="400  0.12&#10;410  0.13&#10;…"></textarea>
+      </div>
+      <div class="row"><label class="check"><input type="checkbox" id="animShowReflectance" autocomplete="off"> <span>Show the material's reflectance curve</span></label></div>
+      <p class="note">The open circle marks what the material measures in the starting condition, all the way into the
+      common representation. There it hands off to a solid dot, the two together for the pause, and the dot comes out by
+      the steps of the condition it is carried to, so that it ends at the transform's prediction.</p>
+    </div>
+    <div class="cols" id="animCurves"></div>
     <div class="row">
       <button id="animPlay" class="primary">Play</button>
+      <button id="animRewind" title="Back to the start" aria-label="Back to the start">|&lt;</button>
       <input type="range" id="animT" min="0" max="1000" step="1" value="0" autocomplete="off" style="flex: 1; min-width: 160px" aria-label="Where in the animation">
+      <label class="check"><input type="checkbox" id="animLoop" autocomplete="off"> <span>Loop</span></label>
     </div>
     <p id="animStage" class="tile"></p>
     <canvas id="anim3d" aria-label="The colors moving through the transform's steps, turned by dragging"></canvas>
     <div id="animLegend" class="legend"></div>
+    <div id="animTrack"></div>
     <p id="animSpread" class="note"></p>
     <p class="note">Drag the view to turn it; the slider moves through the steps by hand. The scale follows the points,
     so they fill the view at every step (the extent of each axis is under the view). The view's vertical axis is the

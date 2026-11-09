@@ -6,25 +6,27 @@
 // Bundled into labs/bench.html by scripts/build-web.mjs.
 
 import {
-  cat, CAT02, categoricalObserver, cie2006, daylight, deltaE00, deltaEWlab, fluorescents, illuminants, inv3, mat, mulMM, mulMV, munsell1600,
-  munsellBase, observers, planckian, responses, sensorResponses, wptNormalization, wptToWlab, xyzToLab, xyzToRgb,
+  cat, categoricalObserver, cie2006, daylight, deltaE00, deltaEWlab, fluorescents, illuminants, inv3, mat, mulMV, munsell1600,
+  munsellBase, observers, planckian, resample, responses, sensorResponses, wptNormalization, wptToWlab, xyzToLab, xyzToRgb,
   type IlluminantName, type Mat3, type Observer, type SampleSet, type Spectrum, type Vec3,
 } from '../../src/index.ts';
+import { LIGHTS, RGB_D65, type LightName } from './lights.ts';
 import { cameraObservers } from './cameras.ts';
 import { fromDisk } from './fetchdata.ts';
 import { MUNSELL_HUES, munsellChips } from './hue.ts';
-import { $, cloud3d, download, escapeHtml, fmtTick, histogram, LIGHT_LABEL, niceStep, optIn, spectrumPlot } from './kit.ts';
+import { $, cloud3d, download, escapeHtml, fmtTick, histogram, LIGHT_LABEL, niceStep, optIn, parseTable, spectrumPlot } from './kit.ts';
 import { OBJECT_SETS, objectsOf, ownSet, type ObjectSet } from './library.ts';
 import { readObjectFile } from './objectfile.ts';
-import { LIGHT_TRANSFORMS, predictPair, rgbLed, summarize, type Errors, type Pair } from './predictions.ts';
+import { carry, LIGHT_TRANSFORMS, predictPair, rgbLed, summarize, transformStages, type Errors, type Pair, type Stage } from './predictions.ts';
 
 const message = (e: unknown) => (e as Error).message;
 const f2 = (v: number) => v.toFixed(2);
 const COLORS = ['var(--accent)', 'var(--accent2)', '#1f8a5b', '#7a3fb0'];
 const range = (a: number, b: number, s: number) => Array.from({ length: Math.round((b - a) / s) + 1 }, (_, i) => a + s * i);
-const shortLight = (k: string) => (k === 'RGB' ? 'RGB LED' : LIGHT_LABEL[k as IlluminantName]?.replace(/ \(.*$/, '') ?? k);
-// the RGB LED: three LED peaks mixed to D65's white exactly, for the observer it is seen by
-const lightLabel = (k: string) => (k === 'RGB' ? 'RGB LED (D65\'s white)' : LIGHT_LABEL[k as IlluminantName]);
+const shortLight = (k: string) => LIGHT_LABEL[k as LightName]?.replace(/ \(.*$/, '') ?? k;
+// RGB-D65, the RGB LED mixed to D65's white: across the site it is mixed for CIE 1931; here, for the observer chosen, so
+// that its white is D65's exactly for CIE 1964 too
+const lightLabel = (k: string) => LIGHT_LABEL[k as LightName];
 
 let pending: ReturnType<typeof setTimeout> | undefined;
 const schedule = () => { clearTimeout(pending); pending = setTimeout(() => void render(), 0); };
@@ -32,12 +34,12 @@ const schedule = () => { clearTimeout(pending); pending = setTimeout(() => void 
 // ---------------------------------------------------------------------------------------------------------------
 // The choices of section 2, which sections 3 and 4 follow
 
-for (const id of ['fromLight', 'toLight']) $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)), new Option(lightLabel('RGB'), 'RGB'));
+for (const id of ['fromLight', 'toLight']) $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => new Option(LIGHT_LABEL[k], k)));
 $<HTMLSelectElement>('fromLight').value = 'A';
 $<HTMLSelectElement>('toLight').value = 'D65';
 const observerOf = (): Observer => observers[$<HTMLSelectElement>('observer').value as 'cie1931' | 'cie1964'];
 const lightKey = (id: string) => $<HTMLSelectElement>(id).value;
-const lightOf = (id: string): Spectrum => (lightKey(id) === 'RGB' ? rgbLed(observerOf(), illuminants.D65) : illuminants[lightKey(id) as IlluminantName]);
+const lightOf = (id: string): Spectrum => (lightKey(id) === RGB_D65 ? rgbLed(observerOf(), illuminants.D65) : LIGHTS[lightKey(id) as LightName]);
 for (const id of ['observer', 'fromLight', 'toLight']) $(id).addEventListener('input', schedule);
 $('material').addEventListener('input', () => drawOne());
 $('split').addEventListener('input', () => drawOne());
@@ -167,7 +169,7 @@ function drawMany(): void {
 // Section 4: many lights
 
 interface LightSet { id: string; title: string; about: string; observer: Observer; lights(): [string, Spectrum][] }
-const COMMON = () => (Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k): [string, Spectrum] => [shortLight(k), illuminants[k]]);
+const COMMON = () => (Object.keys(illuminants) as IlluminantName[]).map((k): [string, Spectrum] => [shortLight(k), illuminants[k]]);
 const FLUOR = () => Object.entries(fluorescents).map(([k, l]): [string, Spectrum] => [k, l]);
 const SERIES = () => [...range(4000, 10000, 1000).map((t): [string, Spectrum] => [`daylight ${t} K`, daylight(t)]),
   ...range(2000, 6500, 500).map((t): [string, Spectrum] => [`Planckian ${t} K`, planckian(t)])];
@@ -348,28 +350,15 @@ const ANIM = (() => {
   return { names, reflectances, links };
 })();
 const ANIM_HUES = MUNSELL_HUES.length;
+// the materials a handoff can follow: the plane of the lightest colors of the view, opening on the one that sets the
+// transforms furthest apart under the opening conditions
+const ANIM_PLANE = ANIM.names.flatMap((n, j) => (/ 8\/\d*$/.test(n) ? [j] : []));
+$<HTMLSelectElement>('animMaterial').prepend(...ANIM_PLANE.map((j) => new Option(ANIM.names[j], String(j))));
+$<HTMLSelectElement>('animMaterial').value = String(ANIM.names.indexOf('5GY 8/10'));
 
-interface Stage { label: string; m: Mat3 }
 interface AnimCondition { name: string; observer: Observer; light: Spectrum; color: string }
 
-/** The steps of a transform for one condition, from its measurements (stage 0) to the common representation. */
-function stagesOf(kind: string, c: AnimCondition): Stage[] {
-  const I: Mat3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-  const white = sensorResponses(new Array(81).fill(1), c.observer, c.light) as Vec3;
-  if (kind === 'wpt') {
-    const n = wptNormalization(c.observer, c.light), R = n.steps.rotation as Mat3;
-    const S = mulMM([[n.steps.scale, 0, 0], [0, 1, 0], [0, 0, 1]], R);
-    const a = n.steps.level, L: Mat3 = [S[0].map((v, j) => v - a[0] * S[1][j] - a[1] * S[2][j]) as unknown as Vec3, S[1], S[2]];
-    return [{ label: 'measured', m: I }, { label: '1. white turned onto the first axis', m: R }, { label: '2. white scaled to W = 100', m: S },
-      { label: '3. the base colors leveled to one W', m: L }, { label: '4. fitted to the reference: Wpt, the common representation', m: n.toWpt }];
-  }
-  if (kind === 'cat02') {
-    const sharp = CAT02, w = mulMV(sharp, white);
-    return [{ label: 'measured (XYZ)', m: I }, { label: '1. sharpened into cone-like channels', m: sharp },
-      { label: '2. each channel scaled so that white is 100, 100, 100: the common representation', m: mulMM([[100 / w[0], 0, 0], [0, 100 / w[1], 0], [0, 0, 100 / w[2]]], sharp) }];
-  }
-  return [{ label: 'measured', m: I }, { label: '1. each channel scaled so that white is 100, 100, 100: the common representation', m: [[100 / white[0], 0, 0], [0, 100 / white[1], 0], [0, 0, 100 / white[2]]] }];
-}
+const stagesOf = (kind: string, c: AnimCondition) => transformStages(kind, c.observer, c.light);
 
 const ANIM_COLORS = ['#c0306a', 'var(--ink)', '#2f74c0'];
 // the observers to choose three from: the CIE observers, CIE 2006 observers, the categorical observers and a few cameras
@@ -390,12 +379,12 @@ async function animObserver(key: string): Promise<Observer> {
   return cams.find((c) => c.name.startsWith(a)) ?? cams[0];
 }
 for (const id of ['animL1', 'animL2', 'animL3']) {
-  $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(shortLight(k), k)), new Option('D93', 'D93'), new Option(lightLabel('RGB'), 'RGB'));
+  $<HTMLSelectElement>(id).replaceChildren(...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => new Option(shortLight(k), k)), new Option('D93', 'D93'));
 }
 $<HTMLSelectElement>('animL1').value = 'A'; $<HTMLSelectElement>('animL2').value = 'D50'; $<HTMLSelectElement>('animL3').value = 'D93';
 const animLight = (id: string) => {
   const k = $<HTMLSelectElement>(id).value;
-  return { name: k === 'D93' ? 'D93' : shortLight(k), spd: k === 'D93' ? daylight(9300) : k === 'RGB' ? rgbLed(observers.cie1931, illuminants.D65) : illuminants[k as IlluminantName] };
+  return { name: k === 'D93' ? 'D93' : shortLight(k), spd: k === 'D93' ? daylight(9300) : LIGHTS[k as LightName] };
 };
 
 /** The three conditions chosen. */
@@ -408,8 +397,56 @@ async function animConditions(): Promise<AnimCondition[]> {
 }
 
 /** Every frame's points, as matrices of stage positions: for each condition, the measurements' path in and back out. */
-interface Path { conds: AnimCondition[]; stages: Stage[][]; measured: Vec3[][]; back: Vec3[][]; target: number[] }
+interface Path { conds: AnimCondition[]; stages: Stage[][]; measured: Vec3[][]; back: Vec3[][]; target: number[]; to: number; track?: Track }
+/** The material followed: what it measures in the starting condition, and the transform's prediction for the one carried to. */
+interface Track { from: number; source: Vec3; predicted: Vec3 }
 let path: Path | undefined;
+
+const CARRIED_COLOR = '#f5b301', SENSOR_COLORS = ['#c0306a', '#1f8a5b', '#2f74c0'];
+/** The material chosen to follow, if a handoff is shown; a pasted reflectance may be in percent. */
+function followed(): { name: string; reflectance: Spectrum } | undefined {
+  const v = $<HTMLSelectElement>('animMaterial').value, on = $<HTMLInputElement>('animHandoff').checked;
+  $('animHandoffBox').hidden = !on;
+  $('animPasteBox').hidden = v !== 'paste';
+  if (!on) return undefined;
+  if (v !== 'paste') return { name: ANIM.names[Number(v)], reflectance: ANIM.reflectances[Number(v)] };
+  const text = $<HTMLTextAreaElement>('animPaste').value;
+  if (!text.trim()) return undefined;
+  const t = parseTable(text, 1), values = t.columns[0], scale = Math.max(...values) > 1.5 ? 0.01 : 1;
+  return { name: t.names[0] === 'Column 1' ? 'Your reflectance' : t.names[0], reflectance: resample(t.nm, values.map((v) => v * scale)) };
+}
+
+/** The curves asked for above the view: the conditions' lights or sensors, and the material's reflectance. */
+function drawAnimCurves(conds: AnimCondition[], lights: boolean, m?: { name: string; reflectance: Spectrum }): void {
+  const plots: string[] = [];
+  if ($<HTMLInputElement>('animShowConditions').checked) {
+    const k = (s: Spectrum) => 100 / s.reduce((a, v, i) => a + v * observers.cie1931.curves[1][i], 0);
+    if (lights) plots.push(spectrumPlot('The three lights, at the same luminance', conds.map((c) => ({ values: c.light.map((v) => v * k(c.light)), color: c.color, label: c.name }))));
+    else {
+      for (const c of conds) {
+        const top = Math.max(...c.observer.curves.flat());
+        plots.push(spectrumPlot(`${c.name}, highest value 1`, c.observer.curves.map((v, i) => ({ values: v.map((u) => u / top), color: SENSOR_COLORS[i], label: `sensor ${i + 1}` }))));
+      }
+    }
+  }
+  if (m && $<HTMLInputElement>('animShowReflectance').checked) plots.push(spectrumPlot(`The material's spectral reflectance`, [{ values: m.reflectance, color: 'var(--ink)', label: m.name }]));
+  $('animCurves').innerHTML = plots.map((p) => `<div>${p}</div>`).join('');
+}
+
+/** Under the view: how far each transform's prediction is from what the material measures where it is carried to. */
+function drawTrack(name: string, conds: AnimCondition[], from: number, to: number, source: Vec3, actual: Vec3, kinds: string[][], kind: string): void {
+  const dest = conds[to], n = wptNormalization(dest.observer, dest.light), xyz = dest.observer === observers.cie1931 || dest.observer === observers.cie1964;
+  const row = (label: string, x: Vec3, on = false) => {
+    const wlab = deltaEWlab(wptToWlab(mulMV(n.toWpt, x)), wptToWlab(mulMV(n.toWpt, actual)));
+    const cells = `${xyz ? `<td>${f2(deltaE00(xyzToLab(x, n.white), xyzToLab(actual, n.white)))}</td>` : ''}<td>${f2(wlab)}</td>`;
+    return `<tr><td>${on ? `<b>${label}</b>` : label}</td>${cells}</tr>`;
+  };
+  const sameObserver = conds[from].observer === dest.observer;
+  $('animTrack').innerHTML = `<p class="note">${escapeHtml(name)}, measured under ${escapeHtml(conds[from].name)} and carried to ${escapeHtml(dest.name)}: how far each prediction is from what the material measures there.</p>
+    <table><thead><tr><th>Prediction</th>${xyz ? '<th>ΔE<sub>00</sub></th>' : ''}<th>ΔE<sub>WLab</sub></th></tr></thead><tbody>
+    ${sameObserver ? row('None: the first measurement as it stands', source) : ''}
+    ${kinds.map(([k, l]) => row(l, carry(k, conds[from], dest, source), k === kind)).join('')}</tbody></table>`;
+}
 
 async function buildAnimation(): Promise<void> {
   const kind = $<HTMLSelectElement>('animTransform').value, observersMode = $<HTMLSelectElement>('animConditions').value === 'observers';
@@ -421,42 +458,80 @@ async function buildAnimation(): Promise<void> {
   if (observersMode && kind === 'cat02') { $<HTMLSelectElement>('animTransform').value = 'wpt'; return buildAnimation(); }
   $('animNote').textContent = observersMode
     ? 'Three observers under D65. CAT02 is made for one observer adapting to a light, so it is not offered here; von Kries scales each observer\'s own sensors.'
-    : 'Three lights seen by the CIE 1931 (2°) observer; D93 is CIE daylight at 9300 K, and the RGB LED is mixed to D65\'s white.';
+    : 'Three lights seen by the CIE 1931 (2°) observer; D93 is CIE daylight at 9300 K, and RGB-D65 is an RGB LED mixed to D65\'s white.';
   const conds = await animConditions();
-  // the same material's three points, carried into the common representation and out under the first condition, for
-  // every transform: one measure for all (ΔE00 when the first observer's responses are XYZ, ΔE_WLab otherwise)
-  const xyzFirst = conds[0].observer === observers.cie1931 || conds[0].observer === observers.cie1964;
-  const nf = wptNormalization(conds[0].observer, conds[0].light), m0 = conds.map((c) => ANIM.reflectances.map((r) => sensorResponses(r, c.observer, c.light) as Vec3));
+  for (const [id, opening] of [['animFrom', '0'], ['animTo', '2']]) {
+    const sel = $<HTMLSelectElement>(id), was = sel.value || opening;
+    sel.replaceChildren(...conds.map((c, i) => new Option(c.name, String(i))));
+    sel.value = was;
+  }
+  // without a handoff the condition carried to is the first
+  const from = Number($<HTMLSelectElement>('animFrom').value), to = $<HTMLInputElement>('animHandoff').checked ? Number($<HTMLSelectElement>('animTo').value) : 0;
+  $<HTMLSelectElement>('animBack').querySelector<HTMLOptionElement>('option[value=to]')!.text = `all under ${conds[to].name} (the predictions)`;
+  // the same material's three points, carried into the common representation and out under the condition carried to,
+  // for every transform: one measure for all (ΔE00 when that observer's responses are XYZ, ΔE_WLab otherwise)
+  const xyzTo = conds[to].observer === observers.cie1931 || conds[to].observer === observers.cie1964;
+  const nt = wptNormalization(conds[to].observer, conds[to].light), m0 = conds.map((c) => ANIM.reflectances.map((r) => sensorResponses(r, c.observer, c.light) as Vec3));
   const apartFor = (k: string) => {
-    const st = conds.map((c) => stagesOf(k, c)), K = st[0].length - 1, out = inv3(st[0][K].m);
+    const st = conds.map((c) => stagesOf(k, c)), K = st[0].length - 1, out = inv3(st[to][K].m);
     const q = conds.map((_, c) => m0[c].map((x) => mulMV(out, mulMV(st[c][K].m, x))));
-    const d = (a: Vec3, b: Vec3) => (xyzFirst ? deltaE00(xyzToLab(a, nf.white), xyzToLab(b, nf.white)) : deltaEWlab(wptToWlab(mulMV(nf.toWpt, a)), wptToWlab(mulMV(nf.toWpt, b))));
+    const d = (a: Vec3, b: Vec3) => (xyzTo ? deltaE00(xyzToLab(a, nt.white), xyzToLab(b, nt.white)) : deltaEWlab(wptToWlab(mulMV(nt.toWpt, a)), wptToWlab(mulMV(nt.toWpt, b))));
     let s = 0;
     for (let j = 0; j < ANIM.names.length; j++) s += (d(q[0][j], q[1][j]) + d(q[0][j], q[2][j]) + d(q[1][j], q[2][j])) / 3;
     return s / ANIM.names.length;
   };
   const kinds = observersMode ? [['wpt', 'Wpt MAT'], ['vk', 'von Kries']] : [['wpt', 'Wpt MAT'], ['cat02', 'CAT02'], ['vk', 'von Kries']];
-  $('animSpread').textContent = `Carried into the common representation and out under ${conds[0].name}, the same material's three points land this far `
-    + `apart (mean ${xyzFirst ? 'ΔE00' : 'ΔE_WLab'}): ${kinds.map(([k, l]) => `${l} ${f2(apartFor(k))}`).join(', ')}. Under one condition they would be one point.`;
+  $('animSpread').textContent = `Over all the colors of the view, carried into the common representation and out under ${conds[to].name}, the same material's three points land this far `
+    + `apart (mean ${xyzTo ? 'ΔE00' : 'ΔE_WLab'}): ${kinds.map(([k, l]) => `${l} ${f2(apartFor(k))}`).join(', ')}. Under one condition they would be one point.`;
   const stages = conds.map((c) => stagesOf(kind, c));
   const measured = conds.map((c) => ANIM.reflectances.map((r) => sensorResponses(r, c.observer, c.light) as Vec3));
   // the way back: into the common representation by the condition's own T, out by the target's T⁻¹
-  const own = $<HTMLSelectElement>('animBack').value === 'own', target = conds.map((_, i) => (own ? i : 0));
+  const own = $<HTMLSelectElement>('animBack').value === 'own', target = conds.map((_, i) => (own ? i : to));
   const back = conds.map((_, i) => {
     const K = stages[i].length - 1, t = target[i], out = inv3(stages[t][K].m);
     return measured[i].map((x) => mulMV(out, mulMV(stages[i][K].m, x)));
   });
-  path = { conds, stages, measured, back, target };
+  let track: Track | undefined, keys = '', m: ReturnType<typeof followed>;
+  $('animTrack').className = '';
+  try {
+    m = followed();
+    if (m) {
+      const source = sensorResponses(m.reflectance, conds[from].observer, conds[from].light) as Vec3, actual = sensorResponses(m.reflectance, conds[to].observer, conds[to].light) as Vec3;
+      const predicted = carry(kind, conds[from], conds[to], source);
+      track = { from, source, predicted };
+      drawTrack(m.name, conds, from, to, source, actual, kinds, kind);
+      const ring = (color: string, label: string) => `<span class="key"><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="${color}" stroke-width="2"/></svg>${label}</span>`;
+      keys = ring(conds[from].color, `what it measures under ${escapeHtml(conds[from].name)}`)
+        + `<span class="key"><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="${CARRIED_COLOR}"/></svg>carried to ${escapeHtml(conds[to].name)}</span>`;
+    } else $('animTrack').replaceChildren();
+  } catch (e) {
+    $('animTrack').className = 'error';
+    $('animTrack').textContent = `The reflectance could not be read: ${message(e)}.`;
+  }
+  drawAnimCurves(conds, !observersMode, m);
+  path = { conds, stages, measured, back, target, to, track };
   $('animLegend').innerHTML = conds.map((c) => `<span class="key"><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="${c.color}"/></svg>${escapeHtml(c.name)}</span>`).join('')
-    + '<span class="key">larger points: the 40 hues at Value 5, Chroma 6; lines join each condition\'s hue circle and spokes</span>';
+    + `${keys}<span class="key">larger points: the 40 hues at Value 5, Chroma 6; lines join each condition's hue circle and spokes</span>`;
   drawAnimation();
 }
 
+// the animation's timing, in seconds: each move, the pause between moves, and the longer pause at the common
+// representation, where the transforms' work shows and a handoff happens; half a pause opens and closes the animation
+const ANIM_MOVE = 0.96, ANIM_PAUSE = 0.96, ANIM_EQUAL_PAUSE = 1.92;
+/** When each of the 2K moves starts. */
+function moveStarts(K: number): number[] {
+  const starts = [ANIM_PAUSE / 2];
+  for (let i = 1; i < 2 * K; i++) starts.push(starts[i - 1] + ANIM_MOVE + (i === K ? ANIM_EQUAL_PAUSE : ANIM_PAUSE));
+  return starts;
+}
+const animSeconds = (K: number) => moveStarts(K)[2 * K - 1] + ANIM_MOVE + ANIM_PAUSE / 2;
+
 /** Where every point is at animation time t (0 to 1): in, step by step, then back out, each move eased. */
-function framePoints(t: number): { pts: Vec3[][]; label: string; inside: boolean } {
-  const p = path!, K = p.stages[0].length - 1, moves = 2 * K;
-  const x = Math.min(moves, Math.max(0, t * moves)), i = Math.min(moves - 1, Math.floor(x)), f0 = x - i;
-  const f = f0 < 0.2 ? 0 : f0 > 0.8 ? 1 : (1 - Math.cos(((f0 - 0.2) / 0.6) * Math.PI)) / 2;
+function framePoints(t: number): { pts: Vec3[][]; label: string; inside: boolean; marks: { source?: Vec3; carried?: Vec3 } } {
+  const p = path!, K = p.stages[0].length - 1, starts = moveStarts(K), now = Math.min(1, Math.max(0, t)) * animSeconds(K);
+  // the move under way, or the last one finished; f is how far along it, 1 through the pause after it
+  const i = Math.max(0, starts.filter((s) => s <= now).length - 1);
+  const f = (1 - Math.cos(Math.min(1, Math.max(0, (now - starts[i]) / ANIM_MOVE)) * Math.PI)) / 2;
   const at = (c: number, k: number, out: boolean): Vec3[] => (out ? p.back[c].map((v) => mulMV(p.stages[p.target[c]][k].m, v)) : p.measured[c].map((v) => mulMV(p.stages[c][k].m, v)));
   const pts = p.conds.map((_, c) => {
     // moves 0 … K−1 go in (stage i to i+1); moves K … 2K−1 come out (stage 2K−i to 2K−i−1)
@@ -468,9 +543,19 @@ function framePoints(t: number): { pts: Vec3[][]; label: string; inside: boolean
   // going out, a move undoes the stage it starts from (2K − i), named until the last move lands
   const undoing = i >= K && !(i === K && f === 0) ? 2 * K - i : 0;
   const label = undoing && !(stageIndex === 0 && f === 1) ? `Back out: ${p.stages[0][undoing].label.replace(/^\d\. /, 'undoing ')}`
-    : stageIndex === 0 ? (i >= K ? `Back out: ${own() ? 'each in its own condition again' : `the predictions under ${p.conds[0].name}`}` : 'The measurements, each in its own condition')
+    : stageIndex === 0 ? (i >= K ? `Back out: ${own() ? 'each in its own condition again' : `the predictions under ${p.conds[p.to].name}`}` : 'The measurements, each in its own condition')
     : p.stages[0][stageIndex].label;
-  return { pts, label, inside: stageIndex === K };
+  // the material followed: the open circle, its measurement, in by the starting condition's steps to the common representation;
+  // the two together through the pause there, a handoff; then the solid dot, the prediction, comes out by the steps of the
+  // condition carried to
+  const marks: { source?: Vec3; carried?: Vec3 } = {};
+  if (p.track) {
+    const out = i >= K, a = out ? 2 * K - i : i, b = out ? a - 1 : a + 1;
+    const pos = (m: Vec3, c: number) => { const u = mulMV(p.stages[c][a].m, m), v = mulMV(p.stages[c][b].m, m); return u.map((w, d) => w + f * (v[d] - w)) as unknown as Vec3; };
+    if (i < K || (i === K && f === 0)) marks.source = pos(p.track.source, p.track.from);
+    if (i >= K || (i === K - 1 && f === 1)) marks.carried = pos(p.track.predicted, p.to);
+  }
+  return { pts, label, inside: stageIndex === K, marks };
 }
 const own = () => $<HTMLSelectElement>('animBack').value === 'own';
 
@@ -478,43 +563,73 @@ let animT = 0, playing = false, last = 0;
 
 function drawAnimation(): void {
   if (!path) return;
-  const { pts, label } = framePoints(animT);
+  const { pts, label, marks } = framePoints(animT), track = path.track;
   $('animStage').textContent = label;
+  const shown = ([a, b, c]: Vec3) => [b, c, a];
   cloud3d($<HTMLCanvasElement>('anim3d'), {
+    fade: track ? 0.45 : 1,
+    marks: [...(marks.source ? [{ at: shown(marks.source), color: path.conds[track!.from].color, ring: true }] : []),
+      ...(marks.carried ? [{ at: shown(marks.carried), color: CARRIED_COLOR }] : [])],
     // the 40 hues (the first points) drawn larger than the spokes, so the circle stands out in the Value 5 plane
     sets: path.conds.flatMap((c, i) => {
-      const all = pts[i].map(([a, b, cc]) => [b, cc, a]);
+      const all = pts[i].map(shown);
       return [{ pts: all.slice(0, ANIM_HUES), color: c.color, dot: 3.2 }, { pts: all.slice(ANIM_HUES), color: c.color }];
     }),
-    lines: { from: path.conds.flatMap((_, i) => ANIM.links.map(([a]) => [pts[i][a][1], pts[i][a][2], pts[i][a][0]])), to: path.conds.flatMap((_, i) => ANIM.links.map(([, b]) => [pts[i][b][1], pts[i][b][2], pts[i][b][0]])), color: 'var(--line)',
+    lines: { from: path.conds.flatMap((_, i) => ANIM.links.map(([a]) => shown(pts[i][a]))), to: path.conds.flatMap((_, i) => ANIM.links.map(([, b]) => shown(pts[i][b]))), color: 'var(--line)',
       colors: path.conds.flatMap((c) => ANIM.links.map(() => c.color)) },
-    // from above, so the planes of Value open into rings
+    // from above, so the planes of Value open into rings;
     // the scale fitted to each frame: it changes smoothly as the points move, and the points fill the view at every step
-    axes: ['2nd', '3rd', '1st'], range: Math.max(...pts.flat(2).map(Math.abs)) * 1.05, dot: 2, start: { yaw: -0.6, pitch: 1 },
+    axes: ['2nd', '3rd', '1st'], range: Math.max(...pts.flat(2).map(Math.abs), ...Object.values(marks).flat().map(Math.abs)) * 1.05, dot: 2, start: { yaw: -0.6, pitch: 1 },
   });
   $<HTMLInputElement>('animT').value = String(Math.round(animT * 1000));
 }
 
+// looping, the animation waits at the end and again at the beginning
+const LOOP_WAIT = 1500;
+let waitUntil = 0, rewinding = false;
+const stopPlaying = (text: string) => { playing = false; rewinding = false; waitUntil = 0; $('animPlay').textContent = text; };
+
 function tick(now: number): void {
   if (!playing || !path) return;
-  const K = path.stages[0].length - 1, seconds = 2 * K * 1.6;
-  animT = Math.min(1, animT + (now - last) / 1000 / seconds);
+  if (now < waitUntil) { last = now; requestAnimationFrame(tick); return; }
+  if (rewinding) {
+    if (!$<HTMLInputElement>('animLoop').checked) { stopPlaying('Play again'); return; }
+    rewinding = false;
+    animT = 0;
+    drawAnimation();
+    waitUntil = now + LOOP_WAIT;
+    requestAnimationFrame(tick);
+    return;
+  }
+  animT = Math.min(1, animT + (now - last) / 1000 / animSeconds(path.stages[0].length - 1));
   last = now;
   drawAnimation();
-  if (animT >= 1) { playing = false; $('animPlay').textContent = 'Play again'; return; }
+  if (animT >= 1) {
+    if (!$<HTMLInputElement>('animLoop').checked) { stopPlaying('Play again'); return; }
+    rewinding = true;
+    waitUntil = now + LOOP_WAIT;
+  }
   requestAnimationFrame(tick);
 }
+$('animRewind').addEventListener('click', () => { stopPlaying('Play'); animT = 0; drawAnimation(); });
 $('animPlay').addEventListener('click', () => {
-  if (playing) { playing = false; $('animPlay').textContent = 'Play'; return; }
+  if (playing) { stopPlaying('Play'); return; }
   if (animT >= 1) animT = 0;
   playing = true;
   $('animPlay').textContent = 'Pause';
   last = performance.now();
   requestAnimationFrame(tick);
 });
-$('animT').addEventListener('input', () => { playing = false; $('animPlay').textContent = 'Play'; animT = Number($<HTMLInputElement>('animT').value) / 1000; drawAnimation(); });
-for (const id of ['animTransform', 'animConditions', 'animBack', 'animL1', 'animL2', 'animL3', 'animO1', 'animO2', 'animO3']) {
-  $(id).addEventListener('input', () => { playing = false; animT = 0; $('animPlay').textContent = 'Play'; void buildAnimation(); });
+$('animT').addEventListener('input', () => { stopPlaying('Play'); animT = Number($<HTMLInputElement>('animT').value) / 1000; drawAnimation(); });
+for (const id of ['animShowConditions', 'animShowReflectance']) $(id).addEventListener('input', () => void buildAnimation());
+for (const id of ['animTransform', 'animConditions', 'animBack', 'animL1', 'animL2', 'animL3', 'animO1', 'animO2', 'animO3', 'animHandoff', 'animMaterial', 'animPaste', 'animFrom', 'animTo']) {
+  $(id).addEventListener('input', () => {
+    stopPlaying('Play'); animT = 0;
+    // the starting condition and the one carried to stay different: the one not just chosen gives way
+    const from = $<HTMLSelectElement>('animFrom'), to = $<HTMLSelectElement>('animTo');
+    if (from.value === to.value) (id === 'animTo' ? from : to).value = String((Number(from.value) + 1) % 3);
+    void buildAnimation();
+  });
 }
 
 guide();

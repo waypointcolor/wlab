@@ -83,6 +83,25 @@ export function hueSpread(angles: readonly number[]): { range: number; rms: numb
   return { range: Math.max(...d) - Math.min(...d), rms: Math.sqrt(d.reduce((s, x) => s + x * x, 0) / d.length) };
 }
 
+/**
+ * The RMS of values about their mean, as a percentage of the mean: 0 when all are equal. For the chromas of one
+ * Munsell Chroma ring, how far the ring is from one chroma all the way round, on any space's scale.
+ */
+export function relativeSpread(values: readonly number[]): number {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((s, x) => s + x, 0) / values.length;
+  return (100 * Math.sqrt(values.reduce((s, x) => s + (x - mean) ** 2, 0) / values.length)) / mean;
+}
+
+/**
+ * How evenly chroma grows along a Munsell Hue: the chroma gained per step of Munsell Chroma between neighboring chips,
+ * and the relative spread of those gains (0 when every step adds the same chroma). NaN with fewer than two steps.
+ */
+export function stepEvenness(munsellChromas: readonly number[], chromas: readonly number[]): number {
+  const gains = munsellChromas.slice(1).map((c, i) => (chromas[i + 1] - chromas[i]) / (c - munsellChromas[i]));
+  return gains.length < 2 ? NaN : relativeSpread(gains);
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The object-color solid
 

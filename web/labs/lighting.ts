@@ -8,6 +8,7 @@ import {
   categoricalObserver, cct, cie2006, daylight, deltaEsOf, fluorescents, illuminants, ire, observers, planckian, resample, wlabsOf,
   type IlluminantName, type Observer, type SampleSet, type Spectrum,
 } from '../../src/index.ts';
+import { LIGHTS, type LightName } from './lights.ts';
 import { cri, fidelity, fidelityReference, type Fidelity } from './rendering.ts';
 import { CAMERA_CREDIT, cameraObservers } from './cameras.ts';
 import { fromDisk } from './fetchdata.ts';
@@ -33,7 +34,7 @@ function fingerprint(curves: readonly (readonly number[])[]): string {
 
 interface Light { key: string; label: string; spd: Spectrum; group?: string }
 
-const builtIn = (k: IlluminantName): Light => ({ key: k, label: LIGHT_LABEL[k], spd: illuminants[k] });
+const builtIn = (k: LightName): Light => ({ key: k, label: LIGHT_LABEL[k], spd: LIGHTS[k] });
 const FL_KIND = (n: number) => (n <= 6 ? 'standard fluorescent' : n <= 9 ? 'broadband fluorescent' : 'tri-band fluorescent');
 const FLUORESCENT: Light[] = Object.entries(fluorescents).map(([k, spd]) => ({ key: k, label: `${k} (${FL_KIND(Number(k.slice(1)))})`, spd, group: FL_KIND(Number(k.slice(1))) }));
 const LEDS: Light[] = (Object.keys(illuminants) as IlluminantName[]).filter((k) => k.startsWith('LED-')).map((k) => ({ ...builtIn(k), group: 'CIE LED' }));
@@ -105,7 +106,7 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, fou
       new Option('At the test light\'s CCT: the color rendering index\'s reference (section 5)', 'cct:cri'),
       new Option('At the test light\'s CCT: the reference of CIE 224 and TM-30 (section 5)', 'cct:fidelity'),
     ])] : []),
-    group('Common lights', (Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k))),
+    group('Common lights', (Object.keys(LIGHT_LABEL) as LightName[]).map((k) => new Option(LIGHT_LABEL[k], k))),
     group('CIE fluorescent lights', FLUORESCENT.map((l) => new Option(l.label, `fl:${l.key}`))),
     group('Others', [new Option('Daylight at a temperature…', 'daylight'),
       new Option('Planckian at a temperature…', 'planckian'), new Option('Your own light (paste or file)…', 'paste')]),
@@ -164,7 +165,7 @@ function lightPicker(host: HTMLElement, start: string, onChange: () => void, fou
         note.textContent = count > 1 ? `The first of the ${count} lights given: ${name}.` : `Read: ${name}.`;
         return { light: { key: `yours:${fingerprint([spd])}`, label: name === 'your light' ? name : `${name} (yours)`, spd } };
       }
-      return { light: builtIn(v as IlluminantName) };
+      return { light: builtIn(v as LightName) };
     },
   };
 }

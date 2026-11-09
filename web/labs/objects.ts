@@ -11,6 +11,7 @@ import {
   resample, wlabToRgb, type IlluminantName, type Observer, type ObserverName, type Spectrum, type Vec3,
   type WptNormalizationN,
 } from '../../src/index.ts';
+import { LIGHTS, RGB_D65, type LightName } from './lights.ts';
 import { pairs as demoPairs } from '../demo-data.ts';
 import { example as brandRed } from '../example.ts';
 import {
@@ -47,7 +48,7 @@ let entries: Entry[] = [];
 
 interface Choice { value: string; label: string; checked?: boolean }
 const LIGHT_CHOICES: Choice[] = [
-  ...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => ({ value: k, label: LIGHT_LABEL[k], checked: true })),
+  ...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => ({ value: k, label: LIGHT_LABEL[k], checked: k !== RGB_D65 })),
   { value: 'candle', label: 'Candlelight (Planckian, 1850 K)' },
   { value: 'daylightSeries', label: 'CIE daylight from 4000 to 10000 K, every 500 K (13 lights)' },
   { value: 'planckianSeries', label: 'Planckian from 2000 to 6500 K, every 500 K (10 lights)' },
@@ -86,7 +87,7 @@ let profiles: { key: string; file: string; cond: ReturnType<typeof profileCondit
 
 function chosenLights(): Named<Spectrum>[] {
   const on = checked('lights'), out: Named<Spectrum>[] = [];
-  for (const k of Object.keys(LIGHT_LABEL) as IlluminantName[]) if (on.has(k)) out.push({ key: k, label: k, value: illuminants[k] });
+  for (const k of Object.keys(LIGHT_LABEL) as LightName[]) if (on.has(k)) out.push({ key: k, label: k, value: LIGHTS[k] });
   if (on.has('candle')) out.push({ key: 'candle', label: 'candlelight (1850 K)', value: planckian(1850) });
   if (on.has('daylightSeries')) for (let t = 4000; t <= 10000; t += 500) out.push({ key: `day${t}`, label: `daylight ${t} K`, value: daylight(t) });
   if (on.has('planckianSeries')) for (let t = 2000; t <= 6500; t += 500) out.push({ key: `planck${t}`, label: `Planckian ${t} K`, value: planckian(t) });
@@ -132,8 +133,8 @@ function chosenObservers(): Named<Observer>[] {
 }
 
 function referenceCondition(): ObservingCondition {
-  const o = $<HTMLSelectElement>('refObserver').value as ObserverName, l = $<HTMLSelectElement>('refLight').value as IlluminantName;
-  return { key: `${o}|${l}`, observerLabel: OBSERVER_LABEL[o], lightLabel: l, observer: observers[o], light: illuminants[l] };
+  const o = $<HTMLSelectElement>('refObserver').value as ObserverName, l = $<HTMLSelectElement>('refLight').value as LightName;
+  return { key: `${o}|${l}`, observerLabel: OBSERVER_LABEL[o], lightLabel: l, observer: observers[o], light: LIGHTS[l] };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -580,7 +581,7 @@ function example(which: string): void {
 checkboxes($('lights'), LIGHT_CHOICES);
 checkboxes($('observers'), OBSERVER_CHOICES);
 $<HTMLSelectElement>('refObserver').replaceChildren(...(Object.keys(OBSERVER_LABEL) as ObserverName[]).map((k) => new Option(OBSERVER_LABEL[k], k)));
-$<HTMLSelectElement>('refLight').replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)));
+$<HTMLSelectElement>('refLight').replaceChildren(...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => new Option(LIGHT_LABEL[k], k)));
 $<HTMLSelectElement>('refObserver').value = 'cie1931';
 $<HTMLSelectElement>('refLight').value = 'C';
 

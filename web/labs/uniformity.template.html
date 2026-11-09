@@ -66,14 +66,57 @@
       <label>Observer <select id="munObserver" autocomplete="off"></select></label>
       <label>Light <select id="munLight" autocomplete="off"></select></label>
     </div>
+    <div class="row">
+      <button id="munTour" class="primary">Tour the conditions</button>
+      <label>through <select id="munTourSet" autocomplete="off"><option value="lights" selected>every light, for this observer</option>
+        <option value="observers">every observer, under this light</option><option value="both">every light and every observer</option></select></label>
+      <label>each for <select id="munTourDelay" autocomplete="off"><option value="1" selected>1 second</option><option value="2">2 seconds</option>
+        <option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
+      <span id="munTourStatus" class="note"></span>
+      <label class="check"><input type="checkbox" id="munGhost" autocomplete="off" checked> <span>Show the reference condition, dashed</span></label>
+    </div>
     <div id="munSummary"></div>
     <div class="cols" id="munPlots"></div>
     <p class="note">Each dot is a chip in the color it has under D65; hover over one for its notation. The 40 Hues (2.5,
-    5, 7.5 and 10 of each of the ten families) at the Book's even Chromas, from the corrected Munsell colors.</p>
+    5, 7.5 and 10 of each of the ten families) at the Book's even Chromas, from the corrected Munsell colors. The dashed
+    pattern is the same chips in WLab's reference condition, CIE 1931 under C. The tour shows each condition for the time
+    chosen (a longer time leaves room to read the summary), with each plot's axes fixed for the whole tour, and goes round until it is stopped or a condition is
+    chosen by hand.</p>
+    <p class="note">Why WLab's rings crowd together toward the outside: WLab's chroma is a logarithm of Wpt's chroma, so
+    each further step of chroma in Wpt adds less in WLab, by an amount that depends on hue and lightness. WLab is
+    shaped so that a straight-line distance in it reads like ΔE<sub>00</sub>, which counts a chroma difference between
+    vivid colors as smaller than the same difference between dull ones; CIELAB leaves that to ΔE<sub>00</sub>'s
+    weighting, and WLab builds it into the space. Munsell's Chroma steps were judged as large steps along a scale, while
+    ΔE<sub>00</sub> rests on judgments of small differences between near matches, and the two do not agree on how far
+    apart vivid colors are; the steps column of the Hue by Hue table puts a number on it. The same compression evens
+    out the rings' chroma from hue to hue.</p>
+    <h3>What the tour shows</h3>
+    <p>Tour the lights and watch the three plots. In WLab the pattern of chips stays almost where it is, over the dashed
+    reference, in every condition: the spokes keep their directions, the rings keep their shapes, and neighboring chips
+    keep their spacing. WLab describes the material, and a material keeps its place whatever the light and whoever is
+    looking; a chip moves only as far as its color really changes between the conditions. That is material color
+    equivalency, and it is about more than hue: chroma, the distances between materials and the shape of the whole
+    pattern carry over from one condition to the next.</p>
+    <p>In CIELAB and CAM16-UCS the whole pattern moves and changes shape from light to light: it shifts off center,
+    spokes swing round and bend, rings stretch one way and shrink another, and the gaps between neighbors grow in one
+    part of the circle and close in another. Those spaces describe each chip's color in one condition, as that
+    condition's observer sees it under that light (CAM16-UCS as a viewer adapted to the light would see it), and that is
+    what they are made to do; it follows that a distance between two materials measured in them holds for the one
+    condition it was measured in. The mean move of a chip from the reference, in the summary above, puts a number on
+    each.</p>
     <details><summary>Hue by Hue</summary>
       <div id="munTable"></div>
       <p class="note">For each Hue at this Value, the hue angles of its chips: their spread from the smallest to the
-      largest, and their RMS about their mean. 0 means every chip of the Hue has one hue angle.</p>
+      largest, and their RMS about their mean. 0 means every chip of the Hue has one hue angle. Steps: how evenly chroma
+      grows along the Hue, the chroma gained per step of Munsell Chroma from chip to chip, as the RMS of those gains about
+      their mean, in percent of the mean; 0% means every step adds the same chroma.</p>
+    </details>
+    <details><summary>Chroma by Chroma</summary>
+      <div id="munRingTable"></div>
+      <p class="note">For each Chroma at this Value with chips at four Hues or more, the chroma of its chips round the
+      circle in each space: their RMS about their mean, in percent of the mean, so that the three spaces' scales read
+      alike. 0% means the ring is at one chroma all the way round, as Munsell's Chromas, judged by eye under one viewing
+      condition, were made to be: chips of one Chroma look equally strong whatever their Hue.</p>
     </details>
   </div>
 

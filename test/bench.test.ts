@@ -4,8 +4,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { categoricalObserver, illuminants, munsell1600, observers } from '../src/index.ts';
-import { LIGHT_TRANSFORMS, OBSERVER_TRANSFORMS, predictPair, rgbLed, summarize } from '../web/labs/predictions.ts';
+import { cat, categoricalObserver, illuminants, mat, mulMV, munsell1600, observers, responses, wptNormalization, type Vec3 } from '../src/index.ts';
+import { carry, LIGHT_TRANSFORMS, OBSERVER_TRANSFORMS, predictPair, rgbLed, summarize, transformStages } from '../web/labs/predictions.ts';
 
 // The guide's companion package (ex05): 1,600 Munsell colors, CIE 1931, A to D65, mean ΔE00 1.09 for the Wpt MAT and
 // 2.26 for CAT02 (the guide's larger set of 5,162 reflectances, not all open, gave 1.24 and 2.35 for CIE 1964).
@@ -49,4 +49,18 @@ test('the RGB LED has exactly D65\'s white for its observer', () => {
     const raw = (s: readonly number[]) => o.curves.map((c) => c.reduce((a, v, i) => a + v * s[i], 0));
     raw(led).forEach((v, i) => assert.ok(Math.abs(v / raw(illuminants.D65)[i] - 1) < 1e-12));
   }
+});
+
+// The animation's steps end at the normalization or the CAT, so a material carried by them is what the page's tables predict.
+test('a measurement carried through the steps is what the transform predicts', () => {
+  const o = observers.cie1931, A = { observer: o, light: illuminants.A }, D65 = { observer: o, light: illuminants.D65 };
+  const ns = wptNormalization(o, A.light), nd = wptNormalization(o, D65.light), r = munsell1600().reflectances[700];
+  const x = responses(r, o, A.light);
+  const close = (a: Vec3, b: Vec3) => a.forEach((v, i) => assert.ok(Math.abs(v - b[i]) < 1e-9));
+  close(carry('wpt', A, D65, x), mulMV(mat(ns, nd), x));
+  close(carry('cat02', A, D65, x), mulMV(cat(ns.white, nd.white, 'cat02'), x));
+  close(carry('vk', A, D65, x), mulMV(cat(ns.white, nd.white, 'xyz'), x));
+  const close3 = (a: readonly (readonly number[])[], b: readonly (readonly number[])[]) => a.forEach((row, i) => row.forEach((v, j) => assert.ok(Math.abs(v - b[i][j]) < 1e-9)));
+  close3(transformStages('wpt', o, A.light).at(-1)!.m, ns.toWpt);
+  assert.equal(transformStages('wpt', o, A.light).length, 5);
 });

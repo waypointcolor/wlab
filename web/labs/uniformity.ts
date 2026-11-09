@@ -9,8 +9,10 @@ import {
   illuminants, inGamut, observers, toPolar, wlabToRgb, wptNormalization, wptToWlab, type IlluminantName,
   type ObserverName, type RgbSpace, type Vec3, type WptNormalization,
 } from '../../src/index.ts';
+import { LIGHTS, type LightName } from './lights.ts';
 import {
-  areaOf, COMPARED_LABEL, crossSection, fromSpace, hueOf, hueSpread, inSpace, MUNSELL_HUES, munsellChips, optimalWpts, sliceWpts,
+  areaOf, COMPARED_LABEL, crossSection, fromSpace, hueOf, hueSpread, inSpace, MUNSELL_HUES, munsellChips, optimalWpts, relativeSpread, sliceWpts,
+  stepEvenness,
   type Compared,
 } from './hue.ts';
 import { $, cloud3d, conditionPicker, escapeHtml, fmtTick, LIGHT_LABEL, niceStep, OBSERVER_LABEL, scatter, type Condition } from './kit.ts';
@@ -22,21 +24,21 @@ const f1 = (v: number) => v.toFixed(1);
 // sections 1 and 2 compare with CIELAB, so their observers are the CIE color-matching functions
 const CMF_OBSERVERS: ObserverName[] = ['cie1931', 'cie1964', 'cie2015', 'cie2015_10'];
 const norms = new Map<string, WptNormalization>();
-const normOf = (o: ObserverName, l: IlluminantName) => {
+const normOf = (o: ObserverName, l: LightName) => {
   const k = `${o}/${l}`;
   let n = norms.get(k);
-  if (!n) { n = wptNormalization(observers[o], illuminants[l]); norms.set(k, n); }
+  if (!n) { n = wptNormalization(observers[o], LIGHTS[l]); norms.set(k, n); }
   return n;
 };
 /** An observer and a light select for sections 1 and 2, opening on CIE 1931 under C. */
 function fillCondition(obsId: string, lightId: string): void {
   $<HTMLSelectElement>(obsId).replaceChildren(...CMF_OBSERVERS.map((k) => new Option(OBSERVER_LABEL[k], k)));
-  $<HTMLSelectElement>(lightId).replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)));
+  $<HTMLSelectElement>(lightId).replaceChildren(...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => new Option(LIGHT_LABEL[k], k)));
   $<HTMLSelectElement>(obsId).value = 'cie1931';
   $<HTMLSelectElement>(lightId).value = 'C';
 }
 const conditionOf = (obsId: string, lightId: string) => {
-  const o = $<HTMLSelectElement>(obsId).value as ObserverName, l = $<HTMLSelectElement>(lightId).value as IlluminantName;
+  const o = $<HTMLSelectElement>(obsId).value as ObserverName, l = $<HTMLSelectElement>(lightId).value as LightName;
   return { norm: normOf(o, l), label: `${OBSERVER_LABEL[o]} under ${l}` };
 };
 
@@ -121,11 +123,22 @@ document.querySelectorAll<HTMLButtonElement>('button[data-h]').forEach((b) =>
 // ---------------------------------------------------------------------------------------------------------------
 // Section 2: Munsell loci
 
+// the reference condition of WLab, drawn dashed behind each plot: how far a pattern moves from it is what the tour shows
+const MUN_REFERENCE = { observer: 'cie1931' as ObserverName, light: 'C' as LightName, label: 'CIE 1931 under C, the reference (dashed)' };
+type Placed = { wl: Vec3; lab: Vec3; cam: Vec3 };
+/** Where the chips of one Value sit in WLab, CIELAB and CAM16-UCS, in one condition. */
+const placeChips = (value: number, norm: WptNormalization): Placed[] => munsellChips().filter((c) => c.value === value)
+  .map((c) => { const wl = norm.wlabOf(c.reflectance); return { wl, lab: inSpace('cielab', wl, norm), cam: inSpace('cam16', wl, norm) }; });
+type Spaces = { w: number; l: number; m: number };
+/** While touring, each plot's axes are fixed, to the farthest chip in any condition of the tour. */
+let tourRange: Spaces | undefined;
+
 function munsell(): void {
   const { norm, label } = conditionOf('munObserver', 'munLight');
   const value = Number($<HTMLSelectElement>('munValue').value);
   const at = munsellChips().filter((c) => c.value === value);
-  const pts = at.map((c) => { const wl = norm.wlabOf(c.reflectance); return { c, wl, lab: inSpace('cielab', wl, norm), cam: inSpace('cam16', wl, norm) }; });
+  const pts = placeChips(value, norm).map((p, k) => ({ c: at[k], ...p }));
+  const ref = placeChips(value, normOf(MUN_REFERENCE.observer, MUN_REFERENCE.light)), ghost = $<HTMLInputElement>('munGhost').checked;
   const colors = pts.map((p) => screenColor(p.wl));
   const titles = pts.map((p) => `${p.c.hue} ${value}/${p.c.chroma}`);
   const key = (h: string, ch: number) => pts.findIndex((p) => p.c.hue === h && p.c.chroma === ch);
@@ -142,49 +155,110 @@ function munsell(): void {
       if (a >= 0 && b >= 0) rings.push([a, b]);
     });
   }
-  const plot = (xy: (k: number) => [number, number], xl: string, yl: string) => {
-    const coords = pts.map((_, k) => xy(k)), far = Math.max(10, ...coords.flat().map(Math.abs)) * 1.08;
+  const plot = (space: keyof Spaces, xy: (p: Placed) => [number, number], xl: string, yl: string) => {
+    const coords = pts.map(xy), back = ghost ? ref.map(xy) : [];
+    const far = tourRange?.[space] ?? Math.max(10, ...coords.flat().map(Math.abs), ...back.flat().map(Math.abs)) * 1.08;
     return scatter({
       xLabel: xl, yLabel: yl, x: [-far, far], y: [-far, far], square: true, outline: true, dot: 3.2,
       sets: [{ pts: coords, color: 'var(--quiet)', label: 'Munsell chips', colors, titles }],
       links: [...pairs, ...rings].map(([a, b]) => [...coords[a], ...coords[b]]),
+      ghostLinks: ghost ? [...pairs, ...rings].map(([a, b]) => [...back[a], ...back[b]]) : undefined, ghostLabel: MUN_REFERENCE.label,
     });
   };
-  $('munPlots').innerHTML = `<div>${plot((k) => [pts[k].wl[1], pts[k].wl[2]], 'aw', 'bw (WLab)')}</div>
-    <div>${plot((k) => [pts[k].lab[1], pts[k].lab[2]], 'a*', 'b* (CIELAB)')}</div>
-    <div>${plot((k) => [pts[k].cam[1], pts[k].cam[2]], 'a′', 'b′ (CAM16-UCS)')}</div>`;
-  // how far each Hue's chips stray in hue angle, at this Value and over every Value, in WLab, CIELAB and CAM16-UCS
-  type Spread = { h: string; n: number; w: ReturnType<typeof hueSpread>; l: ReturnType<typeof hueSpread>; m: ReturnType<typeof hueSpread> };
-  const spreadAt = (v: number) => MUNSELL_HUES.map((h): Spread | undefined => {
-    const cs = munsellChips().filter((c) => c.value === v && c.hue === h);
+  $('munPlots').innerHTML = `<div>${plot('w', (p) => [p.wl[1], p.wl[2]], 'aw', 'bw (WLab)')}</div>
+    <div>${plot('l', (p) => [p.lab[1], p.lab[2]], 'a*', 'b* (CIELAB)')}</div>
+    <div>${plot('m', (p) => [p.cam[1], p.cam[2]], 'a′', 'b′ (CAM16-UCS)')}</div>`;
+  // how far the chips move from the reference condition, each space in its own units
+  const moved = (k: keyof Placed) => pts.reduce((s, p, j) => s + Math.hypot(...p[k].map((v, d) => v - ref[j][k][d])), 0) / pts.length;
+  // every Value's chips placed once, in the three spaces
+  const VALUES = [2, 3, 4, 5, 6, 7, 8, 9];
+  const placed = new Map(VALUES.map((v) => { const ps = placeChips(v, norm); return [v, munsellChips().filter((c) => c.value === v).map((c, k) => ({ c, p: ps[k] }))]; }));
+  const SPACES = [['w', 'WLab', 'wl'], ['l', 'CIELAB', 'lab'], ['m', 'CAM16-UCS', 'cam']] as const;
+  type Key = 'w' | 'l' | 'm';
+  const chromaOf = (x: Vec3) => Math.hypot(x[1], x[2]);
+  // the spokes: how far each Hue's chips stray in hue angle, and how evenly their chroma grows, in each space
+  type Spoke = { h: string; n: number } & Record<Key, ReturnType<typeof hueSpread> & { steps: number }>;
+  const spokesAt = (v: number) => MUNSELL_HUES.map((h): Spoke | undefined => {
+    const cs = placed.get(v)!.filter((x) => x.c.hue === h).sort((a, b) => a.c.chroma - b.c.chroma);
     if (cs.length < 2) return undefined;
-    const wl = cs.map((c) => norm.wlabOf(c.reflectance)), angles = (xs: Vec3[]) => xs.map((x) => hueOf(x[1], x[2]));
-    return {
-      h, n: cs.length, w: hueSpread(angles(wl)), l: hueSpread(angles(wl.map((w) => inSpace('cielab', w, norm)))),
-      m: hueSpread(angles(wl.map((w) => inSpace('cam16', w, norm)))),
-    };
-  }).filter((r): r is Spread => !!r);
-  const rows = spreadAt(value), mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length;
-  const all = [2, 3, 4, 5, 6, 7, 8, 9].flatMap(spreadAt);
-  const SPACES = [['w', 'WLab'], ['l', 'CIELAB'], ['m', 'CAM16-UCS']] as const;
-  const worst = (k: 'w' | 'l' | 'm') => rows.reduce((b, r) => (r[k].rms > b[k].rms ? r : b));
+    const of = (k: keyof Placed) => ({ ...hueSpread(cs.map((x) => hueOf(x.p[k][1], x.p[k][2]))), steps: stepEvenness(cs.map((x) => x.c.chroma), cs.map((x) => chromaOf(x.p[k]))) });
+    return { h, n: cs.length, w: of('wl'), l: of('lab'), m: of('cam') };
+  }).filter((r): r is Spoke => !!r);
+  // the rings: how far each Chroma's chips, round the Hues, are from one chroma (relative RMS, so every space's scale
+  // reads alike); a ring needs four Hues or more
+  type Ring = { ch: number; n: number } & Record<Key, number>;
+  const ringsAt = (v: number) => [...new Set(placed.get(v)!.map((x) => x.c.chroma))].sort((a, b) => a - b).map((ch): Ring | undefined => {
+    const cs = placed.get(v)!.filter((x) => x.c.chroma === ch);
+    if (cs.length < 4) return undefined;
+    const of = (k: keyof Placed) => relativeSpread(cs.map((x) => chromaOf(x.p[k])));
+    return { ch, n: cs.length, w: of('wl'), l: of('lab'), m: of('cam') };
+  }).filter((r): r is Ring => !!r);
+  const rows = spokesAt(value), mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length;
+  const all = VALUES.flatMap(spokesAt);
+  const ringRows = ringsAt(value), allRings = VALUES.flatMap(ringsAt);
+  const worst = (k: Key) => rows.reduce((b, r) => (r[k].rms > b[k].rms ? r : b));
+  const worstRing = (k: Key) => ringRows.reduce((b, r) => (r[k] > b[k] ? r : b));
+  const pct = (v: number) => (Number.isNaN(v) ? '–' : `${f1(v)}%`);
   const row = (k: string, v: string) => `<tr><th>${k}</th><td>${v}</td></tr>`;
   $('munSummary').innerHTML = `<div class="table-wrap"><table class="kv"><tbody>
     ${row('Condition', escapeHtml(label))}
+    ${row(`Mean move of a chip from CIE 1931 under C, Value ${value}`, `WLab <span class="big">${f1(moved('wl'))}</span> ΔE<sub>WLab</sub>, CIELAB <span class="big">${f1(moved('lab'))}</span> ΔE*<sub>ab</sub>, CAM16-UCS <span class="big">${f1(moved('cam'))}</span> ΔE′`)}
     ${row(`RMS of hue angle along a Hue, Value ${value}`, `${SPACES.map(([k, n]) => `${n} <span class="big">${f1(mean(rows.map((r) => r[k].rms)))}°</span>`).join(', ')} (mean over ${rows.length} Hues)`)}
     ${row('The same, Values 2 to 9', `${SPACES.map(([k, n]) => `${n} ${f1(mean(all.map((r) => r[k].rms)))}°`).join(', ')} (over ${all.length} Hue and Value spokes)`)}
     ${row(`Largest, Value ${value}`, SPACES.map(([k, n]) => `${n} ${worst(k).h} (${f1(worst(k)[k].rms)}°)`).join('; '))}
+    ${ringRows.length ? `${row(`Relative RMS of chroma round a Chroma ring, Value ${value}`, `${SPACES.map(([k, n]) => `${n} <span class="big">${pct(mean(ringRows.map((r) => r[k])))}</span>`).join(', ')} (mean over ${ringRows.length} rings)`)}
+    ${row('The same, Values 2 to 9', `${SPACES.map(([k, n]) => `${n} ${pct(mean(allRings.map((r) => r[k])))}`).join(', ')} (over ${allRings.length} Chroma and Value rings)`)}
+    ${row(`Largest, Value ${value}`, SPACES.map(([k, n]) => `${n} /${worstRing(k).ch} (${pct(worstRing(k)[k])})`).join('; '))}` : ''}
     </tbody></table></div>`;
   $('munTable').innerHTML = `<div class="table-wrap"><table class="many"><thead>
-    <tr><th></th><th class="sep"></th>${SPACES.map(([, n]) => `<th class="sep" colspan="2">${n}</th>`).join('')}</tr>
-    <tr><th>Hue</th><th class="sep">chips</th>${SPACES.map(() => '<th class="sep">spread</th><th>RMS</th>').join('')}</tr></thead>
-    <tbody>${rows.map((r) => `<tr><td>${r.h}</td><td class="sep">${r.n}</td>${SPACES.map(([k]) => `<td class="sep">${f1(r[k].range)}°</td><td>${f1(r[k].rms)}°</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    <tr><th></th><th class="sep"></th>${SPACES.map(([, n]) => `<th class="sep" colspan="3">${n}</th>`).join('')}</tr>
+    <tr><th>Hue</th><th class="sep">chips</th>${SPACES.map(() => '<th class="sep">spread</th><th>RMS</th><th>steps</th>').join('')}</tr></thead>
+    <tbody>${rows.map((r) => `<tr><td>${r.h}</td><td class="sep">${r.n}</td>${SPACES.map(([k]) => `<td class="sep">${f1(r[k].range)}°</td><td>${f1(r[k].rms)}°</td><td>${pct(r[k].steps)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  $('munRingTable').innerHTML = `<div class="table-wrap"><table class="many"><thead>
+    <tr><th>Chroma</th><th class="sep">chips</th>${SPACES.map(([, n]) => `<th class="sep">${n}</th>`).join('')}</tr></thead>
+    <tbody>${ringRows.map((r) => `<tr><td>/${r.ch}</td><td class="sep">${r.n}</td>${SPACES.map(([k]) => `<td class="sep">${pct(r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 
 fillCondition('munObserver', 'munLight');
 $<HTMLSelectElement>('munValue').replaceChildren(...[2, 3, 4, 5, 6, 7, 8, 9].map((v) => new Option(String(v), String(v))));
 $<HTMLSelectElement>('munValue').value = '5';
-for (const id of ['munObserver', 'munLight', 'munValue']) $(id).addEventListener('input', munsell);
+$('munGhost').addEventListener('input', munsell);
+
+// the tour: every light, every observer, or both, one after another with the delay chosen, the axes fixed for the tour
+let tourTimer: ReturnType<typeof setTimeout> | undefined;
+function stopTour(): void {
+  clearTimeout(tourTimer);
+  tourTimer = undefined;
+  tourRange = undefined;
+  $('munTour').textContent = 'Tour the conditions';
+  $('munTourStatus').textContent = '';
+}
+function startTour(): void {
+  const obs = $<HTMLSelectElement>('munObserver'), light = $<HTMLSelectElement>('munLight'), set = $<HTMLSelectElement>('munTourSet').value;
+  const lights = [...light.options].map((o) => o.value), observerKeys = [...obs.options].map((o) => o.value);
+  const list = (set === 'observers' ? observerKeys.map((o) => [o, light.value]) : set === 'lights' ? lights.map((l) => [obs.value, l])
+    : observerKeys.flatMap((o) => lights.map((l) => [o, l]))) as [ObserverName, LightName][];
+  const value = Number($<HTMLSelectElement>('munValue').value);
+  const far = (k: keyof Placed) => Math.max(10, ...[...list, [MUN_REFERENCE.observer, MUN_REFERENCE.light] as const]
+    .flatMap(([o, l]) => placeChips(value, normOf(o, l)).flatMap((p) => [Math.abs(p[k][1]), Math.abs(p[k][2])]))) * 1.08;
+  tourRange = { w: far('wl'), l: far('lab'), m: far('cam') };
+  // starting from the condition shown
+  let k = Math.max(0, list.findIndex(([o, l]) => o === obs.value && l === light.value));
+  $('munTour').textContent = 'Stop the tour';
+  const step = () => {
+    [obs.value, light.value] = list[k];
+    $('munTourStatus').textContent = `${k + 1} of ${list.length}`;
+    munsell();
+    k = (k + 1) % list.length;
+    // read at every step, so that a new delay takes effect at the next condition
+    tourTimer = setTimeout(step, Number($<HTMLSelectElement>('munTourDelay').value) * 1000);
+  };
+  step();
+}
+$('munTour').addEventListener('click', () => (tourTimer ? stopTour() : startTour()));
+$('munTourSet').addEventListener('input', () => { if (tourTimer) { stopTour(); startTour(); } });
+// choosing a condition or a Value by hand ends the tour
+for (const id of ['munObserver', 'munLight', 'munValue']) $(id).addEventListener('input', () => { if (tourTimer) stopTour(); munsell(); });
 
 // ---------------------------------------------------------------------------------------------------------------
 // Section 3: the object-color solid

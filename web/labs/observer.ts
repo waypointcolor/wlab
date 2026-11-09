@@ -8,6 +8,7 @@ import {
   planckian, resample, responses, wavelengths, wlabsOf, wptNormalization, wptToWlab, type IlluminantName, type Mat3, type Observer,
   type Spectrum,
 } from '../../src/index.ts';
+import { LIGHTS, type LightName } from './lights.ts';
 import {
   $, conditionPicker, copy, download, escapeHtml, formatMatrix, heatMap, LIGHT_LABEL, linePlot, matrixTable, MATRIX_FORMATS,
   optIn, parseTable, spectrumPlot, type Condition, type MatrixFormat,
@@ -123,7 +124,7 @@ function drawMethods(src: Condition, cond: Condition, sets: Sets): void {
 interface Light { key: string; label: string; spd: Spectrum }
 interface LightSet { id: string; title: string; about: string; lights(cond: Condition): Light[] }
 
-const builtIn = (k: IlluminantName): Light => ({ key: k, label: LIGHT_LABEL[k], spd: illuminants[k] });
+const builtIn = (k: LightName): Light => ({ key: k, label: LIGHT_LABEL[k], spd: LIGHTS[k] });
 const FLUORESCENT: Light[] = Object.entries(fluorescents).map(([k, spd]) => ({ key: k, label: LIGHT_LABEL[k as IlluminantName] ?? `${k} (fluorescent)`, spd }));
 const LEDS = (Object.keys(illuminants) as IlluminantName[]).filter((k) => k.startsWith('LED-'));
 
@@ -165,7 +166,7 @@ const LIGHT_SETS: LightSet[] = [
     id: 'own', title: 'The target condition\'s own light only',
     about: 'The light the profile is for: the OME of the profile\'s condition alone.',
     lights: (cond) => {
-      const k = (Object.keys(illuminants) as IlluminantName[]).find((n) => illuminants[n] === cond.light);
+      const k = (Object.keys(LIGHTS) as LightName[]).find((n) => LIGHTS[n] === cond.light);
       return [k ? builtIn(k) : { key: `own:${fingerprint([cond.light])}`, label: cond.lightLabel, spd: cond.light }];
     },
   },

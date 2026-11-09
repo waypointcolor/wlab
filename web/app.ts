@@ -5,6 +5,7 @@ import {
   deltaE00, deltaEWlab, illuminants, observers, resample, responses, wptNormalization, xyzToLab,
   type IlluminantName, type ObserverName, type Spectrum, type Vec3,
 } from '../src/index.ts';
+import { LIGHTS, type LightName } from './labs/lights.ts';
 import { example } from './example.ts';
 
 interface Condition { label: string; observer: ObserverName; light: Spectrum; lightName: string }
@@ -13,7 +14,7 @@ interface Lights { [name: string]: Spectrum }
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const OBSERVER_LABEL: Record<ObserverName, string> = { cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)',
   cie2006_2: 'CIE 2006 (2°)', cie2006_10: 'CIE 2006 (10°)' };
-const LIGHT_LABEL: Record<IlluminantName, string> = {
+const LIGHT_LABEL: Record<LightName, string> = {
   D50: 'D50 booth', D65: 'D65 daylight', A: 'A, home incandescent', F2: 'F2, cool white fluorescent',
   F11: 'F11, tri-band store fluorescent', C: 'C, older daylight', E: 'E, equal energy',
   'LED-B1': 'LED-B1, blue-pumped phosphor white LED, about 2700 K',
@@ -25,9 +26,10 @@ const LIGHT_LABEL: Record<IlluminantName, string> = {
   'LED-RGB1': 'LED-RGB1, red, green and blue chips LED, about 2850 K',
   'LED-V1': 'LED-V1, violet-pumped phosphor white LED, about 2700 K',
   'LED-V2': 'LED-V2, violet-pumped phosphor white LED, about 4100 K',
+  'RGB-D65': 'RGB-D65, an RGB LED mixed to D65\'s white (not a standard)',
 };
 
-const lights: Lights = Object.fromEntries(Object.keys(LIGHT_LABEL).map((k) => [LIGHT_LABEL[k as IlluminantName], illuminants[k as IlluminantName]]));
+const lights: Lights = Object.fromEntries(Object.keys(LIGHT_LABEL).map((k) => [LIGHT_LABEL[k as LightName], LIGHTS[k as LightName]]));
 const conditions: Condition[] = [];
 let lastCsv = '';
 

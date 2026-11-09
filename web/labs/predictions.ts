@@ -6,8 +6,8 @@
 // and ΔE_WLab through the destination's Wpt normalization.
 
 import {
-  cat, deltaE00, deltaEWlab, inv3, mat, mulMV, responses, wavelengths, wptNormalization, wptToWlab, xyzToLab, type Mat3,
-  type Observer, type SampleSet, type Spectrum, type Vec3,
+  cat, CAT02, deltaE00, deltaEWlab, inv3, mat, mulMM, mulMV, responses, sensorResponses, wavelengths, wptNormalization, wptToWlab,
+  xyzToLab, type Mat3, type Observer, type SampleSet, type Spectrum, type Vec3,
 } from '../../src/index.ts';
 import { conversions } from './conversions.ts';
 
@@ -22,29 +22,38 @@ export const LIGHT_TRANSFORMS = ['Wpt MAT', 'Bradford', 'CAT02', 'von Kries (XYZ
 /** The transforms between two observers under one light: Lab D's ways of converting an observer. */
 export const OBSERVER_TRANSFORMS = ['Wpt MAT', 'XYZ based', 'XYZ based, white balanced', 'Primary based', 'Primary based, white balanced'] as const;
 
-/** The RGB LED's three peaks: blue, green and red, each with its full width at half its height, in nm. */
-export const RGB_LED_PEAKS = [{ peak: 455, width: 20 }, { peak: 530, width: 35 }, { peak: 630, width: 18 }] as const;
+/** One step of a transform: what it is called, and the matrix from the measurements to that step. */
+export interface Stage { label: string; m: Mat3 }
 
 /**
- * One LED peak, in a common model of an LED's spectrum: a Gaussian sharpened at its top, (g + 2g⁵) / 3, with g a
- * Gaussian; it falls to half its height 0.92182 of g's width parameter from side to side.
+ * The steps of a transform for one condition, from its measurements (stage 0) to the common representation (the last):
+ * 'wpt' the four of the Wpt normalization, 'cat02' CAT02's two, 'vk' von Kries's one.
  */
-export function ledPeak(peak: number, width: number): Spectrum {
-  const w = width / 0.92182;
-  return wavelengths.map((l) => { const g = Math.exp(-(((l - peak) / w) ** 2)); return (g + 2 * g ** 5) / 3; });
+export function transformStages(kind: string, observer: Observer, light: Spectrum): Stage[] {
+  const I: Mat3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const white = sensorResponses(new Array(81).fill(1), observer, light) as Vec3;
+  if (kind === 'wpt') {
+    const n = wptNormalization(observer, light), R = n.steps.rotation as Mat3;
+    const S = mulMM([[n.steps.scale, 0, 0], [0, 1, 0], [0, 0, 1]], R);
+    const a = n.steps.level, L: Mat3 = [S[0].map((v, j) => v - a[0] * S[1][j] - a[1] * S[2][j]) as unknown as Vec3, S[1], S[2]];
+    return [{ label: 'measured', m: I }, { label: '1. white turned onto the first axis', m: R }, { label: '2. white scaled to W = 100', m: S },
+      { label: '3. the base colors leveled to one W', m: L }, { label: '4. fitted to the reference: Wpt, the common representation', m: n.toWpt }];
+  }
+  if (kind === 'cat02') {
+    const sharp = CAT02, w = mulMV(sharp, white);
+    return [{ label: 'measured (XYZ)', m: I }, { label: '1. sharpened into cone-like channels', m: sharp },
+      { label: '2. each channel scaled so that white is 100, 100, 100: the common representation', m: mulMM([[100 / w[0], 0, 0], [0, 100 / w[1], 0], [0, 0, 100 / w[2]]], sharp) }];
+  }
+  return [{ label: 'measured', m: I }, { label: '1. each channel scaled so that white is 100, 100, 100: the common representation', m: [[100 / white[0], 0, 0], [0, 100 / white[1], 0], [0, 0, 100 / white[2]]] }];
 }
 
-/**
- * An RGB LED whose three peaks are mixed so that `observer`'s responses to it are exactly its responses to `white`:
- * the same white point (and luminance) for that observer, from a very different spectrum.
- */
-export function rgbLed(observer: Observer, white: Spectrum): Spectrum {
-  const peaks = RGB_LED_PEAKS.map((p) => ledPeak(p.peak, p.width));
-  const raw = (s: Spectrum) => observer.curves.slice(0, 3).map((c) => c.reduce((a, v, i) => a + v * s[i], 0)) as unknown as Vec3;
-  const cols = peaks.map(raw), M = [0, 1, 2].map((r) => cols.map((c) => c[r])) as unknown as Mat3;
-  const w = mulMV(inv3(M), raw(white));
-  return wavelengths.map((_, i) => w[0] * peaks[0][i] + w[1] * peaks[1][i] + w[2] * peaks[2][i]);
+/** A measurement in one condition carried to another: into the common representation by the first's steps, out by the second's. */
+export function carry(kind: string, from: Side, to: Side, measured: Vec3): Vec3 {
+  const inward = transformStages(kind, from.observer, from.light).at(-1)!.m, outward = transformStages(kind, to.observer, to.light).at(-1)!.m;
+  return mulMV(inv3(outward), mulMV(inward, measured));
 }
+
+export { ledPeak, RGB_LED_PEAKS, rgbLed } from './lights.ts';
 
 const sameObserver =(a: Observer, b: Observer) => a === b || (a.curves.length === b.curves.length && a.curves.every((c, i) => c.every((v, j) => v === b.curves[i][j])));
 

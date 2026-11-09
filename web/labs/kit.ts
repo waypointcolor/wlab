@@ -5,6 +5,7 @@ import {
   categoricalObserver, categoricalObserverAges, cie2006, daylight, illuminants, observers, observersN, planckian,
   resample, wavelengths, type IlluminantName, type Mat3, type Observer, type ObserverName, type Spectrum,
 } from '../../src/index.ts';
+import { LIGHTS, type LightName } from './lights.ts';
 import { CAMERA_CREDIT, CAMERAS, camerasNow, retryCameras } from './cameras.ts';
 import { profileCondition } from './svcn.ts';
 
@@ -51,7 +52,7 @@ export const OBSERVER_LABEL: Record<ObserverName, string> = {
   cie1931: 'CIE 1931 (2°)', cie1964: 'CIE 1964 (10°)', cie2015: 'CIE 2015 (2°)', cie2015_10: 'CIE 2015 (10°)',
   cie2006_2: 'CIE 2006 cone fundamentals (2°)', cie2006_10: 'CIE 2006 cone fundamentals (10°)',
 };
-export const LIGHT_LABEL: Record<IlluminantName, string> = {
+export const LIGHT_LABEL: Record<LightName, string> = {
   A: 'A (incandescent)', C: 'C (older daylight)', D50: 'D50 (graphic arts booth)', D65: 'D65 (daylight)', E: 'E (equal energy)',
   F2: 'F2 (cool white fluorescent)', F11: 'F11 (tri-band fluorescent)',
   'LED-B1': 'LED-B1 (blue-pumped phosphor white, about 2700 K)',
@@ -63,6 +64,7 @@ export const LIGHT_LABEL: Record<IlluminantName, string> = {
   'LED-RGB1': 'LED-RGB1 (red, green and blue chips, about 2850 K)',
   'LED-V1': 'LED-V1 (violet-pumped phosphor white, about 2700 K)',
   'LED-V2': 'LED-V2 (violet-pumped phosphor white, about 4100 K)',
+  'RGB-D65': 'RGB-D65 (an RGB LED mixed to D65\'s white; not a standard)',
 };
 
 const SENSOR_COLORS = ['#c0306a', '#1f8a5b', '#2f74c0', '#8a6d00', '#7a3fb0', '#c2570c', '#2f8f9f'];
@@ -157,7 +159,7 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
   });
   el<HTMLSelectElement>('cam').replaceChildren(...makers.values());
   el<HTMLSelectElement>('cat').replaceChildren(...categoricalObserverAges.map((age, i) => new Option(`${i + 1} (${age} years)`, String(i + 1))));
-  light.replaceChildren(...(Object.keys(LIGHT_LABEL) as IlluminantName[]).map((k) => new Option(LIGHT_LABEL[k], k)),
+  light.replaceChildren(...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => new Option(LIGHT_LABEL[k], k)),
     new Option('Candlelight (Planckian, 1850 K), for mesopic viewing', 'candle'),
     new Option('Daylight at a temperature…', 'daylight'), new Option('Planckian at a temperature…', 'planckian'),
     new Option('Your own light (paste)…', 'paste'), new Option('From the ICC/iccMAX profile…', 'profile'));
@@ -261,7 +263,7 @@ export function conditionPicker(host: HTMLElement, start: { observer: ObserverNa
       spd = planckian(kelvin);
       lightLabel = `Planckian at ${kelvin} K`;
     } else {
-      spd = illuminants[light.value as IlluminantName];
+      spd = LIGHTS[light.value as LightName];
       lightLabel = light.value;
     }
     if (spd.some((v) => v < 0) || !spd.some((v) => v > 0)) throw new Error('the light needs positive power');
@@ -400,6 +402,8 @@ export function histogram(sets: number[][], labels: string[], colors: string[],
 export function scatter(o: {
   xLabel: string; yLabel: string; x: [number, number]; y?: [number, number]; xTicks?: number[]; square?: boolean;
   sets: { pts: number[][]; color: string; label: string; ring?: boolean; titles?: string[]; colors?: string[] }[]; links?: number[][]; arrows?: boolean;
+  /** lines drawn dashed under everything else, as for a reference to compare with, and their legend entry */
+  ghostLinks?: number[][]; ghostLabel?: string;
   /** an outline around each dot, so that a dot of any color shows against the page */
   outline?: boolean;
   /** the radius of each dot (2.8 by default, 3.4 with an outline) */
@@ -425,15 +429,18 @@ export function scatter(o: {
   const id = `arrow${++plotId}`;
   const links = (o.links ?? []).map(([a, b, c, d]) => `<line x1="${X(a).toFixed(1)}" y1="${Y(b).toFixed(1)}" x2="${X(c).toFixed(1)}" y2="${Y(d).toFixed(1)}"
     stroke="var(--quiet)" stroke-opacity="0.7"${o.arrows ? ` marker-end="url(#${id})"` : ''}/>`).join('');
+  const ghost = (o.ghostLinks ?? []).map(([a, b, c, d]) => `<line x1="${X(a).toFixed(1)}" y1="${Y(b).toFixed(1)}" x2="${X(c).toFixed(1)}" y2="${Y(d).toFixed(1)}"
+    stroke="var(--accent2)" stroke-opacity="0.6" stroke-dasharray="4 3"/>`).join('');
   const legend = o.sets.filter((s) => !s.colors).map((s) => `<span class="key"><svg width="12" height="12" aria-hidden="true">${s.ring
-    ? `<circle cx="6" cy="6" r="4" fill="none" stroke="${s.color}" stroke-width="1.3"/>` : `<circle cx="6" cy="6" r="3" fill="${s.color}"/>`}</svg>${escapeHtml(s.label)}</span>`).join('');
+    ? `<circle cx="6" cy="6" r="4" fill="none" stroke="${s.color}" stroke-width="1.3"/>` : `<circle cx="6" cy="6" r="3" fill="${s.color}"/>`}</svg>${escapeHtml(s.label)}</span>`).join('')
+    + (o.ghostLinks?.length && o.ghostLabel ? `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5" stroke="var(--accent2)" stroke-dasharray="4 3"/></svg>${escapeHtml(o.ghostLabel)}</span>` : '');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(o.yLabel)} against ${escapeHtml(o.xLabel)}">
     ${yt.map((t) => `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)"/><text x="${l0 - 6}" y="${Y(t) + 4}" text-anchor="end">${fmtTick(t)}</text>`).join('')}
     ${xt.map((t) => `<line x1="${X(t)}" x2="${X(t)}" y1="${top}" y2="${top + ph}" stroke="var(--line)" stroke-opacity="0.6"/><text x="${X(t)}" y="${top + ph + 16}" text-anchor="middle">${fmtTick(t)}</text>`).join('')}
     <text x="${l0 + pw / 2}" y="${top + ph + 34}" text-anchor="middle">${escapeHtml(o.xLabel)}</text>
     <text x="${l0 + 4}" y="${top + 12}">${escapeHtml(o.yLabel)}</text>
     <defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--quiet)"/></marker></defs>
-    ${links}${dots}</svg><div class="legend">${legend}</div>`;
+    ${ghost}${links}${dots}</svg><div class="legend">${legend}</div>`;
 }
 
 // one hue, light to dark, for magnitudes (heat maps); in dark mode the darkest step is the smallest, so that small
@@ -550,6 +557,10 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
   start?: { yaw: number; pitch: number };
   /** the extent of every axis (the same for views to be compared at one scale); by default the points' own */
   range?: number;
+  /** how solid the points and lines are, 0 to 1 (1 by default): less, for marks to stand out against them */
+  fade?: number;
+  /** marks drawn over everything, in order: an open ring or a solid dot */
+  marks?: { at: number[]; color: string; ring?: boolean }[];
 }): void {
   const c = canvas as HTMLCanvasElement & { view?: { yaw: number; pitch: number }; data?: typeof o; bound?: boolean };
   c.view = o.fixed ?? o.group ?? c.view ?? { ...(o.start ?? { yaw: -0.6, pitch: 0.45 }) };
@@ -585,7 +596,7 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
       g.fillText(d.axes[i], p1.sx + 4, p1.sy - 4);
     });
     if (d.lines) {
-      g.globalAlpha = 0.75;
+      g.globalAlpha = 0.75 * (d.fade ?? 1);
       // one path per color, so a color per line costs no more than one color for all
       const byColor = new Map<string, number[]>();
       d.lines.from.forEach((_, k) => {
@@ -607,9 +618,24 @@ export function cloud3d(canvas: HTMLCanvasElement, o: {
     const dots = d.sets.flatMap((s) => s.pts.map((p, i) => ({ ...project(p[0], p[1], p[2]), color: paint(s.colors?.[i] ?? s.color), r: s.dot ?? r })));
     dots.sort((a, b) => b.depth - a.depth);
     g.strokeStyle = ink; g.lineWidth = 0.6;
+    g.globalAlpha = d.fade ?? 1;
     for (const p of dots) {
       g.fillStyle = p.color; g.beginPath(); g.arc(p.sx, p.sy, p.r, 0, 2 * Math.PI); g.fill();
       if (d.outline) g.stroke();
+    }
+    g.globalAlpha = 1;
+    // each mark on a band of the page's color, so that it shows over the points
+    const page = css.getPropertyValue('--bg').trim() || '#ffffff';
+    for (const m of d.marks ?? []) {
+      const p = project(m.at[0], m.at[1], m.at[2]), color = paint(m.color);
+      g.beginPath(); g.arc(p.sx, p.sy, m.ring ? 7.5 : 4.5, 0, 2 * Math.PI);
+      if (m.ring) {
+        g.strokeStyle = page; g.lineWidth = 4.5; g.stroke();
+        g.strokeStyle = color; g.lineWidth = 2.2; g.stroke();
+      } else {
+        g.strokeStyle = page; g.lineWidth = 2; g.stroke();
+        g.fillStyle = color; g.fill();
+      }
     }
     g.fillStyle = ink;
     g.fillText(still ? 'no shift: every point at the origin' : `each axis ±${fmtTick(R)}`, 6, h - 6);

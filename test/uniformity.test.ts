@@ -66,3 +66,13 @@ test('the object-color solid holds every Munsell chip, under C and under F11', (
     assert.equal(crossSection(slices, 50).length, 2 * 81 * 8);
   }
 });
+
+// The chroma measures of section 2: a ring's relative spread, and how evenly chroma grows along a spoke.
+test('relative spread and step evenness', async () => {
+  const { relativeSpread, stepEvenness } = await import('../web/labs/hue.ts');
+  assert.equal(relativeSpread([10, 10, 10]), 0);
+  assert.ok(Math.abs(relativeSpread([9, 11]) - 10) < 1e-12);
+  assert.equal(stepEvenness([2, 4, 6], [3, 6, 9]), 0);
+  assert.ok(Math.abs(stepEvenness([2, 4, 6], [2, 6, 8]) - 100 / 3) < 1e-12);
+  assert.ok(Number.isNaN(stepEvenness([2, 4], [1, 2])));
+});
