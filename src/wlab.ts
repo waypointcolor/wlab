@@ -53,3 +53,35 @@ export function wlabToWpt(wlab: Vec3): Vec3 {
 export function deltaEWlab(a: Vec3, b: Vec3): number {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
+
+// LSWLab, the large-scale WLab of the thesis (M. W. Derhak, 2015, the chapter on WLab and the appendix on its
+// conversions): WLab's chroma comes from the ΔE94 chroma term, which counts differences between vivid colors as smaller;
+// LSWLab keeps WLab's hue-specific chroma correction and undoes the mean one, so that chroma is counted as ΔE*ab counts
+// it, and then scales chroma by LS_SCALE so that its distances read like ΔE*ab in size too. Lightness and hue are WLab's.
+
+/** The mean chroma correction that LSWLab undoes: d0 and d1 of the thesis. */
+export const LS_D0 = 24.9523;
+export const LS_D1 = 0.1104;
+/**
+ * LSWLab's chroma scale: 2.2, between the fits of LSWLab chroma to CIELAB chroma (2.25) and of ΔE_LSWLab to ΔE*ab
+ * (2.16) over the corrected Munsell colors, CIE 1931 under C. The thesis's own form is the scale 1.
+ */
+export const LS_SCALE = 2.2;
+
+/** WLab [Lw, aw, bw] to LSWLab; `scale` 1 gives the thesis's form. */
+export function wlabToLswlab(wlab: Vec3, scale = LS_SCALE): Vec3 {
+  const [lw, cw, h] = toPolar(wlab);
+  return fromPolar([lw, scale * 80 * (Math.exp(cw / LS_D0 + Math.log(LS_D1)) - LS_D1), h]);
+}
+
+/** LSWLab back to WLab; the exact inverse of wlabToLswlab for the same `scale`. */
+export function lswlabToWlab(lswlab: Vec3, scale = LS_SCALE): Vec3 {
+  const [l, c, h] = toPolar(lswlab);
+  return fromPolar([l, LS_D0 * (Math.log(c / scale / 80 + LS_D1) - Math.log(LS_D1)), h]);
+}
+
+/** Wpt to LSWLab, through WLab. */
+export const wptToLswlab = (wpt: Vec3, scale = LS_SCALE): Vec3 => wlabToLswlab(wptToWlab(wpt), scale);
+
+/** ΔE_LSWLab: the straight-line distance between two LSWLab values. */
+export const deltaELswlab = deltaEWlab;

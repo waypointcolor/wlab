@@ -43,6 +43,7 @@ const pages = [
   { entry: 'web/labs/lighting.ts', template: 'web/labs/lighting.template.html', out: 'web/labs/lighting.html' },
   { entry: 'web/labs/uniformity.ts', template: 'web/labs/uniformity.template.html', out: 'web/labs/uniformity.html' },
   { entry: 'web/labs/bench.ts', template: 'web/labs/bench.template.html', out: 'web/labs/bench.html' },
+  { entry: 'web/labs/large-small.ts', template: 'web/labs/large-small.template.html', out: 'web/labs/large-small.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();

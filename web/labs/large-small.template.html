@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Large and small color differences</title>
+<!--FAVICON-->
+<meta name="description" content="WLab, whose distances read like ΔE00 for small differences between near matches, beside its large-scale form LSWLab, whose distances read like ΔE*ab for large steps: the Munsell colors in each, and their differences from neighbors to far apart.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Large and small color differences</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Large and small color differences</h1></div>
+  <p class="lead">Two colors can be judged a small step apart by one kind of judgment and a larger one by another. People
+  comparing near matches side by side, and people laying out even steps along a scale, do not agree on how far apart
+  vivid colors are. This page sets WLab, shaped for the first, beside its large-scale form, LSWLab, shaped for the
+  second, and shows where the two part.</p>
+  <p><a href="start.html#wlab">WLab</a> is shaped so that a straight-line distance in it, ΔE<sub>WLab</sub>, reads like
+  ΔE<sub>00</sub>: the color differences of near matches. Large-scale WLab (LSWLab) keeps WLab's lightness and hue and
+  changes only its chroma, so that a straight-line distance, ΔE<sub>LSWLab</sub>, reads like ΔE*<sub>ab</sub>, the
+  plain distance in CIELAB, whose even steps are closer to how large steps are judged. Both are built on Wpt, so both
+  describe the material and carry across lights and observers; every other lab uses WLab. An
+  <a href="start.html#condition">observing condition</a> (hereafter "condition") is an observer under a light; CIELAB
+  values below are the chosen condition's, with its white.</p>
+  <div class="row">
+    <label>Observer <select id="observer" autocomplete="off"></select></label>
+    <label>Light <select id="light" autocomplete="off"></select></label>
+  </div>
+
+  <h2>1. Two kinds of "equal"</h2>
+  <div class="card">
+    <p>Color differences of near matches are smaller, for the same distance in CIELAB, between vivid colors than
+    between dull ones: ΔE94 and ΔE<sub>00</sub> divide a chroma difference by 1 + 0.045 C*. WLab builds that into its
+    chroma, a logarithm of Wpt's chroma whose strength depends on hue, so that a straight line in it does what those
+    formulas do with weights. Even steps along a scale, as in the Munsell system, follow chroma more nearly in
+    proportion, as ΔE*<sub>ab</sub> counts it, with no weighting.</p>
+    <p>LSWLab keeps the part of WLab's chroma correction that depends on hue, undoes the average logarithm, and scales
+    chroma by 2.2 so that its distances are the size of ΔE*<sub>ab</sub>'s. Its form without the scale, the scale 1, is
+    the original definition; the scale is fitted here over the corrected Munsell colors, CIE 1931 under C (2.25 from
+    chroma, 2.16 from differences), and changes the size of LSWLab's chroma, not its shape.</p>
+    <div class="cols" id="curves"></div>
+    <p class="note">Chroma in WLab (solid) and in LSWLab (dashed) against chroma in Wpt, at a lightness L<sub>w</sub> of
+    50, for four hues, each out to the most vivid of the corrected Munsell colors of Value 5 within 20° of its hue in
+    this condition.</p>
+  </div>
+
+  <h2>2. The Munsell colors in WLab, LSWLab and CIELAB</h2>
+  <div class="card">
+    <p>The corrected Munsell colors of one Value: each Hue's chips joined from gray outward (a spoke), each Chroma's
+    chips joined round the circle (a ring). Munsell's Chromas were laid out as even steps, judged by eye, and each ring as
+    one color strength whatever the Hue. In WLab the rings crowd toward the outside; in LSWLab they keep their spacing.</p>
+    <div class="row"><label>Value <select id="value" autocomplete="off"></select></label></div>
+    <div id="munSummary"></div>
+    <div class="cols" id="munPlots"></div>
+    <p class="note">Rings: the RMS of each ring's chroma about its mean, in percent of the mean; 0% is a ring at one
+    chroma all the way round. Steps: how evenly chroma grows from chip to chip along each Hue, the RMS of the chroma
+    gained per step of Munsell Chroma, in percent of its mean; 0% is even steps. Hue: the RMS of hue angle along each
+    Hue (WLab and LSWLab share hue). Each is a mean over the rings or Hues; both percentages are relative, so the spaces'
+    sizes do not enter.</p>
+  </div>
+
+  <h2>3. Differences, from neighbors to far apart</h2>
+  <div class="card">
+    <p>Pairs of the corrected Munsell colors, measured four ways: neighbors, one Munsell step apart (2 in Chroma, one of
+    the 40 Hues, or 1 in Value), and random pairs from across the whole set. STRESS says how far one set of differences
+    is from being in proportion to another: 0 when they are, larger the more they disagree. The scale is the factor
+    between them (1 when they are the same size).</p>
+    <div id="stressTable"></div>
+    <div class="cols" id="pairPlots"></div>
+    <p class="note">Random pairs. Left and middle: each space's differences against the formula it is shaped to follow,
+    with the line where they are equal. Below: ΔE<sub>LSWLab</sub> against ΔE<sub>WLab</sub>, each pair colored by how
+    vivid it is (its mean CIELAB chroma): dull pairs fade into the page and vivid ones stand out. The two agree for dull
+    pairs and part as the colors get more vivid.</p>
+  </div>
+
+  <h2>4. Which to reach for</h2>
+  <div class="card">
+    <table class="words">
+      <thead><tr><th>The question</th><th>Reach for</th><th>Its distances read like</th></tr></thead>
+      <tbody>
+        <tr><td>How far is a sample from its standard? Does a near match pass? How far does a match part under another
+          light or for another viewer?</td><td>WLab</td><td>ΔE<sub>00</sub>, for small differences</td></tr>
+        <tr><td>How evenly are the steps of a palette, a scale or a color order spaced? How far apart are the colors of
+          a collection?</td><td>LSWLab</td><td>ΔE*<sub>ab</sub>, for large steps</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Each was fitted to its own kind of judgment, and neither replaces the other. Both describe the
+    material, so either one's distances can be taken between colors measured under different lights and by different
+    observers.</p>
+  </div>
+
+  <footer>
+    <p>Wpt and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color
+    Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
+    40(6), 2015). LSWLab: M. W. Derhak, <i>Spectrally Based Material Color Equivalency: Modeling and Manipulation</i>,
+    PhD dissertation, Rochester Institute of Technology, 2015, with its chroma scaled here by 2.2. Built on
+    <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed in this page. The
+    corrected Munsell colors: measurements © University of Eastern Finland; corrected by Derhak and Berns (2012). CIE data
+    CC BY-SA 4.0. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL database) come
+    from Psychtoolbox-3, MIT license (its notice is in this page's source and in <code>wlab</code>'s
+    LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>
