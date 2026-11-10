@@ -9,7 +9,7 @@ import {
 } from '../src/index.ts';
 import { responder } from '../src/spectra.ts';
 import {
-  adjust, cloudsOf, copyEntry, grayMetamers, graysWithBlack, hueTurn, materialsOf, metamericBlack, observePair, NormalizationCache, pairIndices, pairsOf, readMaterials, shiftShares, summary, syncEntries, writeMaterials, type ObservingCondition,
+  adjust, characteristicReflectance, cloudsOf, copyEntry, grayMetamers, graysWithBlack, hueTurn, materialsOf, metamericBlack, observePair, NormalizationCache, ohsi, pairIndices, pairsOf, readMaterials, shiftShares, summary, syncEntries, writeMaterials, type ObservingCondition,
 } from '../web/labs/shifts.ts';
 
 const close = (a: readonly number[], b: readonly number[], tol: number) =>
@@ -218,4 +218,18 @@ test('shifts turned to the hue: chroma out from neutral, hue toward a larger ang
   assert.ok(Math.abs(s.lightness + s.chroma! + s.hue! - 1) < 1e-12);
   assert.ok(Math.abs(s.chroma! + s.hue! - s.chromaAndHue) < 1e-12);
   assert.equal(shiftShares(gray), undefined);
+});
+
+// OHSI: the MMOCD of the pair's characteristic reflectances, (R - min) / (max - min)
+test('characteristic reflectances and OHSI: 0 for a scaled and shifted copy, not for another hue', () => {
+  const r = material('5R 5/10').reflectance, c = characteristicReflectance(r);
+  assert.ok(Math.abs(Math.min(...c)) < 1e-12 && Math.abs(Math.max(...c) - 1) < 1e-12);
+  close(characteristicReflectance(adjust(r, 0.6, 0.1)), c, 1e-12);
+  assert.ok(characteristicReflectance(r.map(() => 0.4)).every((v) => v === 0));
+  const ref = wptNormalizationN('cie1931', 'C'), norms = [wptNormalizationN('cie1931', 'A'), wptNormalizationN('cie1964', 'F11')];
+  const mats = [material('5R 5/10'), { name: 'copy', reflectance: adjust(r, 0.6, 0.1) }, material('5G 5/8')];
+  const chars = cloudsOf(mats.map((m) => ({ ...m, reflectance: characteristicReflectance(m.reflectance) })), norms, ref);
+  const [same, other] = pairsOf(cloudsOf(mats, norms, ref), [[0, 1], [0, 2]]);
+  assert.ok(ohsi(chars, same) < 1e-9);
+  assert.ok(ohsi(chars, other) > 5);
 });

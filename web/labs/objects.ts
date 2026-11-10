@@ -18,7 +18,7 @@ import {
   $, cloud3d, download, escapeHtml, histogram, LIGHT_LABEL, OBSERVER_LABEL, optIn, parseTable, scatter, spectrumPlot, viewGroup, type ViewGroup,
 } from './kit.ts';
 import {
-  cloudsOf, copyEntry, grayMetamers, graysWithBlack, hueTurn, materialsOf, NormalizationCache, observePair, pairIndices, pairsOf, readMaterials, shiftShares, summary, syncEntries, writeMaterials,
+  characteristicReflectance, cloudsOf, copyEntry, grayMetamers, graysWithBlack, hueTurn, materialsOf, NormalizationCache, observePair, ohsi, pairIndices, pairsOf, readMaterials, shiftShares, summary, syncEntries, writeMaterials,
   type Cloud, type Entry, type Layout, type Material, type ObservingCondition, type PairMode, type PairResult,
 } from './shifts.ts';
 import { CAMERAS, camerasNow, retryCameras } from './cameras.ts';
@@ -222,13 +222,15 @@ async function update(force: boolean): Promise<void> {
   if (id !== run) return;
   const ref = referenceCondition();
   const clouds = cloudsOf(materials, norms, cache.get(ref));
+  // the clouds of every material's characteristic reflectance, for OHSI
+  const characteristic = cloudsOf(materials.map((m) => ({ ...m, reflectance: characteristicReflectance(m.reflectance) })), norms, cache.get(ref));
   status('progress', missing ? `Normalized ${missing} new conditions in ${((performance.now() - t0) / 1000).toFixed(2)} s.` : '');
   if (missing) status('count', `${obs.length} observer${obs.length === 1 ? '' : 's'} × ${lights.length} light${lights.length === 1 ? '' : 's'} = ${conds.length} observing condition${conds.length === 1 ? '' : 's'}, all normalized.`);
   $('count').className = 'count';
   $('compute').hidden = true;
   showMaterials(clouds, conds, ref);
   showManifolds(clouds, conds);
-  showPairs(clouds, conds, ref);
+  showPairs(clouds, characteristic, conds, ref);
 }
 
 function showMaterials(clouds: Cloud[], conds: ObservingCondition[], ref: ObservingCondition): void {
@@ -246,7 +248,7 @@ function showMaterials(clouds: Cloud[], conds: ObservingCondition[], ref: Observ
   }).join('');
   $('table').innerHTML = `<table><thead>
     <tr><th></th><th></th><th class="sep" colspan="3">In the reference condition</th><th class="sep" colspan="4">ΔE<sub>WLab</sub> from the reference, over the conditions</th><th class="sep" colspan="3">Where the shifts go</th></tr>
-    <tr><th>Name</th><th>Color</th><th class="sep">L<sub>w</sub></th><th>a<sub>w</sub></th><th>b<sub>w</sub></th><th class="sep">mean</th><th>median</th><th>largest</th><th>where it is largest</th><th class="sep">lightness</th><th>chroma</th><th>hue</th></tr>
+    <tr><th>Name</th><th>Color</th><th class="sep">L<sub>w</sub></th><th>a<sub>w</sub></th><th>b<sub>w</sub></th><th class="sep">mean (MOII)</th><th>median</th><th>largest</th><th>where it is largest</th><th class="sep">lightness</th><th>chroma</th><th>hue</th></tr>
     </thead><tbody>${rows}</tbody></table>`;
   const n = (v: number) => v.toFixed(4);
   pointsCsv = () => [['material', 'observer', 'light', 'W', 'p', 't', 'Lw', 'aw', 'bw', 'dW', 'dp', 'dt', 'dLw', 'daw', 'dbw', 'dCw_turned', 'dHw_turned', 'DeltaE_WLab_from_reference'].join(','),
@@ -401,7 +403,7 @@ function showManifolds(clouds: Cloud[], conds: ObservingCondition[]): void {
     + (turned && shown.some((cl) => !turns.get(cl)) ? ' A material with no chroma in the reference condition (a gray, or a metamer of one) has no hue to turn to: it is shown in Δa_w and Δb_w.' : '');
 }
 
-function showPairs(clouds: Cloud[], conds: ObservingCondition[], ref: ObservingCondition): void {
+function showPairs(clouds: Cloud[], characteristic: Cloud[], conds: ObservingCondition[], ref: ObservingCondition): void {
   const mode = $<HTMLSelectElement>('pairMode').value as PairMode;
   const results = pairsOf(clouds, pairIndices(clouds.length, mode));
   if (!results.length) {
@@ -414,16 +416,16 @@ function showPairs(clouds: Cloud[], conds: ObservingCondition[], ref: ObservingC
   const refAmong = conds.some((c) => where(c) === where(ref));
   $('pairsSummary').textContent = `${results.length} pair${results.length === 1 ? '' : 's'}, in ${conds.length} observing condition${one ? '' : 's'} and in the reference (${where(ref)})${refAmong ? ', which is also one of them' : ''}.`;
   const head = one
-    ? `<th class="sep">in the reference</th><th class="sep">in ${escapeHtml(where(conds[0]))}</th>`
-    : `<th class="sep">in the reference</th><th class="sep">mean</th><th>median</th><th class="sep">smallest</th><th>where it is smallest</th><th class="sep">largest</th><th>where it is largest</th>`;
+    ? `<th class="sep">in the reference</th><th class="sep">in ${escapeHtml(where(conds[0]))}</th><th class="sep">OHSI</th>`
+    : `<th class="sep">in the reference</th><th class="sep">mean (MMOCD)</th><th>median</th><th class="sep">smallest (OMI)</th><th>where it is smallest</th><th class="sep">largest</th><th>where it is largest</th><th class="sep">OHSI</th>`;
   const rows = results.map((r) => {
     const cells = one
       ? `<td class="sep">${f2(r.refDE)}</td><td class="sep">${f2(r.dE[0])}</td>`
       : (() => { const s = summary(r.dE); return `<td class="sep">${f2(r.refDE)}</td><td class="sep">${f2(s.mean)}</td><td>${f2(s.median)}</td><td class="sep">${f2(s.min)}</td><td class="where">${whereSmallest(r.dE, s, conds)}</td><td class="sep">${f2(s.max)}</td><td class="where">${whereLargest(s, conds)}</td>`; })();
-    return `<tr><td>${escapeHtml(name(r.a))}</td><td>${escapeHtml(name(r.b))}</td><td>${chip(clouds[r.a].refWlab)}${chip(clouds[r.b].refWlab)}</td>${cells}</tr>`;
+    return `<tr><td>${escapeHtml(name(r.a))}</td><td>${escapeHtml(name(r.b))}</td><td>${chip(clouds[r.a].refWlab)}${chip(clouds[r.b].refWlab)}</td>${cells}<td class="sep">${f2(ohsi(characteristic, r))}</td></tr>`;
   }).join('');
   $('pairsTable').innerHTML = `<table><thead>
-    <tr><th></th><th></th><th></th><th class="sep" colspan="${one ? 2 : 7}">ΔE<sub>WLab</sub> between the two</th></tr>
+    <tr><th></th><th></th><th></th><th class="sep" colspan="${one ? 2 : 7}">ΔE<sub>WLab</sub> between the two</th><th class="sep">Hue similarity</th></tr>
     <tr><th>First</th><th>Second</th><th>Colors</th>${head}</tr></thead><tbody>${rows}</tbody></table>`;
   const shown = results.slice(0, 6);
   $('pairsHist').innerHTML = one ? '<p class="note">With one condition, the table says it all.</p>' : histogram(

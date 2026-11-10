@@ -276,6 +276,26 @@ export function observePair(clouds: Cloud[], pair: PairResult): PairObservation 
   };
 }
 
+/**
+ * A reflectance's characteristic reflectance: the reflectance rescaled to run from 0 to 1, (R − min) / (max − min).
+ * Every scaled and shifted copy of a reflectance (a > 0) has the same one. A flat reflectance (a gray) has none, and is
+ * given 0 everywhere, as where these metrics were introduced.
+ */
+export function characteristicReflectance(r: Spectrum): Spectrum {
+  const lo = Math.min(...r), hi = Math.max(...r);
+  return hi - lo < 1e-9 ? r.map(() => 0) : r.map((v) => (v - lo) / (hi - lo));
+}
+
+/**
+ * OHSI, the Object Hue Similarity Index of a pair: the mean, over the conditions, of ΔE_WLab between the two materials'
+ * characteristic reflectances (their MMOCD). `characteristic` holds the clouds of every material's characteristic
+ * reflectance, in the same order and conditions as the materials'. 0 when one is a scaled and shifted copy of the other.
+ */
+export function ohsi(characteristic: Cloud[], pair: PairResult): number {
+  const a = characteristic[pair.a].points, b = characteristic[pair.b].points;
+  return a.reduce((s, p, k) => s + deltaEWlab(p.wlab, b[k].wlab), 0) / a.length;
+}
+
 /** Mean, median, smallest and largest of a list, with where the smallest and largest are. */
 export function summary(v: number[]): { mean: number; median: number; min: number; argmin: number; max: number; argmax: number } {
   const sorted = [...v].sort((x, y) => x - y), n = v.length;

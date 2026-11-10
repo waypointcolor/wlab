@@ -121,8 +121,9 @@
     <div id="table" class="table-wrap"></div>
     <p class="note">ΔE<sub>WLab</sub> from the reference: the WLab difference between the material in each condition and
     the same material in the reference condition. Small for most materials; larger for those whose color depends more
-    on the light and the observer (color inconstancy). The chips show each material in the reference condition, as the
-    display color (sRGB) of its WLab, clipped where outside sRGB.</p>
+    on the light and the observer (color inconstancy). The mean is the material's Mean Object Inconstancy Index (MOII).
+    The chips show each material in the reference condition, as the display color (sRGB) of its WLab, clipped where
+    outside sRGB.</p>
     <p class="note">Where the shifts go: each WLab shift split into a change in lightness (ΔL<sub>w</sub>), a change in
     chroma (ΔC′, along the material's own chroma direction in the reference condition: more or less colorful) and a
     change in hue (ΔH′, across it). The three are at right angles, so ΔL<sub>w</sub>² + ΔC′² + ΔH′² =
@@ -191,6 +192,19 @@
     reference for the grays), so the other values show how well a match made in one condition holds up in the rest.
     With one light and one observer chosen beside the reference, the table is a simple index of metamerism: a pair
     that matches in the reference condition, and how far apart it is in the other.</p>
+    <p class="note">The metrics by name, as they were defined with Wpt shift manifolds. The mean is the Mean Metameric
+    Object Color Difference (MMOCD): 0 only when the two spectra are the same. The smallest is the Object Metamer Index
+    (OMI): 0 when the pair is metameric in at least one of the conditions chosen above, so a metamer here is always a
+    metamer for one of these conditions. The Object Hue Similarity Index (OHSI) compares the two materials'
+    characteristic reflectances, each reflectance rescaled to run from 0 to 1, (R − min) / (max − min): it is their
+    MMOCD, 0 when one material is a scaled and shifted copy of the other, as in one spectral hue plane. A flat
+    reflectance (a gray) has a characteristic reflectance of 0 everywhere, so OHSI is large between a gray and any
+    material that is not flat.</p>
+    <p class="note">In practice exact metamers are rare: a pair made to match comes close rather than exactly. Such near
+    metamers are called paramers, and where OMI was defined, a pair with OMI of 1 or less is read as paramers,
+    following the common practice of taking a ΔE<sub>00</sub> of 1 or less as not noticeable. That threshold is a
+    convention: it is not argued here from psychophysics or from trade tolerances, and the page does not label pairs
+    by it; the numbers are given for you to read.</p>
     <h3>What each pair has in common</h3>
     <div id="pairsObs" class="table-wrap"></div>
     <p class="note">How to read it: each column asks a question about the pair, and its number answers it: 0 when the
