@@ -27,6 +27,8 @@ const LIGHT_LABEL: Record<LightName, string> = {
   'LED-V1': 'LED-V1, violet-pumped phosphor white LED, about 2700 K',
   'LED-V2': 'LED-V2, violet-pumped phosphor white LED, about 4100 K',
   'RGB-D65': 'RGB-D65, an RGB LED mixed to D65\'s white (not a standard)',
+  'Thouslite-D65': 'Thouslite-D65, a measured viewing-booth light simulating D65 (6505 K)',
+  'Thouslite-D50': 'Thouslite-D50, a measured viewing-booth light simulating D50 (5017 K)',
 };
 
 const lights: Lights = Object.fromEntries(Object.keys(LIGHT_LABEL).map((k) => [LIGHT_LABEL[k as LightName], LIGHTS[k as LightName]]));

@@ -11,7 +11,7 @@ import {
   resample, wlabToRgb, type IlluminantName, type Observer, type ObserverName, type Spectrum, type Vec3,
   type WptNormalizationN,
 } from '../../src/index.ts';
-import { LIGHTS, RGB_D65, type LightName } from './lights.ts';
+import { EXTRA_LIGHTS, LIGHTS, type LightName } from './lights.ts';
 import { pairs as demoPairs } from '../demo-data.ts';
 import { example as brandRed } from '../example.ts';
 import {
@@ -48,7 +48,7 @@ let entries: Entry[] = [];
 
 interface Choice { value: string; label: string; checked?: boolean }
 const LIGHT_CHOICES: Choice[] = [
-  ...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => ({ value: k, label: LIGHT_LABEL[k], checked: k !== RGB_D65 })),
+  ...(Object.keys(LIGHT_LABEL) as LightName[]).map((k) => ({ value: k, label: LIGHT_LABEL[k], checked: !EXTRA_LIGHTS.includes(k) })),
   { value: 'candle', label: 'Candlelight (Planckian, 1850 K)' },
   { value: 'daylightSeries', label: 'CIE daylight from 4000 to 10000 K, every 500 K (13 lights)' },
   { value: 'planckianSeries', label: 'Planckian from 2000 to 6500 K, every 500 K (10 lights)' },

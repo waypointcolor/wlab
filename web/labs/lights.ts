@@ -1,8 +1,10 @@
 // The site's lights: the CIE illuminants and LED lights of `wlab`, and one light that is not a standard, RGB-D65, an
 // RGB LED mixed to D65's white, for comparison: to the CIE 1931 observer it has the same white point as D65 (and the
-// same luminance), from three narrow peaks in place of daylight's smooth spectrum.
+// same luminance), from three narrow peaks in place of daylight's smooth spectrum. And two measured booth lights by
+// Thouslite, simulating D65 and D50: real lights made to stand in for the CIE's daylight illuminants.
 
 import { illuminants, inv3, mulMV, observers, wavelengths, type IlluminantName, type Mat3, type Observer, type Spectrum, type Vec3 } from '../../src/index.ts';
+import { THOUSLITE_D50, THOUSLITE_D65 } from './thouslite-data.ts';
 
 /** The RGB LED's three peaks: blue, green and red, each with its full width at half its height, in nm. */
 export const RGB_LED_PEAKS = [{ peak: 455, width: 20 }, { peak: 530, width: 35 }, { peak: 630, width: 18 }] as const;
@@ -30,7 +32,12 @@ export function rgbLed(observer: Observer, white: Spectrum): Spectrum {
 
 /** The name of the RGB LED mixed to D65's white. */
 export const RGB_D65 = 'RGB-D65';
-/** A light the site offers: a CIE illuminant or LED light, or RGB-D65. */
-export type LightName = IlluminantName | typeof RGB_D65;
+/** Two measured booth lights by Thouslite, made to simulate D65 and D50 (see DATA.md). */
+export const BOOTH_LIGHTS = { 'Thouslite-D65': THOUSLITE_D65, 'Thouslite-D50': THOUSLITE_D50 } as const satisfies Record<string, Spectrum>;
+export type BoothLightName = keyof typeof BOOTH_LIGHTS;
+/** A light the site offers: a CIE illuminant or LED light, RGB-D65, or a measured booth light. */
+export type LightName = IlluminantName | typeof RGB_D65 | BoothLightName;
+/** Lights that are not CIE illuminants, which pages leave unchecked by default. */
+export const EXTRA_LIGHTS: readonly LightName[] = [RGB_D65, ...(Object.keys(BOOTH_LIGHTS) as BoothLightName[])];
 /** Every light the site offers, by name; RGB-D65 is mixed for the CIE 1931 observer. */
-export const LIGHTS: Record<LightName, Spectrum> = { ...illuminants, [RGB_D65]: rgbLed(observers.cie1931, illuminants.D65) };
+export const LIGHTS: Record<LightName, Spectrum> = { ...illuminants, [RGB_D65]: rgbLed(observers.cie1931, illuminants.D65), ...BOOTH_LIGHTS };

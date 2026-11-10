@@ -1,6 +1,7 @@
 // The object library: the sets of reflectances the labs compute their metrics over, each with where it comes from,
 // what it is for and its license. The corrected Munsell colors are built into the package, and the CIE's 99 color
-// evaluation samples (those of TM-30-18), its 14 test color samples (of the color rendering index), the PMCC and the
+// evaluation samples (those of TM-30-18), its 14 test color samples (of the color rendering index), the PMCC, the
+// ColorChecker Digital SG and the
 // natural objects measured in Japan into the pages (with
 // the Munsell colors, the default objects); the others are in data/objects/, one JSON file per set, and
 // are loaded only when chosen. The pages bundle the index of every set (data/objects/sets.json, written by the build
@@ -11,6 +12,7 @@ import ces99 from '../../data/objects/cie-ces99.json' with { type: 'json' };
 import tcs14 from '../../data/objects/cie-tcs14.json' with { type: 'json' };
 import natural from '../../data/objects/morimoto-natural-objects.json' with { type: 'json' };
 import pmcc from '../../data/objects/pmcc.json' with { type: 'json' };
+import ccsg from '../../data/objects/colorchecker-sg.json' with { type: 'json' };
 import index from '../../data/objects/sets.json' with { type: 'json' };
 import { loadData } from './fetchdata.ts';
 
@@ -47,7 +49,7 @@ export function decodeSet(f: SetFile): Objects {
 
 // the sets built into the pages, by id: no loading
 const BUILT_IN: Record<string, SetFile> = {
-  'cie-ces99': ces99 as SetFile, 'cie-tcs14': tcs14 as SetFile, pmcc: pmcc as SetFile, 'morimoto-natural-objects': natural as SetFile,
+  'cie-ces99': ces99 as SetFile, 'cie-tcs14': tcs14 as SetFile, pmcc: pmcc as SetFile, 'colorchecker-sg': ccsg as SetFile, 'morimoto-natural-objects': natural as SetFile,
 };
 const fromIndex = (m: SetMeta): ObjectSet => {
   const own = BUILT_IN[m.id];
@@ -93,7 +95,7 @@ const munsellReduced: ObjectSet = {
   },
 };
 
-const ORDER = ['cie-ces99', 'cie-tcs14', 'pmcc', 'morimoto-natural-objects', 'nist-skin', 'munsell-soil-chart'];
+const ORDER = ['cie-ces99', 'cie-tcs14', 'pmcc', 'colorchecker-sg', 'morimoto-natural-objects', 'nist-skin', 'munsell-soil-chart'];
 const rank = (id: string) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
 
 /** Every set in the library, the built-in ones first. */

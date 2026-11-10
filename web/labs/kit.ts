@@ -65,6 +65,8 @@ export const LIGHT_LABEL: Record<LightName, string> = {
   'LED-V1': 'LED-V1 (violet-pumped phosphor white, about 2700 K)',
   'LED-V2': 'LED-V2 (violet-pumped phosphor white, about 4100 K)',
   'RGB-D65': 'RGB-D65 (an RGB LED mixed to D65\'s white; not a standard)',
+  'Thouslite-D65': 'Thouslite-D65 (a measured viewing-booth light simulating D65, 6505 K)',
+  'Thouslite-D50': 'Thouslite-D50 (a measured viewing-booth light simulating D50, 5017 K)',
 };
 
 const SENSOR_COLORS = ['#c0306a', '#1f8a5b', '#2f74c0', '#8a6d00', '#7a3fb0', '#c2570c', '#2f8f9f'];

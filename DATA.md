@@ -50,7 +50,8 @@ made, the names and categories of its objects, and their reflectances on the pac
 integers at 1/10000 (base64). `sets.json` indexes them (each set's metadata, without its data): the pages bundle only
 the index, to describe every set, and `web/labs/library.ts` fetches a set's file from the site (`labs/data/objects/`,
 copied there by the web build) when it is chosen. The corrected Munsell colors are built into the package, and the
-CIE's 99 samples (those of TM-30-18), the PMCC and the natural objects into the labs' pages. Lab D's default objects
+CIE's 99 samples (those of TM-30-18), the PMCC, the ColorChecker Digital SG and the natural objects into the labs'
+pages. Lab D's default objects
 are 271 of the
 Munsell colors (those of the 2014 Wpt animations, `makeMunAnim.m`: the ten hues 10R to 10RP at every Value and Chroma
 4 to 16 in steps of 2, and the 19 neutrals; chosen from the package's set by name), the CIE's 99, the PMCC and the
@@ -67,6 +68,14 @@ these files; `index_sets.py` writes the indexes).
   [10.1002/col.22940](https://doi.org/10.1002/col.22940)), measured by Maxim W. Derhak from 380 to 730 nm at 10 nm:
   this package's own data, under the BSD 3-Clause License, as the landing page's two PMCC patches are. Interpolated
   to 5 nm, the 730 nm value held to 780 nm (written by `tools/library/pmcc_to_wlab.py`).
+- `colorchecker-sg.json`: the 140 patches of a ColorChecker Digital SG (X-Rite), measured by Roy S. Berns with a
+  Konica Minolta CM-2600d (d/8, UV included; the file does not say whether the specular component was included) from
+  380 to 730 nm at 10 nm, March 2023 (measurement file `CCSG_450_FD7_spectral.txt`). Used with his permission
+  (November 2026); ask him before reusing the data. Changed here: interpolated to 5 nm, the 730 nm value held to 780
+  nm, stored to 1/10000, and the patch in N9's place, labelled M1 in the file (as is the 13th), named N9: it is black,
+  as N9 is in the chart's border. Patches are named `SG A1` to `SG N10` (columns A to N, rows 1 to 10) and grouped as
+  the border of white, gray and black (44), the grays inside it (15) and the colors (81). Written by
+  `tools/library/ccsg_to_wlab.py`; built into the labs' pages.
 - `morimoto-natural-objects.json`: T. Morimoto, C. Zhang, K. Fukuda and K. Uchikawa, "Spectral dataset of daylights
   and surface properties of natural objects measured in Japan," version 1.2, Zenodo (2021), DOI
   [10.5281/zenodo.5217752](https://doi.org/10.5281/zenodo.5217752): 359 reflectances, as given (5 nm). CC BY 4.0.
@@ -92,6 +101,16 @@ package's grid, put in one file and rounded to 6 significant digits (written by 
 the build repository). `web/labs/cameras.ts` offers them as sensors in the labs: the pages bundle only their names
 (`cameras-index.json`) and fetch `cameras.json` from the site (`labs/data/observers/`, beside its license) when a camera
 is chosen; the web build adds the license to every page that names them.
+
+## Measured booth lights (`web/labs/thouslite-data.ts`)
+
+The spectral power of two viewing-booth lights by Thouslite, made to simulate CIE illuminants D65 and D50, measured
+from 300 to 1100 nm at 5 nm (measurement file `02267001-D65 D50.xlsx`) and supplied by M. Ronnier Luo. Used with
+his permission (November 2026). Changed here: only 380 to 780 nm kept, the package's grid, rounded to 6 significant
+digits. The file's own colorimetry is kept beside the spectra (`THOUSLITE_REPORTED`): CIE 1931 x, y of 0.31241,
+0.33130 and 0.34527, 0.35888; correlated color temperatures 6505 K and 5017 K; CIE Ra 98.9 and 98.3; visible
+metamerism indices 0.124 and 0.109. Computed from the kept range, the chromaticities agree with the file's to
+0.0001. `web/labs/lights.ts` offers them on every page as `Thouslite-D65` and `Thouslite-D50`.
 
 ## CIE data: CC BY-SA 4.0
 

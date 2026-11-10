@@ -32,6 +32,20 @@
   "scale": 10000
  },
  {
+  "id": "colorchecker-sg",
+  "title": "The ColorChecker Digital SG",
+  "description": "The 140 semi-gloss patches of a ColorChecker Digital SG, the chart made for profiling cameras: 81 colors, among them skin tones and saturated colors, 15 grays, and a border of white, gray and black repeated round the edge.",
+  "source": "A ColorChecker Digital SG (X-Rite), measured by Roy S. Berns with a Konica Minolta CM-2600d (d/8, UV included) from 380 to 730 nm at 10 nm, March 2023; used with his permission (November 2026).",
+  "doi": "",
+  "url": "https://www.xrite.com/categories/calibration-profiling/colorchecker-digital-sg",
+  "license": "used with the permission of Roy S. Berns; ask him before reusing the data",
+  "changes": "Interpolated to 5 nm, the 730 nm value held to 780 nm, stored to 1/10000; the patch in N9's place, labelled M1 in the measurement file, named N9.",
+  "wavelengths": "380 to 780 nm in 5 nm steps",
+  "count": 140,
+  "scale": 10000,
+  "file": "colorchecker-sg.json"
+ },
+ {
   "id": "morimoto-natural-objects",
   "title": "Natural objects measured in Japan",
   "description": "359 natural objects: 200 flowers, 113 leaves, 23 fruits, 6 vegetables, 8 pieces of bark and 9 stones, measured outdoors and in the laboratory by Morimoto, Zhang, Fukuda and Uchikawa. Spectra of the kind made by living things, unlike those of paints and inks.",

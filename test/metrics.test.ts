@@ -114,9 +114,14 @@ test('the object library: every set decodes to its count of reflectances on the 
     assert.ok(s.credit.length > 20 && s.license && s.description);
   }
   // built in: the Munsell colors (the 271 of the 2014 animations and all 1,600), the CIE's 99 (TM-30-18) and 14 (the
-  // color rendering index), the PMCC and the natural objects; the others are loaded
+  // color rendering index), the PMCC, the ColorChecker SG and the natural objects; the others are loaded
   assert.deepEqual(OBJECT_SETS.filter((s) => s.builtIn).map((s) => s.id),
-    ['munsell271', 'munsell1600', 'cie-ces99', 'cie-tcs14', 'pmcc', 'morimoto-natural-objects']);
+    ['munsell271', 'munsell1600', 'cie-ces99', 'cie-tcs14', 'pmcc', 'colorchecker-sg', 'morimoto-natural-objects']);
+  // the ColorChecker SG: 140 patches, A1 to N10, the border white, gray and black (N9, labelled M1 in the file, black)
+  const sg = await objectsOf(['colorchecker-sg']), at = (id: string) => sg.reflectances[sg.names.indexOf(`SG ${id}`)];
+  assert.equal(sg.names.length, 140);
+  assert.equal(new Set(sg.names).size, 140);
+  assert.ok(at('A1')[36] > 0.85 && at('B1')[36] > 0.15 && at('B1')[36] < 0.2 && at('N9')[36] < 0.02);
   // the 271: ten hues (the 10 of each family) at Chroma 4 to 16, every Value, and the 19 neutrals
   const reduced = await objectsOf(['munsell271']);
   assert.equal(reduced.reflectances.length, 271);

@@ -23,6 +23,8 @@ const LIGHTS: Record<string, Spectrum> = {
   'LED-B2 (warm white LED, about 3000 K)': illuminants['LED-B2'],
   'LED-B3 (neutral white LED, about 4100 K)': illuminants['LED-B3'],
   'RGB-D65 (an RGB LED mixed to D65\'s white; not a standard)': SITE_LIGHTS['RGB-D65'],
+  'Thouslite-D65 (a measured viewing-booth light simulating D65)': SITE_LIGHTS['Thouslite-D65'],
+  'Thouslite-D50 (a measured viewing-booth light simulating D50)': SITE_LIGHTS['Thouslite-D50'],
   'Made-up LED (greenish white, about 4400 K)': resample(madeUpLed.nm, madeUpLed.values),
 };
 const LIGHT_OF_MATCH: Record<string, string> = { D50: 'D50 (graphic arts booth)', D65: 'D65 (daylight)' };
