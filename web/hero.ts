@@ -6,7 +6,7 @@
 
 import { wlabToRgb, type Spectrum, type Vec3 } from '../src/index.ts';
 import { LIGHTS, type LightName } from './labs/lights.ts';
-import { conditionOrder, HERO_CAMERA_CREDIT, place, REFERENCE, samples, viewers, xyzCurves, type Placement, type Viewer } from './hero-data.ts';
+import { conditionOrder, place, REFERENCE, samples, viewers, xyzCurves, type Placement, type Viewer } from './hero-data.ts';
 
 const LIGHT_NAME: Partial<Record<LightName, string>> = {
   A: 'illuminant A (incandescent)', C: 'illuminant C (older daylight)', D50: 'illuminant D50 (graphic arts)', D65: 'illuminant D65 (daylight)',
@@ -164,7 +164,6 @@ export function startHero(): void {
   // the button under the animation does what a double click does: back to the view from above
   document.getElementById('heroReset')?.addEventListener('click', () => { Object.assign(view, TOP_VIEW); redraw(); });
   el('heroRefl').innerHTML = curvesPlot('The 99 samples (reflectance)', reflectances.map((r, i) => ({ values: r, color: colors[i], width: 0.8 })));
-  el('heroCredit').textContent = `The cameras: ${HERO_CAMERA_CREDIT}`;
 
   const lights = (Object.keys(LIGHTS) as LightName[]);
   const order: [Viewer, LightName][] = [[refViewer, REFERENCE.light], ...conditionOrder(vs, lights, Date.now() % 100000).map(([i, l]) => [vs[i], l] as [Viewer, LightName])];

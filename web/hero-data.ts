@@ -1,8 +1,12 @@
 // The landing page's opening animation: the 99 color evaluation samples of CIE 224 (ANSI/IES TM-30) in CIELAB and in
 // WLab, condition after condition. Pure computations, tested in test/hero.test.ts; web/hero.ts draws them.
 //
-// CIELAB needs XYZ. The CIE color-matching observers give it directly. Every other observer (the CIE's categorical
-// observers, which are cone fundamentals, and cameras) is first matched to the CIE 1931 color-matching functions: the
+// The viewers are human ones only: the CIE observers and the CIE's categorical observers. Cameras were left out (Max,
+// 2026-11-17): their sensors are not eyes, so even WLab moves more for them, which is a lesson for the Labs, not for
+// a first look.
+//
+// CIELAB needs XYZ. The CIE color-matching observers give it directly. The categorical observers, which are cone
+// fundamentals, are first matched to the CIE 1931 color-matching functions: the
 // 3 × 3 matrix that brings its curves closest to them, wavelength by wavelength (least squares), then each row scaled
 // so that the condition's white comes out as the CIE 1931 white under the same light. Each condition's CIELAB is
 // against its own white. WLab needs nothing of the kind: the Wpt normalization works on any observer's own sensors.
@@ -12,7 +16,6 @@ import {
   xyzToLab, type Mat3, type Observer, type Spectrum, type Vec3,
 } from '../src/index.ts';
 import ces99 from '../data/objects/cie-ces99.json' with { type: 'json' };
-import demoCameras from './demo-cameras.json' with { type: 'json' };
 import { LIGHTS, type LightName } from './labs/lights.ts';
 
 /** The 99 samples' names and reflectances (the set file: int16 at 1/scale, base64, 81 values per sample). */
@@ -23,19 +26,15 @@ export function samples(): { names: string[]; reflectances: Spectrum[] } {
   return { names: ces99.names, reflectances };
 }
 
-/** The credit of the cameras the animation uses (rawtoaces-data, Apache License 2.0). */
-export const HERO_CAMERA_CREDIT = `${demoCameras.source} ${demoCameras.license}. ${demoCameras.changes}`;
-
-export type ObserverKind = 'standard' | 'categorical' | 'camera';
+export type ObserverKind = 'standard' | 'categorical';
 export interface Viewer { name: string; kind: ObserverKind; observer: Observer }
 
-/** The viewers: the four CIE color-matching observers, the ten categorical observers (2°), and the bundled cameras. */
+/** The viewers: the four CIE color-matching observers and the ten categorical observers (2°). */
 export function viewers(): Viewer[] {
   const std: [keyof typeof observers, string][] = [['cie1931', 'CIE 1931 (2°)'], ['cie1964', 'CIE 1964 (10°)'], ['cie2015', 'CIE 2015 (2°)'], ['cie2015_10', 'CIE 2015 (10°)']];
   return [
     ...std.map(([k, name]) => ({ name: `${name} standard observer`, kind: 'standard' as const, observer: observers[k] })),
     ...Array.from({ length: 10 }, (_, i) => ({ name: `categorical observer ${i + 1} (typical human vision)`, kind: 'categorical' as const, observer: categoricalObserver(i + 1) })),
-    ...demoCameras.cameras.map((c) => ({ name: `${c.name} camera`, kind: 'camera' as const, observer: { name: `${c.name} (camera)`, curves: c.curves as unknown as Observer['curves'] } })),
   ];
 }
 

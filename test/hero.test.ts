@@ -1,22 +1,22 @@
-// The landing page's opening animation: the camera fit to XYZ and the samples' places in CIELAB and WLab.
+// The landing page's opening animation: the fit of cone fundamentals to XYZ and the samples' places in CIELAB and WLab.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { illuminants, observers, responses, whiteOf } from '../src/index.ts';
 import { cmfFit, conditionOrder, place, REFERENCE, samples, toXyzFor, viewers, xyzCurves } from '../web/hero-data.ts';
 
-test('the 99 samples, and the viewers: 4 standard observers, 10 categorical observers and the bundled cameras', () => {
+test('the 99 samples, and the viewers: 4 standard observers and 10 categorical observers, no cameras', () => {
   const s = samples();
   assert.equal(s.reflectances.length, 99);
   assert.ok(s.reflectances.every((r) => r.length === 81 && r.every((v) => v >= 0 && v <= 1.2)));
   const vs = viewers();
   assert.deepEqual([vs.filter((v) => v.kind === 'standard').length, vs.filter((v) => v.kind === 'categorical').length], [4, 10]);
-  assert.ok(vs.filter((v) => v.kind === 'camera').length >= 6);
+  assert.equal(vs.length, 14);
 });
 
-test('the fit to the CIE 1931 color-matching functions: exact for the CIE 1931 observer, white kept exactly for a camera', () => {
+test('the fit to the CIE 1931 color-matching functions: exact for the CIE 1931 observer, white kept exactly for cones', () => {
   const m = cmfFit(observers.cie1931);
   m.forEach((row, i) => row.forEach((v, j) => assert.ok(Math.abs(v - (i === j ? 1 : 0)) < 1e-9)));
-  const cam = viewers().find((v) => v.kind === 'camera')!;
+  const cam = viewers().find((v) => v.kind === 'categorical')!;
   const xyz = toXyzFor(cam.observer, illuminants.A)(new Array(81).fill(1)), white = whiteOf(observers.cie1931, illuminants.A);
   xyz.forEach((v, i) => assert.ok(Math.abs(v - white[i]) < 1e-9));
   // the curves shown for it: through the same matrix, so white under the light is in the CIE 1931 white's proportions
