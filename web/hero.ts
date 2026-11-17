@@ -22,6 +22,8 @@ const NS = 'http://www.w3.org/2000/svg';
 /** How the 3D plots are seen: turned about the lightness axis (yaw) and tilted from looking straight down (pitch). */
 interface View { yaw: number; pitch: number }
 const TOP_VIEW: View = { yaw: 0, pitch: Math.PI / 2 };
+/** Lightness up and b across: turned a quarter turn about lightness (so b runs left to right), seen level. */
+const SIDE_VIEW: View = { yaw: -Math.PI / 2, pitch: 0 };
 
 interface Plot {
   svg: SVGSVGElement; frame: SVGGElement; rings: SVGCircleElement[]; lines: SVGLineElement[]; dots: SVGCircleElement[];
@@ -51,6 +53,10 @@ function makePlot(svg: SVGSVGElement, ref: Vec3[], colors: string[], names: [str
   const dots = ref.map((_, i) => mk('circle', { r: '3.2', fill: colors[i], stroke: 'var(--ink)', 'stroke-opacity': '0.35', 'stroke-width': '0.6' }, svg));
   // the lightness the box spans: the reference samples' range, to the nearest 10 outward
   const ls = ref.map((p) => p[0]), lo = Math.floor(Math.min(...ls) / 10) * 10, hi = Math.ceil(Math.max(...ls) / 10) * 10, mid = (lo + hi) / 2;
+  // lightness is drawn so that the samples' range is as tall as the a–b box is wide, in every plot: the lightness axes
+  // are then the same height on screen in WLab and CIELAB (whose a and b run about twice as far), at the cost of equal
+  // units in all three directions (Max, 2026-11-17)
+  const zs = lim / ((hi - lo) / 2);
   const step = lim > 60 ? 40 : 20, ticks: number[] = [];
   for (let t = -Math.floor(lim / step) * step; t <= lim; t += step) ticks.push(t);
   const plot: Plot = {
@@ -60,7 +66,7 @@ function makePlot(svg: SVGSVGElement, ref: Vec3[], colors: string[], names: [str
       const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
       const raw = (a: number, b: number, l: number): [number, number] => {
         const x = a * cy - b * sy, y = a * sy + b * cy;
-        return [x, y * sp + (l - mid) * cp];
+        return [x, y * sp + (l - mid) * zs * cp];
       };
       // fit the box of a and b to ±lim and lightness over the samples' range into the square
       const corners = [-lim, lim].flatMap((a) => [-lim, lim].flatMap((b) => [lo, hi].map((l) => raw(a, b, l))));
@@ -78,11 +84,14 @@ function makePlot(svg: SVGSVGElement, ref: Vec3[], colors: string[], names: [str
       const showL = view.pitch < 1.4;
       const lAxis = showL ? seg(P(lo, 0, 0), P(hi, 0, 0)) : '';
       const text = (p: [number, number], s: string, anchor = 'middle', dy = 4) => `<text x="${p[0].toFixed(1)}" y="${(p[1] + dy).toFixed(1)}" text-anchor="${anchor}">${s}</text>`;
+      // an axis seen end-on (a in the side view) would pile its labels on one spot: label only the axes that show
+      const shown = (p: [number, number], q: [number, number]) => Math.hypot(p[0] - q[0], p[1] - q[1]) > 40;
+      const aShows = shown(P(lo, -lim, 0), P(lo, lim, 0)), bShows = shown(P(lo, 0, -lim), P(lo, 0, lim));
       frame.innerHTML = `<path d="${floor}" stroke="var(--line)" stroke-opacity="0.5" fill="none"/>
         <path d="${axis0}${lAxis}" stroke="var(--line)" fill="none"/>
-        ${ticks.map((t) => text(P(lo, t, -lim), String(t), "middle", 14) + text(P(lo, -lim, t), String(t), "end", 4)).join('')}
-        ${text(P(lo, lim, 0), names[1], "start", -4)}${text(P(lo, 0, lim), names[2], "start", -4)}
-        ${showL ? [lo, hi].map((l) => text(P(l, 0, 0), l === hi ? `${names[0]} ${l}` : String(l), "start", 0)).join('') : ''}`;
+        ${ticks.map((t) => (aShows ? text(P(lo, t, -lim), String(t), "middle", 14) : '') + (bShows ? text(P(lo, -lim, t), String(t), "end", 4) : '')).join('')}
+        ${aShows ? text(P(lo, lim, 0), names[1], "start", -4) : ''}${bShows ? text(P(lo, 0, lim), names[2], "start", -4) : ''}
+        ${showL ? text(P(hi, 0, 0), `${names[0]} ${hi}`, 'start', 0) + text(P(lo, 0, 0), String(lo), 'end', -6) : ''}`;
       this.ref.forEach((p, i) => {
         const r = P(p[0], p[1], p[2]), d = P(this.cur[i][0], this.cur[i][1], this.cur[i][2]);
         rings[i].setAttribute('cx', r[0].toFixed(1)); rings[i].setAttribute('cy', r[1].toFixed(1));
@@ -161,8 +170,9 @@ export function startHero(): void {
     p.svg.addEventListener('pointercancel', end);
     p.svg.addEventListener('dblclick', () => { Object.assign(view, TOP_VIEW); redraw(); });
   }
-  // the button under the animation does what a double click does: back to the view from above
-  document.getElementById('heroReset')?.addEventListener('click', () => { Object.assign(view, TOP_VIEW); redraw(); });
+  // the buttons under the animation: the view from above (as a double click) and the view from the side
+  document.getElementById('heroTop')?.addEventListener('click', () => { Object.assign(view, TOP_VIEW); redraw(); });
+  document.getElementById('heroSide')?.addEventListener('click', () => { Object.assign(view, SIDE_VIEW); redraw(); });
   el('heroRefl').innerHTML = curvesPlot('The 99 samples (reflectance)', reflectances.map((r, i) => ({ values: r, color: colors[i], width: 0.8 })));
 
   const lights = (Object.keys(LIGHTS) as LightName[]);

@@ -77,7 +77,7 @@
     <h2 class="question">What do color spaces tell you about a material's color when the viewer or the light changes?</h2>
     <p>Every CIELAB value comes with fine print: it holds for one light and one standard viewer. Change the light, or the
     viewer (another person's eyes), and the same material gets different CIELAB values, as the animation
-    below shows. Wpt (pronounced "Waypoint") describes the color of the material itself instead, so its values stay close
+    below shows. Wpt (pronounced "Waypoint") mostly describes the color of the material itself instead, so its values stay close
     whatever the light and whoever is looking. WLab (Waypoint Lab) reshapes Wpt so that distances read like familiar
     ΔE color differences.</p>
     <section class="hero" id="hero" aria-label="Animation: the same samples in CIELAB and in WLab, viewer after viewer and light after light">
@@ -88,7 +88,8 @@
           <p class="note" id="heroLabMove"></p></figure>
       </div>
       <div class="small"><div id="heroCurves"></div><div id="heroLight"></div><div id="heroRefl"></div></div>
-      <p class="note"><a href="#about-animation">See explanation of figure below.</a> Drag a plot to tilt it. <button id="heroReset" type="button">Reset view</button>
+      <p class="note"><a href="#about-animation">See explanation of figure below.</a> Drag a plot to tilt it. <button id="heroTop" type="button">Top view</button>
+      <button id="heroSide" type="button">Side view</button>
       <button id="heroPlay" hidden>Play</button></p>
     </section>
     <p>Want to better understand what is going on in this animation? The guide provides the basic principles, and the
@@ -159,13 +160,16 @@
     used.</li>
     <li>The open circles mark where each sample sits for the reference viewer and light (the CIE 1931 observer under
     illuminant C), and a line runs from each circle to where the sample is now.</li>
-    <li>WLab describes the material, so its dots stay close to the circles. CIELAB describes what each viewer measures,
+    <li>WLab mostly describes the material, so its dots stay close to the circles. CIELAB describes what each viewer measures,
     so its dots move.</li>
     <li>Under a few lights with spiky spectra (the tri-band fluorescent F11, or the made-up RGB LED) WLab moves more
     too: such lights really do shift materials' colors relative to one another, which the <a href="labs/lighting.html">Lighting
     lab</a> measures.</li>
     <li>Both plots are in 3D, seen from straight above. Drag either one to tilt or turn both and see lightness move too;
-    "Reset view" (or a double click on a plot) goes back to the view from above. The animation pauses while the pointer is over it.</li>
+    "Top view" (or a double click on a plot) goes back to the view from above, and "Side view" shows lightness against
+    b, the yellow–blue axis. Lightness is drawn the same height in
+    both plots so its moves compare by eye; a and b keep each space's own scale (CIELAB's run about twice as far as
+    WLab's). The animation pauses while the pointer is over it.</li>
     <li>To give the human-vision kinds a CIELAB, their cone sensitivities are first matched as closely as they can be
     to the CIE 1931 observer's color-matching functions, with their white kept exact.</li>
   </ul>
