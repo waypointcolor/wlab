@@ -19,20 +19,42 @@
   <a href="start.html#normalization">Wpt</a>): they are equivalent in material color there, which is what this page's
   title means. On this page you can:</p>
   <ul>
+    <li>see one such pair come apart, and compare how far each material moves in CIELAB and in WLab (section 1);</li>
     <li>make matches for a material and see how far they come apart under other lights and for other viewers
-    (section 2);</li>
+    (section 3);</li>
     <li>ask the matches to hold under several lights or for several viewers at once, and see how much closer they then
-    stay everywhere else (section 3);</li>
+    stay everywhere else (section 4);</li>
     <li>go the other way, from color values (such as L*, a* and b*) to one realistic reflectance that gives them
-    (section 4);</li>
-    <li>take any of them to the Objects lab, which compares pairs light by light (section 5).</li>
+    (section 5);</li>
+    <li>take any of them to the Objects lab, which compares pairs light by light (section 6).</li>
   </ul>
   <p>An <a href="start.html#condition">observing condition</a> (hereafter "condition") is an observer, a viewer or a
   camera's sensors, under a light. What turns a material into one of its metamers is a metameric black: a change in
   reflectance, up at some wavelengths and down at others, that the condition's sensors do not respond to at all. Added to
   the material, it leaves the measurement, and so the Wpt, unchanged in that condition, but generally not in others.</p>
 
-  <h2>1. The material and the condition</h2>
+  <h2>1. Two materials that match, until the light or viewer changes</h2>
+  <div class="card">
+    <p>The two materials below have different spectra but match exactly under one light (<span id="demoMatchLight">D65</span>),
+    for one viewer (the CIE 1931 standard observer). Change the light or the viewer and watch them part, and compare how
+    far each one moves from itself in CIELAB and in WLab.</p>
+    <div class="row">
+      <label>Pair <select id="demoPair" autocomplete="off"></select></label>
+      <label>Light <select id="demoLight" autocomplete="off"></select></label>
+      <label>Observer <select id="demoObserver" autocomplete="off"></select></label>
+    </div>
+    <div id="demoPlot"></div>
+    <div class="swatches" id="demoSwatches"></div>
+    <div id="demoTable"></div>
+    <p class="said" id="demoSaid"></p>
+    <p class="note">The swatches show each material under the chosen light as an adapted viewer would roughly see it
+    (CIE 1931 observer, Bradford adaptation to sRGB); screen colors are approximate. PMCC Smurf and PMCC Unitary Blue are
+    patches of the Preferred Memory Colour Chart (M. R. Luo, <a href="https://doi.org/10.1002/col.22940">"The new
+    preferred memory color (PMC) chart"</a>, <i>Color Research &amp; Application</i> 49(6), 2024), measured by Maxim W.
+    Derhak; each twin was made from its patch to match it exactly under D65.</p>
+  </div>
+
+  <h2>2. The material and the condition</h2>
   <div class="card">
     <div class="row">
       <label>Set <select id="set" autocomplete="off"></select></label>
@@ -55,7 +77,7 @@
     <p><b>Lights</b></p><div id="lookLights" class="checks wide"></div>
   </div>
 
-  <h2>2. Metamers for one condition</h2>
+  <h2>3. Metamers for one condition</h2>
   <div class="card">
     <p>The metameric blacks used here are those real materials carry. Take the 1,600 corrected Munsell colors, remove
     from each the part the condition's sensors respond to, and what is left of each is a metameric black for that
@@ -78,7 +100,7 @@
     the metamer's own display color in that condition.</p>
   </div>
 
-  <h2>3. Metamers for several conditions at once</h2>
+  <h2>4. Metamers for several conditions at once</h2>
   <div class="card">
     <p>Asking a metamer to match in more conditions at once leaves it fewer metameric blacks: each must give no response
     to the sensors of every condition matched. Fewer reflectances qualify, and those that do come apart less in the
@@ -86,17 +108,17 @@
     <div id="moreConditions"></div>
     <div id="manyTable"></div>
     <div id="manySpectra"></div>
-    <p class="note">Each column matches the condition of section 1 and the extra conditions up to it, in order; each cell
+    <p class="note">Each column matches the condition of section 2 and the extra conditions up to it, in order; each cell
     is the mean ΔE<sub>WLab</sub> of that set of metamers from the material, with the largest in brackets. A condition
     matched reads 0. Each column's metamers are made from the same random draws, so the columns differ only in the
     blacks allowed.</p>
   </div>
 
-  <h2>4. From color values to a reflectance</h2>
+  <h2>5. From color values to a reflectance</h2>
   <div class="card">
     <p>The other way round: start from color values, the three numbers that place a color in a color space (such as
     L*, a* and b* in CIELAB), and find one realistic reflectance that gives those values. Give the values as they are in
-    the condition of section 1, in any of the four spaces below. Whichever space you use, the page first converts them to
+    the condition of section 2, in any of the four spaces below. Whichever space you use, the page first converts them to
     Wpt values in that condition, because the reflectance is built in Wpt.</p>
     <p>How the reflectance is built. Any reflectance is a gray part, the same at every wavelength, plus a selective part
     that gives it its hue. Rescaled to run from 0 to 1, the selective part is the reflectance's characteristic
@@ -126,12 +148,12 @@
     to the condition's XYZ, against its white, and then through its Wpt normalization. Changing the space rewrites the
     same values in the new one. The mix of two characteristic reflectances hits the hue exactly because Wpt is linear: the
     mix's Wpt lies on the straight line between theirs. Spread: the mean ΔE<sub>WLab</sub>, over the conditions looked
-    in, between each reflectance there and in the condition of section 1.</p>
+    in, between each reflectance there and in the condition of section 2.</p>
   </div>
 
-  <h2>5. Take them to the Objects lab</h2>
+  <h2>6. Take them to the Objects lab</h2>
   <div class="card">
-    <p>The material, the metamers of sections 2 and 3, and the estimate of section 4, as one table of reflectances, a row
+    <p>The material, the metamers of sections 3 and 4, and the estimate of section 5, as one table of reflectances, a row
     per material, in the layout the <a href="objects.html">Objects lab</a> reads: paste it or import it there to see each
     one's shift manifold and every pair's differences condition by condition.</p>
     <div class="row">

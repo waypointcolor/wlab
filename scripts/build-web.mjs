@@ -1,7 +1,7 @@
 // Bundle the web pages, each into one self-contained HTML file that opens from disk with a double-click and can also
 // be hosted as it is:
 //   web/robustness-report.html     (web/app.ts)                 the robustness report
-//   web/wlab-onramp.html           (web/landing.ts)             the landing page with the two demos (index.html of the onramp package)
+//   web/wlab-onramp.html           (web/landing.ts)             the landing page with its opening animation (index.html of the onramp package)
 //   web/labs/index.html                                         the Waypoint Labs hub
 //   web/labs/normalization.html    (web/labs/normalization.ts)  Lab A: Wpt normalization and MATs
 //   web/labs/differences.html      (web/labs/differences.ts)    Lab B: WLab and color differences

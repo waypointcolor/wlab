@@ -1,7 +1,7 @@
-// Lab H: metamers and material color equivalency. The reflectances that share a material's Wpt in a condition (the
-// matches of section 2), made with the metameric blacks real materials carry, narrowed by matching several conditions
-// at once (section 3), and a realistic reflectance for given color values (section 4); the results go to the Objects lab as a
-// table of reflectances (section 5). The computations are in mce.ts.
+// Lab H: metamers and material color equivalency. A pair that matches and then parts (section 1, pair-demo.ts); the
+// reflectances that share a material's Wpt in a condition (the matches of section 3), made with the metameric blacks real materials carry, narrowed by matching several conditions
+// at once (section 4), and a realistic reflectance for given color values (section 5); the results go to the Objects lab as a
+// table of reflectances (section 6). The computations are in mce.ts.
 // Bundled into labs/metamers.html by scripts/build-web.mjs.
 
 import {
@@ -13,6 +13,7 @@ import { $, copy, download, escapeHtml, LIGHT_LABEL, OBSERVER_LABEL, parseTable,
 import { OBJECT_SETS, objectsOf, type ObjectSet } from './library.ts';
 import { fromSpace, inSpace, munsellChips } from './hue.ts';
 import { writeMaterials, type Material } from './shifts.ts';
+import { startPairDemo } from './pair-demo.ts';
 import { blackBasis, conditionRows, estimateReflectance, hueFamily, metamersOf, spreadIn, type BlackBasis, type HueFamily } from './mce.ts';
 
 const f1 = (v: number) => v.toFixed(1), f2 = (v: number) => v.toFixed(2), f3 = (v: number) => v.toFixed(3);
@@ -114,7 +115,7 @@ let seed = 1;
 let oneFamily: Spectrum[] = [], manyFamily: { label: string; family: Spectrum[] } | undefined, estimate: { name: string; reflectance: Spectrum } | undefined;
 
 // ---------------------------------------------------------------------------------------------------------------
-// Section 1 and 2: the material, and its metamers for one condition
+// Sections 2 and 3: the material, and its metamers for one condition
 
 function spreadCells(c: Cond, r: Spectrum, family: Spectrum[], isMatched: boolean): string {
   const d = spreadIn(c.norm, r, family, deltaEWlab);
@@ -156,7 +157,7 @@ function renderOnePlot(): void {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Section 3: several conditions at once
+// Section 4: several conditions at once
 
 const EXTRA_DEFAULTS: [boolean, ObserverName, LightName][] = [[true, 'cie1931', 'A'], [true, 'cie1964', 'D65'], [false, 'cie1931', 'F11']];
 $('moreConditions').innerHTML = EXTRA_DEFAULTS.map(([on], k) => `<div class="row"><label><input type="checkbox" id="extraOn${k}"${on ? ' checked' : ''}> Also match</label>
@@ -187,7 +188,7 @@ function renderMany(): void {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Section 4: from a color (in WLch, WLab, CIELCh or CIELAB, converted to Wpt) to a reflectance
+// Section 5: from a color (in WLch, WLab, CIELCh or CIELAB, converted to Wpt) to a reflectance
 
 const families = new Map<string, HueFamily>();
 function familyFor(c: Cond): HueFamily {
@@ -260,17 +261,17 @@ function renderEstimate(): void {
     ['Within 0 to 1', e.inRange ? 'yes' : `no: it runs from ${f3(Math.min(...reflectance))} to ${f3(Math.max(...reflectance))}, beyond what a reflectance can be; no material of this hue family reaches this lightness and chroma`],
   ] : [['A gray', `no hue: the nonselective gray of reflectance ${f3(reflectance[0])}`]];
   rows.push([`Its ${SPACE[s].name} in the condition`, `${escapeHtml(asText(got))} (ΔE<sub>WLab</sub> from the target ${deltaEWlab(got, target).toExponential(1)})`]);
-  rows.push(['Spread over the conditions looked in', `${f2(spreadOf(reflectance, c, look))}; the material of section 1: ${f2(spreadOf(m.reflectance, c, look))}`]);
+  rows.push(['Spread over the conditions looked in', `${f2(spreadOf(reflectance, c, look))}; the material of section 2: ${f2(spreadOf(m.reflectance, c, look))}`]);
   $('estResult').innerHTML = `<div class="table-wrap"><table class="kv"><tbody>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</tbody></table></div>`;
   $('estSpectra').innerHTML = spectrumPlot('The estimate', [
-    { values: m.reflectance, color: 'var(--quiet)', width: 1.4, label: `${m.name} (section 1)` },
+    { values: m.reflectance, color: 'var(--quiet)', width: 1.4, label: `${m.name} (section 2)` },
     ...(e ? [{ values: e.characteristic, color: 'var(--accent2)', width: 1.4, dash: '5 3', label: 'the characteristic reflectance used' }] : []),
     { values: reflectance, color: 'var(--accent)', width: 2.4, label: 'the estimate' },
   ]);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Section 5: to the Objects lab
+// Section 6: to the Objects lab
 
 function allMaterials(): Material[] {
   const m = material(), c = matched();
@@ -298,4 +299,5 @@ $('seenIn').addEventListener('input', renderOnePlot);
 for (const id of ['est0', 'est1', 'est2']) $(id).addEventListener('input', renderEstimate);
 $('estFromMaterial').addEventListener('click', () => { setTargetFromMaterial(); renderEstimate(); });
 
+startPairDemo();
 void showSet('10GY 5/10').then(materialChanged);

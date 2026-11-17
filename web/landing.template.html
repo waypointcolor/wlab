@@ -123,6 +123,32 @@
     ones.</li>
   </ul>
 
+  <h2>Waypoint Labs</h2>
+  <p>Work with the ideas on your own data, in this browser (nothing you enter is sent anywhere). Each lab takes up one
+  question:</p>
+  <ul class="short">
+    <li>Does a material keep its color across lights and observers, and do two that match here match everywhere?
+    <a href="labs/objects.html">Objects</a></li>
+    <li>Two materials that match in the viewing booth can part in the store: which other reflectances would match a
+    material, and how far do they part under other lights and for other observers?
+    <a href="labs/metamers.html">Metamers and material color equivalency</a></li>
+    <li>How far apart are two colors measured under one light? <a href="labs/differences.html">WLab and color differences</a></li>
+    <li>Does WLab hold hue constant as colors get lighter and grayer? <a href="labs/uniformity.html">Uniformity and
+    hue</a></li>
+    <li>How different is an observer (a person's own, or a camera's) from the standard ones, and how is it carried in
+    an iccMAX profile? <a href="labs/observer.html">Observers</a></li>
+    <li>How alike do two lights render materials, and how does that sit beside the color rendering index and TM-30?
+    <a href="labs/lighting.html">Lighting</a></li>
+    <li>How do I give my sensors a Wpt, and carry colors to another light or observer with a MAT?
+    <a href="labs/normalization.html">Wpt normalization and MATs</a></li>
+    <li>Over many lights and objects at once, how closely does a MAT predict what a material will measure,
+    beside a chromatic adaptation transform? <a href="labs/bench.html">Comparing MATs and CATs</a></li>
+    <li>Small differences between near matches and large steps along a scale are judged differently: which form of
+    WLab follows which? <a href="labs/large-small.html">Large and small color differences</a></li>
+  </ul>
+  <div class="actions"><a class="btn" href="labs/index.html">Open Waypoint Labs</a>
+    <a class="btn" href="labs/start.html">From the onramp to using material color in practice</a></div>
+
   <h2 id="about-animation">About the animation at the top</h2>
   <p>The same 99 colored samples (those used to rate how lights render colors), measured over and over, each time by a
   different viewer under a different light. A viewer is a standard observer or one of ten typical kinds of human
@@ -143,52 +169,6 @@
     <li>To give the human-vision kinds a CIELAB, their cone sensitivities are first matched as closely as they can be
     to the CIE 1931 observer's color-matching functions, with their white kept exact.</li>
   </ul>
-
-  <h2>Demo: two materials that match, until the light or viewer changes</h2>
-  <p>The two materials below have different spectra but match exactly under one light (<span id="matchLight">D65</span>),
-  for one viewer (the CIE 1931 standard observer). Change the light or the viewer and watch them part, and compare how far each one moves from
-  itself in CIELAB and in WLab.</p>
-  <div class="card">
-    <div class="controls">
-      <label>Pair <select id="pair"></select></label>
-      <label>Light <select id="light"></select></label>
-      <label>Observer <select id="observer"></select></label>
-    </div>
-    <div id="plot"></div>
-    <div class="chips" id="chips"></div>
-    <div id="pairTable"></div>
-    <p class="verdict" id="verdict"></p>
-    <p class="note">Chips show each material under the chosen light as an adapted viewer would roughly see it (CIE 1931
-    observer, Bradford adaptation to sRGB). Screen colors are approximate. PMCC Smurf and PMCC Unitary Blue are patches of the
-    Preferred Memory Colour Chart (M. R. Luo, <a href="https://doi.org/10.1002/col.22940">"The new preferred memory color (PMC)
-    chart"</a>, <i>Color Research &amp; Application</i> 49(6), 2024), measured by Maxim W. Derhak; each twin was made
-    from its patch to match it exactly under D65.</p>
-  </div>
-
-  <h2>Waypoint Labs</h2>
-  <p>Work with the ideas on your own data, in this browser (nothing you enter is sent anywhere). Each lab takes up one
-  question:</p>
-  <ul class="short">
-    <li>Does a material keep its color across lights and observers, and do two that match here match everywhere?
-    <a href="labs/objects.html">Objects</a></li>
-    <li>Which other reflectances would match this material, and how far do they part under other lights and for other
-    observers? <a href="labs/metamers.html">Metamers and material color equivalency</a></li>
-    <li>How far apart are two colors measured under one light? <a href="labs/differences.html">WLab and color differences</a></li>
-    <li>Does WLab hold hue constant as colors get lighter and grayer? <a href="labs/uniformity.html">Uniformity and
-    hue</a></li>
-    <li>How different is an observer (a person's own, or a camera's) from the standard ones, and how is it carried in
-    an iccMAX profile? <a href="labs/observer.html">Observers</a></li>
-    <li>How alike do two lights render materials, and how does that sit beside the color rendering index and TM-30?
-    <a href="labs/lighting.html">Lighting</a></li>
-    <li>How do I give my sensors a Wpt, and carry colors to another light or observer with a MAT?
-    <a href="labs/normalization.html">Wpt normalization and MATs</a></li>
-    <li>Over many lights and objects at once, how closely does a MAT predict what a material will measure,
-    beside a chromatic adaptation transform? <a href="labs/bench.html">Comparing MATs and CATs</a></li>
-    <li>Small differences between near matches and large steps along a scale are judged differently: which form of
-    WLab follows which? <a href="labs/large-small.html">Large and small color differences</a></li>
-  </ul>
-  <div class="actions"><a class="btn" href="labs/index.html">Open Waypoint Labs</a>
-    <a class="btn" href="labs/start.html">From the onramp to using material color in practice</a></div>
 
   <h2>The robustness report</h2>
   <p>Paste the spectral reflectance of a standard and its samples, choose the lights that matter (including your own

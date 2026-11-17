@@ -39,6 +39,8 @@
   .grid .card .status { font-size: 0.82rem; color: var(--quiet); }
   .grid a.card { color: inherit; text-decoration: none; }
   .grid a.card:hover { border-color: var(--accent); }
+  .grid .card.start { border-color: var(--accent); background: var(--accent-soft); }
+  .grid .card.start .status { color: var(--accent); font-weight: 600; }
   textarea { width: 100%; min-height: 110px; font: 13px/1.4 ui-monospace, Consolas, monospace; color: var(--ink);
              background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; resize: vertical; }
   button, select, input[type=text], input[type=number] { font: inherit; color: var(--ink); background: var(--bg);
@@ -83,6 +85,11 @@
   .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
   .checks label { display: flex; gap: 6px; align-items: baseline; }
   .checks.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); column-gap: 16px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; }
+  .swatch { width: 150px; }
+  .swatch div { height: 70px; border-radius: 8px; border: 1px solid var(--line); }
+  .swatch span { display: block; font-size: 0.85rem; color: var(--quiet); margin-top: 4px; }
+  p.said { font-weight: 600; margin-top: 10px; }
   canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
   canvas.cloud.flat { cursor: default; }
   .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
