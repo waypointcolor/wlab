@@ -93,7 +93,9 @@
   <div class="card">
     <p>The IRE of the test light against every Planckian light from 1750 to 12000 K and every CIE daylight from 4000 to
     14000 K, in steps of 250 K. The lowest point of each line is the reference of that kind that renders the objects
-    most like the test light does.</p>
+    most like the test light does. The table's closest references are found more finely: from the lowest step, the
+    search narrows in between its two neighbors to the whole kelvin, so a reference between two steps with a lower IRE
+    (the one at the test light's CCT, say) is not missed.</p>
     <p class="flag"><b>Two temperatures, two questions.</b> The temperature of the lowest IRE is about the similarity of
     material color rendering: the Planckian or daylight light under which objects, each observer through its own
     normalization, keep their material colors closest to those the test light gives them. It depends on the whole
@@ -153,8 +155,9 @@
   <div class="card">
     <p>Sections 1 to 5 look at one test light. This section takes a set of test lights, chosen below, and does for each
     of them what sections 4 and 5 do for the test light of section 1. It searches the Planckian lights from 1750 to
-    12000 K and the CIE daylights from 4000 to 14000 K, every 250 K, for the one with the lowest IRE against the test
-    light: the same search that gives section 2 its default reference. And it gives each test light's CCT and color
+    12000 K and the CIE daylights from 4000 to 14000 K, every 250 K and then more finely between the lowest step's
+    neighbors, for the one with the lowest IRE against the test light: the same search that gives section 2 its default
+    reference. And it gives each test light's CCT and color
     rendering indices. The test light and reference chosen in sections 1 and 2 play no part here.</p>
     <p>The table gives, for each test light, its CCT; then the Planckian light with the lowest IRE and that IRE, and the
     daylight with the lowest IRE and that IRE, the smaller of the two in italics; and last its Ra, R<sub>f</sub> and

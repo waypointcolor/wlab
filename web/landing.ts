@@ -8,6 +8,7 @@ import {
 } from '../src/index.ts';
 import { LIGHTS as SITE_LIGHTS } from './labs/lights.ts';
 import { madeUpLed, pairs } from './demo-data.ts';
+import { startHero } from './hero.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const fmt = (v: number) => v.toFixed(1);
@@ -121,6 +122,8 @@ function demo1(): void {
 }
 
 // ---------- start ----------
+
+startHero();
 
 fill($('pair'), PAIRS.map((p) => [p.key, p.title]));
 // each pair opens on a light where CIELAB and WLab disagree about which material moves more

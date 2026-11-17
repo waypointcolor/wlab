@@ -73,6 +73,7 @@
   .chip { display: inline-block; width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 3px; }
   .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
   .checks label { display: flex; gap: 6px; align-items: baseline; }
+  .checks.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); column-gap: 16px; }
   canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
   canvas.cloud.flat { cursor: default; }
   .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }

@@ -437,20 +437,50 @@ async function ireSweep(tests: readonly Spectrum[], sets: Sets, progress: (done:
   return out.map((row) => row.map((v) => v / sets.observers.length));
 }
 
-type Curve = [number, number][];
-interface Curves { planck: Curve; day: Curve }
-const curvesOf = (row: number[]): Curves => ({
-  planck: REFS.flatMap((r, i) => (r.kind === 'planck' ? [[r.t, row[i]] as [number, number]] : [])),
-  day: REFS.flatMap((r, i) => (r.kind === 'day' ? [[r.t, row[i]] as [number, number]] : [])),
-});
-const lowest = (c: Curve) => c.reduce((b, p) => (p[1] < b[1] ? p : b));
+type Point = [number, number];
+type Curve = Point[];
+/** A test light's IRE against every reference of REFS, by kind, and the lowest of each kind, refined between steps. */
+interface Curves { planck: Curve; day: Curve; best: { planck: Point; day: Point } }
+const refSpd = (kind: 'planck' | 'day', t: number): Spectrum => (kind === 'planck' ? planckian(t) : daylight(t));
+
+/**
+ * The lowest IRE of one kind of reference: the lowest of the 250 K steps, then refined between its two neighbors by a
+ * parabola in reciprocal temperature (in which the curves are smoother), its vertex computed, twice; whole kelvins. It
+ * is never above the lowest step, so the search cannot miss a reference between two steps (the one at the test light's
+ * CCT, say) with a lower IRE. At either end of the range the lowest step is kept.
+ */
+function refineLowest(c: Curve, kind: 'planck' | 'day', test: Spectrum, sets: Sets): Point {
+  const i = c.reduce((b, p, k) => (p[1] < c[b][1] ? k : b), 0);
+  if (i === 0 || i === c.length - 1) return c[i];
+  let pts: Point[] = [c[i - 1], c[i], c[i + 1]];
+  for (let n = 0; n < 2; n++) {
+    const [x1, x2, x3] = pts.map((p) => 1e6 / p[0]), [y1, y2, y3] = pts.map((p) => p[1]);
+    const den = (x1 - x2) * (x1 - x3) * (x2 - x3);
+    const A = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / den;
+    const B = (x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1) + x1 * x1 * (y2 - y3)) / den;
+    if (!(A > 0)) break;
+    const t = Math.round(1e6 / (-B / (2 * A)));
+    if (!(t > pts[0][0] && t < pts[2][0]) || pts.some((p) => p[0] === t)) break;
+    const all = [...pts, [t, ire(test, refSpd(kind, t), sets.observers, sets.objects)] as Point].sort((a, b) => a[0] - b[0]);
+    const k = all.reduce((b, p, j) => (p[1] < all[b][1] ? j : b), 0), lo = Math.min(Math.max(k - 1, 0), all.length - 3);
+    pts = all.slice(lo, lo + 3);
+  }
+  return pts.reduce((b, p) => (p[1] < b[1] ? p : b));
+}
+
+const curvesOf = (row: number[], test: Spectrum, sets: Sets): Curves => {
+  const planck = REFS.flatMap((r, i) => (r.kind === 'planck' ? [[r.t, row[i]] as Point] : []));
+  const day = REFS.flatMap((r, i) => (r.kind === 'day' ? [[r.t, row[i]] as Point] : []));
+  return { planck, day, best: { planck: refineLowest(planck, 'planck', test, sets), day: refineLowest(day, 'day', test, sets) } };
+};
 
 /** The reference a "closest" choice names, from a test light's curves. */
-function closestOf(c: Curves, which: Closest): Light {
-  const [p, d] = [lowest(c.planck), lowest(c.day)];
+function closestOf(c: Curves, which: Exclude<Closest, 'yours'>): Light {
+  const { planck: p, day: d } = c.best;
   const kind = which === 'any' ? (d[1] < p[1] ? 'day' : 'planck') : which;
   const t = kind === 'planck' ? p[0] : d[0];
-  return REFS.find((r) => r.kind === kind && r.t === t)!;
+  return REFS.find((r) => r.kind === kind && r.t === t)
+    ?? { key: `${kind}${t}`, label: `${kind === 'planck' ? 'Planckian' : 'daylight'} ${t} K`, spd: refSpd(kind, t) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -575,7 +605,7 @@ function drawCurves(test: Light, c: Curves, sets: Sets): void {
     xLabel: 'color temperature of the reference (K)', yLabel: `IRE of ${test.label}`, series,
     marks: t >= PLANCK[0] && t <= DAY[DAY.length - 1] ? [{ x: t, label: `CCT ${Math.round(t)} K` }] : [],
   });
-  const [p, d] = [lowest(c.planck), lowest(c.day)];
+  const { planck: p, day: d } = c.best;
   $('closestTable').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Test light</th><th class="sep">CCT</th>
     <th class="sep">closest Planckian</th><th>IRE</th><th class="sep">closest daylight</th><th>IRE</th></tr></thead><tbody><tr>
     <td>${escapeHtml(test.label)}</td><td class="sep">${Math.round(t)} K</td>
@@ -641,7 +671,7 @@ function drawIndices(test: Light, sets: Sets, s: { tcs: SampleSet; ces: SampleSe
   const ireC = ire(test.spd, refC.spd, sets.observers, sets.objects), ireF = ire(test.spd, refF.spd, sets.observers, sets.objects);
   const sgn = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(4)}`;
   const where = Math.abs(r.duv) < 5e-5 ? 'on the Planckian locus' : r.duv > 0 ? 'above the Planckian locus, toward green' : 'below the Planckian locus, toward magenta';
-  const low = curves && (() => { const [p, d] = [lowest(curves.planck), lowest(curves.day)]; return p[1] <= d[1] ? { t: p[0], v: p[1], kind: 'Planckian' } : { t: d[0], v: d[1], kind: 'daylight' }; })();
+  const low = curves && (() => { const { planck: p, day: d } = curves.best; return p[1] <= d[1] ? { t: p[0], v: p[1], kind: 'Planckian' } : { t: d[0], v: d[1], kind: 'daylight' }; })();
   $('indices').innerHTML = `<p><b>${escapeHtml(test.label)}</b>: CCT <span class="big">${Math.round(r.cct)} K</span>, from its chromaticity;
     Duv ${sgn(r.duv)} (${where}).</p>
     <div class="table-wrap"><table class="indices"><thead><tr><th>Measure</th><th class="sep">Value</th><th class="sep">Its reference</th>
@@ -689,7 +719,7 @@ function drawMany(lights: Light[], curves: Curves[], sets: Sets, s: { tcs: Sampl
     return;
   }
   const idx = lights.map((l) => { const r = cri(l.spd, s.tcs), f = fidelity(l.spd, s.ces); return { cct: r.cct, ra: r.ra, rf: f.rf, rg: f.rg }; });
-  const low = curves.map((c) => Math.min(lowest(c.planck)[1], lowest(c.day)[1]));
+  const low = curves.map((c) => Math.min(c.best.planck[1], c.best.day[1]));
   // each light's name on one line and what it is (the label's parentheses) under it, in small type
   const name = (label: string) => {
     const m = /^(.*?) \((.*)\)$/.exec(label);
@@ -700,7 +730,7 @@ function drawMany(lights: Light[], curves: Curves[], sets: Sets, s: { tcs: Sampl
       <th class="sep" colspan="2">Daylight with<br>the lowest IRE</th><th class="sep" colspan="3">Color rendering<br>indices</th></tr>
     <tr><th>Test light</th><th class="sep">CCT</th><th class="sep">at</th><th>IRE</th><th class="sep">at</th><th>IRE</th>
       <th class="sep">Ra</th><th>R<sub>f</sub></th><th>R<sub>g</sub></th></tr></thead><tbody>${lights.map((l, k) => {
-    const [p, d] = [lowest(curves[k].planck), lowest(curves[k].day)];
+    const { planck: p, day: d } = curves[k].best;
     const it = (v: number, other: number) => (v <= other ? `<i>${f3(v)}</i>` : f3(v));
     return `<tr><td>${name(l.label)}</td><td class="sep">${Math.round(idx[k].cct)} K</td>
       <td class="sep">${p[0]} K</td><td>${it(p[1], d[1])}</td><td class="sep">${d[0]} K</td><td>${it(d[1], p[1])}</td>
@@ -827,13 +857,13 @@ async function render(): Promise<void> {
   if (!rows || me !== run) return;
   progress.textContent = '';
   if (need4) {
-    done4 = { key: k4, curves: curvesOf(rows[0]) };
+    done4 = { key: k4, curves: curvesOf(rows[0], test.spd, sets) };
     drawCurves(test, done4.curves, sets);
     drawIndices(test, sets, s, done4.curves);
     if (!refLight) fromCurves(done4.curves);
   }
   if (need6) {
-    done6 = { key: k6, lights: lights6, curves: rows.slice(need4 ? 1 : 0).map(curvesOf) };
+    done6 = { key: k6, lights: lights6, curves: rows.slice(need4 ? 1 : 0).map((row, k) => curvesOf(row, lights6[k].spd, sets)) };
     drawMany(lights6, done6.curves, sets, s);
   }
 }

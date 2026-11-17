@@ -82,6 +82,7 @@
   .chip { display: inline-block; width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 3px; }
   .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
   .checks label { display: flex; gap: 6px; align-items: baseline; }
+  .checks.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); column-gap: 16px; }
   canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
   canvas.cloud.flat { cursor: default; }
   .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
@@ -276,6 +277,10 @@
       <a href="objects.html">Objects</a>
       <span class="how">Each material's shift manifold over the conditions you choose, and pairs compared condition
       by condition.</span></li>
+      <li>Which other reflectances would match this material, here or in several conditions at once, and how far do
+      they part elsewhere? <a href="metamers.html">Metamers and material color equivalency</a>
+      <span class="how">Metamers made with the metameric blacks real materials carry, their spread in the conditions
+      you choose, and a realistic reflectance for given color values.</span></li>
       <li>How different is an observer (a person's own, or a camera's) from the standard ones, and how is it carried in
       an iccMAX profile? <a href="observer.html">Observers</a>
       <span class="how">The OME and OCE against the CIE observers, the closest CIE 2006 observer, and a profile that
@@ -293,8 +298,7 @@
       <span class="how">WLab beside its large-scale form, LSWLab, on the Munsell colors and on pairs from neighbors to
       far apart.</span></li>
     </ul>
-    <p class="note">Planned: metamers and material color equivalency classes (the reflectances that share a Wpt), and
-    profiles run through iccDEV's own tools in the page.</p>
+    <p class="note">Planned: profiles run through iccDEV's own tools in the page.</p>
   </div>
 
   <h2 id="ideas">3. Ideas the labs share</h2>
@@ -397,6 +401,8 @@
           defined here, is the measure the later labs report.</td></tr>
         <tr><td><a href="uniformity.html">Uniformity and hue</a></td><td>WLab.</td></tr>
         <tr><td><a href="objects.html">Objects</a></td><td>WLab; it introduces shifts and shift manifolds.</td></tr>
+        <tr><td><a href="metamers.html">Metamers and material color equivalency</a></td><td>Wpt and shifts; the pairs it makes
+          go to the Objects lab.</td></tr>
         <tr><td><a href="observer.html">Observers</a></td><td>The MAT and shifts, between observers; its OME and OCE
           are means of shifts.</td></tr>
         <tr><td><a href="lighting.html">Lighting</a></td><td>Shifts between lights; the IRE is their mean.</td></tr>

@@ -82,6 +82,7 @@
   .chip { display: inline-block; width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--line); vertical-align: middle; margin-right: 3px; }
   .checks { display: flex; flex-direction: column; gap: 2px; color: var(--quiet); }
   .checks label { display: flex; gap: 6px; align-items: baseline; }
+  .checks.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); column-gap: 16px; }
   canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
   canvas.cloud.flat { cursor: default; }
   .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 12px; margin-top: 10px; }
@@ -268,6 +269,13 @@
       <p>Reflectances measured under any set of lights and observers you choose: how far each material moves from a
       reference condition (its Wpt shift manifold, drawn in 3D), pairs compared condition by condition (one light and
       one observer give a simple index of metamerism), and what scaling or shifting a reflectance does.</p>
+      <span class="status">Open the lab →</span>
+    </a>
+    <a class="card" href="metamers.html">
+      <h3>Metamers and material color equivalency</h3>
+      <p>The reflectances that share a material's Wpt in one condition, or in several at once: metamers made with the
+      metameric blacks real materials carry, how far they part under other lights and for other observers, and a
+      realistic reflectance for given color values; all ready to compare in the Objects lab.</p>
       <span class="status">Open the lab →</span>
     </a>
     <a class="card" href="observer.html">

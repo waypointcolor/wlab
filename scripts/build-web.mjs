@@ -10,6 +10,8 @@
 //   web/labs/lighting.html         (web/labs/lighting.ts)       Lab E: lighting, a test light against a reference light (IRE)
 //   web/labs/uniformity.html       (web/labs/uniformity.ts)     Lab F: uniformity and hue
 //   web/labs/bench.html            (web/labs/bench.ts)          Lab G: comparing MATs and CATs
+//   web/labs/metamers.html         (web/labs/metamers.ts)       Lab H: metamers and material color equivalency
+//   web/labs/large-small.html      (web/labs/large-small.ts)    Lab J: large and small color differences
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
 // <!--PSYCHTOOLBOX-NOTICE--> the notice of LICENSE-psychtoolbox.txt (for pages that carry the CIE 2006 tables). Every
@@ -44,6 +46,7 @@ const pages = [
   { entry: 'web/labs/uniformity.ts', template: 'web/labs/uniformity.template.html', out: 'web/labs/uniformity.html' },
   { entry: 'web/labs/bench.ts', template: 'web/labs/bench.template.html', out: 'web/labs/bench.html' },
   { entry: 'web/labs/large-small.ts', template: 'web/labs/large-small.template.html', out: 'web/labs/large-small.html' },
+  { entry: 'web/labs/metamers.ts', template: 'web/labs/metamers.template.html', out: 'web/labs/metamers.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();

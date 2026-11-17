@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metamers and material color equivalency</title>
+<!--FAVICON-->
+<meta name="description" content="The reflectances that share a material's Wpt in one condition, or in several at once: metamers made with the metameric blacks real materials carry, how far they part in other conditions, and a realistic reflectance for given color values.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Metamers and material color equivalency</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Metamers and material color equivalency</h1></div>
+  <p class="lead">Two materials can match exactly under one light, for one viewer, and still be different materials:
+  they reflect light differently, wavelength by wavelength. Such a pair are metamers. Change the light or the viewer and
+  the match can come apart.</p>
+  <p>Any material has many such matches. Under a given light, for a given viewer, they all share its material color (its
+  <a href="start.html#normalization">Wpt</a>): they are equivalent in material color there, which is what this page's
+  title means. On this page you can:</p>
+  <ul>
+    <li>make matches for a material and see how far they come apart under other lights and for other viewers
+    (section 2);</li>
+    <li>ask the matches to hold under several lights or for several viewers at once, and see how much closer they then
+    stay everywhere else (section 3);</li>
+    <li>go the other way, from color values (such as L*, a* and b*) to one realistic reflectance that gives them
+    (section 4);</li>
+    <li>take any of them to the Objects lab, which compares pairs light by light (section 5).</li>
+  </ul>
+  <p>An <a href="start.html#condition">observing condition</a> (hereafter "condition") is an observer, a viewer or a
+  camera's sensors, under a light. What turns a material into one of its metamers is a metameric black: a change in
+  reflectance, up at some wavelengths and down at others, that the condition's sensors do not respond to at all. Added to
+  the material, it leaves the measurement, and so the Wpt, unchanged in that condition, but generally not in others.</p>
+
+  <h2>1. The material and the condition</h2>
+  <div class="card">
+    <div class="row">
+      <label>Set <select id="set" autocomplete="off"></select></label>
+      <label>Material <select id="material" autocomplete="off"></select></label>
+    </div>
+    <div class="row">
+      <label>Observer <select id="observer" autocomplete="off"></select></label>
+      <label>Light <select id="light" autocomplete="off"></select></label>
+    </div>
+    <details id="pasteBox"><summary>Your own reflectance</summary>
+      <p class="note">One reflectance: a column of wavelengths and a column of values (0 to 1, or percent), covering at
+      least 420 to 680 nm. It takes the material's place until the box is emptied.</p>
+      <textarea id="paste" class="lines" spellcheck="false" placeholder="380, 0.118&#10;390, 0.129&#10;…"></textarea>
+      <p id="pasteStatus" class="note"></p>
+    </details>
+    <div id="materialPlot"></div>
+    <h3>The conditions to look in</h3>
+    <p class="note">Every observer ticked under every light ticked: where the metamers made below are compared.</p>
+    <p><b>Observers</b></p><div id="lookObservers" class="checks wide"></div>
+    <p><b>Lights</b></p><div id="lookLights" class="checks wide"></div>
+  </div>
+
+  <h2>2. Metamers for one condition</h2>
+  <div class="card">
+    <p>The metameric blacks used here are those real materials carry. Take the 1,600 corrected Munsell colors, remove
+    from each the part the condition's sensors respond to, and what is left of each is a metameric black for that
+    condition. The shapes those leftovers take most often (the leading eigenvectors of their spread) are the blacks a
+    metamer is made from here, each in proportion to how much the Munsell colors carry it. Each metamer is the material
+    plus a random mix of them, taken a random part of the way toward where its reflectance would leave 0 to 1, so that
+    every metamer is a reflectance a material could have.</p>
+    <div class="row">
+      <label>Metamers <select id="count" autocomplete="off"><option>10</option><option selected>30</option><option>100</option></select></label>
+      <label>Blacks used <select id="blacks" autocomplete="off"><option>4</option><option selected>8</option><option>16</option></select></label>
+      <button id="reroll">Make a new set</button>
+    </div>
+    <div id="oneSpectra"></div>
+    <div id="oneTable"></div>
+    <div class="row"><label>Seen in <select id="seenIn" autocomplete="off"></select></label></div>
+    <div class="cols" id="onePlot"></div>
+    <p class="note">The table: for each condition looked in, the ΔE<sub>WLab</sub> of each metamer from the material,
+    their mean and the largest. In the condition matched every difference is 0 (to the last digit shown). The plot: the
+    material (ringed) and its metamers in WLab, in the condition matched (left) and the one chosen (right), each dot in
+    the metamer's own display color in that condition.</p>
+  </div>
+
+  <h2>3. Metamers for several conditions at once</h2>
+  <div class="card">
+    <p>Asking a metamer to match in more conditions at once leaves it fewer metameric blacks: each must give no response
+    to the sensors of every condition matched. Fewer reflectances qualify, and those that do come apart less in the
+    conditions not matched. The same recipe, from the corrected Munsell colors, gives the blacks for any set of conditions.</p>
+    <div id="moreConditions"></div>
+    <div id="manyTable"></div>
+    <div id="manySpectra"></div>
+    <p class="note">Each column matches the condition of section 1 and the extra conditions up to it, in order; each cell
+    is the mean ΔE<sub>WLab</sub> of that set of metamers from the material, with the largest in brackets. A condition
+    matched reads 0. Each column's metamers are made from the same random draws, so the columns differ only in the
+    blacks allowed.</p>
+  </div>
+
+  <h2>4. From color values to a reflectance</h2>
+  <div class="card">
+    <p>The other way round: start from color values, the three numbers that place a color in a color space (such as
+    L*, a* and b* in CIELAB), and find one realistic reflectance that gives those values. Give the values as they are in
+    the condition of section 1, in any of the four spaces below. Whichever space you use, the page first converts them to
+    Wpt values in that condition, because the reflectance is built in Wpt.</p>
+    <p>How the reflectance is built. Any reflectance is a gray part, the same at every wavelength, plus a selective part
+    that gives it its hue. Rescaled to run from 0 to 1, the selective part is the reflectance's characteristic
+    reflectance. Adding gray to a characteristic reflectance, or scaling it, changes its Wpt lightness and chroma but not
+    its hue, in any condition. So the page takes a characteristic reflectance with the hue asked for and works out the two
+    amounts, gray g and selective s, that give the lightness and chroma asked for. The reflectance is
+    g + s × the characteristic reflectance.</p>
+    <p>Where the characteristic reflectances come from. Each of the 40 Munsell hues gives one: that of its most vivid
+    corrected Munsell color, rescaled over 420 to 680 nm (where the eye is sensitive) and kept within 0 to 1. A hue that
+    falls between two of them gets a mix of the two, in the proportion that gives exactly that hue.</p>
+    <div class="row">
+      <label>Give the values in <select id="estSpace" autocomplete="off">
+        <option value="wlch" selected>WLch: WLab lightness, chroma and hue</option>
+        <option value="wlab">WLab</option>
+        <option value="cielch">CIELCh: CIELAB lightness, chroma and hue</option>
+        <option value="cielab">CIELAB</option></select></label>
+    </div>
+    <div class="row">
+      <label><span id="estN0"></span> <input id="est0" type="number" step="0.1" autocomplete="off"></label>
+      <label><span id="estN1"></span> <input id="est1" type="number" step="0.1" autocomplete="off"></label>
+      <label><span id="estN2"></span> <input id="est2" type="number" step="0.1" autocomplete="off"></label>
+      <button id="estFromMaterial">Use the material's values</button>
+    </div>
+    <div id="estResult"></div>
+    <div id="estSpectra"></div>
+    <p class="note">The conversion to Wpt is exact: WLab and WLch by undoing WLab's steps; CIELAB and CIELCh by going back
+    to the condition's XYZ, against its white, and then through its Wpt normalization. Changing the space rewrites the
+    same values in the new one. The mix of two characteristic reflectances hits the hue exactly because Wpt is linear: the
+    mix's Wpt lies on the straight line between theirs. Spread: the mean ΔE<sub>WLab</sub>, over the conditions looked
+    in, between each reflectance there and in the condition of section 1.</p>
+  </div>
+
+  <h2>5. Take them to the Objects lab</h2>
+  <div class="card">
+    <p>The material, the metamers of sections 2 and 3, and the estimate of section 4, as one table of reflectances, a row
+    per material, in the layout the <a href="objects.html">Objects lab</a> reads: paste it or import it there to see each
+    one's shift manifold and every pair's differences condition by condition.</p>
+    <div class="row">
+      <button id="copyAll">Copy</button>
+      <button id="downloadAll">Download (CSV)</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Wpt and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>WLab and Wpt: Color
+    Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
+    40(6), 2015). Metameric blacks and the estimate from a characteristic reflectance: M. W. Derhak, <i>Spectrally Based
+    Material Color Equivalency: Modeling and Manipulation</i>, PhD dissertation, Rochester Institute of Technology, 2015.
+    Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. Everything is computed in this page.
+    <span id="setCredit"></span> CIE data CC BY-SA 4.0. The tables of the CIE 2006 model (CIE 170-1:2006 and Stockman and Sharpe,
+    from the CVRL database) come from Psychtoolbox-3, MIT license (its notice is in this page's source and in
+    <code>wlab</code>'s LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>

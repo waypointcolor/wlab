@@ -354,7 +354,8 @@ export function spectrumPlot(title: string, series: Series[], opts: { width?: nu
   const stops = RAINBOW.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
   const paths = series.map((s) => `<path d="${s.values.map((v, i) => `${i ? 'L' : 'M'}${X(wavelengths[i]).toFixed(1)} ${Y(v).toFixed(1)}`).join('')}"
     fill="none" stroke="${s.color}" stroke-width="${s.width ?? 2}" stroke-dasharray="${s.dash ?? ''}" stroke-linejoin="round"/>`).join('');
-  const legend = series.map((s) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"
+  // a curve without a label (one of many alike) has no entry in the legend
+  const legend = series.filter((s) => s.label).map((s) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"
     stroke="${s.color}" stroke-width="${s.width ?? 2}" stroke-dasharray="${s.dash ?? ''}"/></svg>${escapeHtml(s.label)}</span>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(title)}">
     <defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${X(380)}" x2="${X(730)}">${stops}</linearGradient></defs>

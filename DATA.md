@@ -69,8 +69,9 @@ these files; `index_sets.py` writes the indexes).
   this package's own data, under the BSD 3-Clause License, as the landing page's two PMCC patches are. Interpolated
   to 5 nm, the 730 nm value held to 780 nm (written by `tools/library/pmcc_to_wlab.py`).
 - `colorchecker-sg.json`: the 140 patches of a ColorChecker Digital SG (X-Rite), measured by Roy S. Berns with a
-  Konica Minolta CM-2600d (d/8, UV included; the file does not say whether the specular component was included) from
-  380 to 730 nm at 10 nm, March 2023 (measurement file `CCSG_450_FD7_spectral.txt`). Used with his permission
+  Konica Minolta FD-7 (45/0, measurement condition M0 of ISO 13655) from 380 to 730 nm at 10 nm, March 2023
+  (measurement file `CCSG_450_FD7_spectral.txt`; its header names a CM-2600d, but the instrument was the FD-7, as Roy S.
+  Berns confirmed in November 2026). Used with his permission
   (November 2026); ask him before reusing the data. Changed here: interpolated to 5 nm, the 730 nm value held to 780
   nm, stored to 1/10000, and the patch in N9's place, labelled M1 in the file (as is the 13th), named N9: it is black,
   as N9 is in the chart's border. Patches are named `SG A1` to `SG N10` (columns A to N, rows 1 to 10) and grouped as
