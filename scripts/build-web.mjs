@@ -11,6 +11,7 @@
 //   web/labs/uniformity.html       (web/labs/uniformity.ts)     Lab F: uniformity and hue
 //   web/labs/bench.html            (web/labs/bench.ts)          Lab G: comparing MATs and CATs
 //   web/labs/metamers.html         (web/labs/metamers.ts)       Lab H: metamers and material color equivalency
+//   web/labs/profiles.html         (web/labs/profiles.ts)       Lab I: profiles, a display for any observer (runs iccDEV's tools)
 //   web/labs/large-small.html      (web/labs/large-small.ts)    Lab J: large and small color differences
 //
 // A template's <!--APP--> becomes the bundled script, <!--LABS-CSS--> the shared stylesheet of the labs, and
@@ -33,6 +34,17 @@ for (const f of readdirSync('data/objects').filter((f) => f.endsWith('.json'))) 
 copyFileSync('data/observers/cameras.json', 'web/labs/data/observers/cameras.json');
 copyFileSync('LICENSE-rawtoaces-data.txt', 'web/labs/data/observers/LICENSE-rawtoaces-data.txt');
 
+// Lab I's iccDEV tools (vendor/iccdev: WebAssembly, loaded by labs/profiles.html only, when first needed), with their
+// license and, in one text file, the notices of the libraries they are compiled with
+mkdirSync('web/labs/data/iccdev', { recursive: true });
+for (const f of readdirSync('vendor/iccdev').filter((f) => /\.(js|wasm)$/.test(f))) copyFileSync(`vendor/iccdev/${f}`, `web/labs/data/iccdev/${f}`);
+copyFileSync('vendor/iccdev/LICENSE.txt', 'web/labs/data/iccdev/LICENSE.txt');
+const noticeFiles = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? noticeFiles(`${dir}/${e.name}`) : [`${dir}/${e.name}`]));
+writeFileSync('web/labs/data/iccdev/THIRD-PARTY-NOTICES.txt', `${[
+  readFileSync('vendor/iccdev/THIRD-PARTY-NOTICES.md', 'utf8').trim(),
+  ...noticeFiles('vendor/iccdev/third-party-licenses').sort().map((f) => `\n${'='.repeat(78)}\n${f.replace('vendor/iccdev/third-party-licenses/', '')}\n${'='.repeat(78)}\n\n${readFileSync(f, 'utf8').trim()}`),
+].join('\n')}\n`);
+
 const pages = [
   { entry: 'web/app.ts', template: 'web/robustness.template.html', out: 'web/robustness-report.html' },
   { entry: 'web/landing.ts', template: 'web/landing.template.html', out: 'web/wlab-onramp.html' },
@@ -47,6 +59,7 @@ const pages = [
   { entry: 'web/labs/bench.ts', template: 'web/labs/bench.template.html', out: 'web/labs/bench.html' },
   { entry: 'web/labs/large-small.ts', template: 'web/labs/large-small.template.html', out: 'web/labs/large-small.html' },
   { entry: 'web/labs/metamers.ts', template: 'web/labs/metamers.template.html', out: 'web/labs/metamers.html' },
+  { entry: 'web/labs/profiles.ts', template: 'web/labs/profiles.template.html', out: 'web/labs/profiles.html' },
 ];
 const labsCss = `<style>\n${readFileSync('web/labs/labs.css', 'utf8')}</style>`;
 const logo = readFileSync('web/assets/waypointcolor-logo.svg', 'utf8').trim();

@@ -105,6 +105,22 @@ is chosen; the web build adds the license to every page that names them. The lan
 one of them, the Canon EOS 200D II (the one whose sensors come closest to the CIE 1931 color-matching functions), in
 `web/demo-camera.json`, written unchanged by `scripts/demo-camera.mjs`, with its credit in the page's footer.
 
+## Spectral displays (`web/labs/display-data.json`)
+
+Lab I's two built-in displays, from iccDEV's test profiles (https://github.com/InternationalColorConsortium/iccDEV,
+`Testing/Display/LCDDisplay.xml` and `Testing/Display/Rec2020rgbSpectral.xml`; International Color Consortium, BSD
+3-Clause): an LCD's emission, and the Rec. 2020 primaries as single lines at 630, 532 and 467 nm with the Rec. 2020 tone
+curve, both every 1 nm from 380 to 780 nm. Changed here: each profile's AToB1 read by the page's own reader
+(`web/labs/display.ts`): the tone curves sampled at 1024 code values, the emission scaled so that white's peak is 1,
+rounded to 8 significant digits (written by `scripts/displays.ts`).
+
+## iccDEV's tools as WebAssembly (`vendor/iccdev/`)
+
+Four of the tools of the `iccdev` npm package, version 2.3.28 (iccFromXml, iccApplyNamedCmm, iccV5DspObsToV4Dsp and
+iccDumpProfile, compiled by the International Color Consortium's CI), copied unchanged: BSD 3-Clause, with the
+notices of the libraries they are built with. Lab I loads them from `labs/data/iccdev/` when it first needs them; no
+other page does. Provenance and integrity in [vendor/iccdev/README.md](vendor/iccdev/README.md).
+
 ## Measured booth lights (`web/labs/thouslite-data.ts`)
 
 The spectral power of two viewing-booth lights by Thouslite, made to simulate CIE illuminants D65 and D50, measured

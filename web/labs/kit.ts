@@ -342,8 +342,9 @@ const RAINBOW = [[0, '#4b0063'], [0.057, '#7a00c4'], [0.143, '#3f00ff'], [0.229,
   [1, '#6e0000']] as const;
 let plotId = 0;
 
-/** Curves on the package's grid (380 to 780 nm), with a spectrum bar under the axis and a legend. */
-export function spectrumPlot(title: string, series: Series[], opts: { width?: number; height?: number } = {}): string {
+/** Curves on the package's grid (380 to 780 nm, or `nm`: another grid within it), with a spectrum bar under the axis and a legend. */
+export function spectrumPlot(title: string, series: Series[], opts: { width?: number; height?: number; nm?: readonly number[] } = {}): string {
+  const grid = opts.nm ?? wavelengths;
   const W = opts.width ?? 460, H = opts.height ?? 230, l0 = 44, top = 26, pw = W - l0 - 12, ph = H - top - 56;
   const id = `rainbow${++plotId}`;
   const X = (nm: number) => l0 + ((nm - 380) / 400) * pw;
@@ -352,7 +353,7 @@ export function spectrumPlot(title: string, series: Series[], opts: { width?: nu
   const step = niceStep(ymax / 4);
   const ticks = Array.from({ length: Math.floor(ymax / step) + 1 }, (_, i) => i * step);
   const stops = RAINBOW.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
-  const paths = series.map((s) => `<path d="${s.values.map((v, i) => `${i ? 'L' : 'M'}${X(wavelengths[i]).toFixed(1)} ${Y(v).toFixed(1)}`).join('')}"
+  const paths = series.map((s) => `<path d="${s.values.map((v, i) => `${i ? 'L' : 'M'}${X(grid[i]).toFixed(1)} ${Y(v).toFixed(1)}`).join('')}"
     fill="none" stroke="${s.color}" stroke-width="${s.width ?? 2}" stroke-dasharray="${s.dash ?? ''}" stroke-linejoin="round"/>`).join('');
   // a curve without a label (one of many alike) has no entry in the legend
   const legend = series.filter((s) => s.label).map((s) => `<span class="key"><svg width="24" height="10" aria-hidden="true"><line x1="1" x2="23" y1="5" y2="5"

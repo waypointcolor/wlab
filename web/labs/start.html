@@ -89,6 +89,9 @@
   .swatch { width: 150px; }
   .swatch div { height: 70px; border-radius: 8px; border: 1px solid var(--line); }
   .swatch span { display: block; font-size: 0.85rem; color: var(--quiet); margin-top: 4px; }
+  .swatches.tiles { gap: 6px; }                                    /* small two-color tiles (Lab I) */
+  .swatches.tiles .swatch { width: 46px; }
+  .swatches.tiles .swatch div { height: 46px; }
   p.said { font-weight: 600; margin-top: 10px; }
   canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
   canvas.cloud.flat { cursor: default; }
@@ -292,6 +295,10 @@
       an iccMAX profile? <a href="observer.html">Observers</a>
       <span class="how">The OME and OCE against the CIE observers, the closest CIE 2006 observer, and a profile that
       carries the observer.</span></li>
+      <li>A display described by the light it emits: what does it show a given observer, and do two displays that match
+      for one viewer match for another? <a href="profiles.html">Profiles: a display for any observer</a>
+      <span class="how">An iccMAX display profile from the display's spectra, the version 4 profile for any observer,
+      and colors run through iccDEV's own tools in the page.</span></li>
       <li>How alike do two lights render materials, and how does that sit beside the color rendering index and TM-30?
       <a href="lighting.html">Lighting</a>
       <span class="how">The IRE over libraries of objects and observers, the lights that come closest, and the CCT and
@@ -305,7 +312,6 @@
       <span class="how">WLab beside its large-scale form, LSWLab, on the Munsell colors and on pairs from neighbors to
       far apart.</span></li>
     </ul>
-    <p class="note">Planned: profiles run through iccDEV's own tools in the page.</p>
   </div>
 
   <h2 id="ideas">3. Ideas the labs share</h2>
@@ -412,6 +418,8 @@
           go to the Objects lab.</td></tr>
         <tr><td><a href="observer.html">Observers</a></td><td>The MAT and shifts, between observers; its OME and OCE
           are means of shifts.</td></tr>
+        <tr><td><a href="profiles.html">Profiles: a display for any observer</a></td><td>The MAT between observers, and
+          the profiles of Observers; a display's white takes the place of the light.</td></tr>
         <tr><td><a href="lighting.html">Lighting</a></td><td>Shifts between lights; the IRE is their mean.</td></tr>
         <tr><td><a href="bench.html">Comparing MATs and CATs</a></td><td>The MAT, and the CATs it is set beside.</td></tr>
         <tr><td><a href="large-small.html">Large and small color differences</a></td><td>WLab and ΔE<sub>WLab</sub>; the

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profiles: a display for any observer</title>
+<!--FAVICON-->
+<meta name="description" content="A display described by the light it emits, as an iccMAX profile; the version 4 profile an ordinary application uses, made for any observer; how observers agree on one display and on two matched for one of them; colors run through by iccDEV's own tools, in this page.">
+<!--LABS-CSS-->
+</head>
+<body>
+<main>
+  <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Profiles</nav>
+  <div class="brand small"><!--LABS-LOGO--><h1>Profiles: a display for any observer</h1></div>
+  <p class="lead">An RGB display makes its colors by mixing three lights, red, green and blue. An ordinary display profile
+  (ICC version 2 or 4) records what those lights give one standard observer. An iccMAX (version 5) profile can record
+  the lights themselves, wavelength by wavelength, so that the display's colors can be worked out for any observer.</p>
+  <p>On this page you can:</p>
+  <ul>
+    <li>describe a display by the light it emits, one of two built in or your own measurements, and get its iccMAX
+    profile (section 1);</li>
+    <li>choose an observer (section 2) and make the version 4 profile an ordinary application can use for that observer
+    (section 3);</li>
+    <li>see how far observers agree on the colors of one display, and on two displays matched for one observer
+    (section 4);</li>
+    <li>run your own colors through the profiles and back (section 5).</li>
+  </ul>
+  <p>The profiles are built and used by iccDEV's own tools (iccFromXml, iccV5DspObsToV4Dsp, iccApplyNamedCmm and
+  iccDumpProfile, the International Color Consortium's reference implementation), compiled to WebAssembly and run in
+  this page. They load only here, when first needed. Nothing you enter is sent anywhere.</p>
+  <p>Each observer sees a display through its own <a href="start.html#normalization">Wpt normalization</a>, with the
+  display's white as the light. The profile for an observer carries the Wpt MAT from it to the standard PCS (CIE 1931,
+  2°, under D50), as the profiles of the <a href="observer.html">Observers lab</a> do.</p>
+  <p id="toolStatus" class="note"></p>
+
+  <h2>1. The display</h2>
+  <div class="card">
+    <div class="row">
+      <label>Display <select id="display" autocomplete="off"></select></label>
+    </div>
+    <p id="displaySource" class="note"></p>
+    <details id="ownBox"><summary>Your own display</summary>
+      <p class="note">The light your display emits at full red, full green and full blue (and, if you have it, at black),
+      as measured with a spectroradiometer: a column of wavelengths, then a column for each, in any units. Comma, tab or
+      space separated, header row optional, at least 420 to 680 nm. An uneven grid is brought to every nanometre.</p>
+      <textarea id="ownSpectra" class="lines" spellcheck="false" placeholder="nm, red, green, blue, black&#10;380, 0.0002, 0.0001, 0.0011, 0.00001&#10;…"></textarea>
+      <div class="row">
+        <label>Name <input id="ownName" type="text" value="My display" autocomplete="off"></label>
+        <label>Tone curve <select id="ownTone" autocomplete="off">
+          <option value="srgb" selected>sRGB</option>
+          <option value="gamma">A gamma</option>
+          <option value="table">Measured (a table)</option></select></label>
+        <label id="gammaBox" hidden>Gamma <input id="ownGamma" type="number" step="0.05" min="1" max="4" value="2.2"></label>
+      </div>
+      <div id="toneTableBox" hidden>
+        <p class="note">Code values (0 to 1, or 0 to 255, …) and the drive each gives as linear light: one column for all
+        three channels, or one each for red, green and blue; any scale, the last row is full drive. Measure each
+        channel alone and subtract what the display gives at black (the black spectrum above), so that code value 0
+        has drive 0: the page adds black once, to every color.</p>
+        <textarea id="ownToneTable" class="lines" spellcheck="false" placeholder="code, drive&#10;0, 0&#10;64, 0.05&#10;…&#10;255, 1"></textarea>
+      </div>
+      <p id="ownStatus" class="note"></p>
+    </details>
+    <div id="displayPlot"></div>
+    <div class="row">
+      <button id="displayIcc">Download the display profile (.icc)</button>
+      <button id="displayXml">Download as XML</button>
+    </div>
+    <p class="note">The profile (iccMAX version 5, class display) holds the tone curves and the emission of red, green,
+    blue and black every nanometre the display gives, and the way back (the inverse emission and inverse curves). Its
+    own viewing conditions are the CIE 1931 (2°) observer with the display's white as the light; any observer's
+    profile can stand in for them.</p>
+  </div>
+
+  <h2>2. The observer</h2>
+  <div class="card">
+    <div id="observerPick"></div>
+    <p id="observerStatus" class="note"></p>
+    <p class="note">The light is always the display's own white. A camera's sensors work too: its "observer profile" is
+    then the camera's.</p>
+  </div>
+
+  <h2>3. A version 4 profile for this observer</h2>
+  <div class="card">
+    <p>An application that knows only ICC version 4 can still show the display's colors for this observer: iccDEV's
+    iccV5DspObsToV4Dsp takes the display's profile and the observer's, and writes an ordinary matrix and tone curve
+    display profile. Its red, green and blue are what the observer sees of the display's three lights, carried by the
+    observer's Wpt MAT to the standard PCS.</p>
+    <div id="v4Table"></div>
+    <div class="cols">
+      <div id="v4Gamut"></div>
+      <div id="v4Curves"></div>
+    </div>
+    <div class="row">
+      <button id="v4Icc">Download the version 4 profile (.icc)</button>
+      <button id="obsIcc">Download the observer's profile (.icc)</button>
+      <button id="obsXml">Observer's profile as XML</button>
+    </div>
+    <details><summary>The commands, as on the command line</summary><pre id="v4Commands"></pre></details>
+    <details><summary>iccDumpProfile of the version 4 profile</summary><pre id="v4Dump"></pre></details>
+    <p class="note">x and y are the chromaticities of the colorants (their XYZ in the standard PCS). The dashed
+    triangle is the CIE 1931 observer's, for comparison. The tone curves are copied from the display's profile,
+    sampled at 2048 code values.</p>
+  </div>
+
+  <h2>4. One display, many observers</h2>
+  <div class="card">
+    <p>The colors are the 27 whose red, green and blue are each 0, 0.5 or 1. Each observer's view is carried to the
+    standard PCS by its own Wpt MAT, and compared in WLab with the CIE 1931 observer's.</p>
+    <p><b>Observers</b></p><div id="manyObservers" class="checks wide"></div>
+    <h3>On this display</h3>
+    <div id="sameTable"></div>
+    <p class="note" id="sameNote"></p>
+    <p class="note">On a display whose red, green and blue are each a single wavelength (the laser display), every
+    observer gives the same Wpt, and every difference here is 0: such a display shows any observer only three numbers
+    per color, the amounts of its three lines, and the Wpt normalization takes out how the observer weighs them.</p>
+    <h3>On a second display, matched for the CIE 1931 observer</h3>
+    <p>Show each color on a second display, made to match it exactly for the CIE 1931 observer (each display's white
+    taken as white, as a color management system does with the two profiles). Do the other observers still see a
+    match?</p>
+    <div class="row">
+      <label>Second display <select id="second" autocomplete="off"></select></label>
+      <label>Seen by <select id="seenBy" autocomplete="off"></select></label>
+    </div>
+    <div id="pairTable"></div>
+    <div class="cols">
+      <div id="pairPlot"></div>
+      <div id="pairSwatches"></div>
+    </div>
+    <p class="note" id="pairNote"></p>
+  </div>
+
+  <h2>5. Run colors through</h2>
+  <div class="card">
+    <p>Red, green and blue code values, one color per line (0 to 1, or 0 to 255), through iccDEV's color management
+    (iccApplyNamedCmm): to CIELAB in the standard PCS (D50), once with the display's profile and the observer's as its
+    viewing conditions, once with the version 4 profile of section 3; and back from CIELAB to code values (the round
+    trip).</p>
+    <textarea id="runColors" class="lines" spellcheck="false">1 1 1
+1 0 0
+0 1 0
+0 0 1
+0.5 0.5 0.5
+0.8 0.6 0.5
+0.2 0.4 0.7
+0.02 0.02 0.02</textarea>
+    <div class="row">
+      <label>Rendering intent <select id="intent" autocomplete="off">
+        <option value="1" selected>Relative colorimetric</option>
+        <option value="3">Absolute colorimetric</option></select></label>
+      <button id="runCsv">Download the results (CSV)</button>
+    </div>
+    <div id="runTable"></div>
+    <details><summary>The commands, as on the command line</summary><pre id="runCommands"></pre></details>
+    <p class="note">ΔE<sub>00</sub> is between the two CIELAB values of the same color, from the version 5 profiles
+    and from the version 4 one. The round trip goes from the version 5 CIELAB back through the display's profile;
+    "back" is the largest difference from the code values put in. A display that gives some light at black (the LCD
+    does) parts most from its version 4 profile near black: a matrix and tone curve profile has no place for that
+    light, and iccV5DspObsToV4Dsp counts it once in each of red, green and blue, so the version 4 white is a little
+    lighter too. A very saturated color can come out of the observer's MAT with X, Y or Z a little below 0 (a narrow
+    red's Z, for example); iccDEV clips it on the way back from CIELAB, so that color does not come all the way
+    back, and "back" shows by how much.</p>
+  </div>
+
+  <footer>
+    <p>Wpt and WLab: Technical annex of <a href="../WLab-Color-Without-the-Fine-Print.pdf"><i>Wpt and WLab: Color
+    Without the Fine Print</i></a> and the Wpt and WLab papers (Derhak and Berns, <i>Color Research &amp; Application</i>
+    40(6), 2015). Built on <a href="https://github.com/waypointcolor/wlab"><code>wlab</code></a>. iccDEV's tools:
+    the International Color Consortium's <a href="https://github.com/InternationalColorConsortium/iccDEV">iccDEV</a>
+    (the <code>iccdev</code> package, version 2.3.28, compiled to WebAssembly), <a href="data/iccdev/LICENSE.txt">BSD
+    3-Clause</a>; the notices of the libraries they are built with are in <a href="data/iccdev/THIRD-PARTY-NOTICES.txt">one file</a>. The built-in
+    displays are iccDEV's own (Testing/Display), BSD 3-Clause. CIE data CC BY-SA 4.0. The tables of the CIE 2006
+    model (CIE 170-1:2006 and Stockman and Sharpe, from the CVRL database) come from Psychtoolbox-3, MIT license (its
+    notice is in this page's source and in <code>wlab</code>'s LICENSE-psychtoolbox.txt).</p>
+  </footer>
+</main>
+<!--APP-->
+<!--PSYCHTOOLBOX-NOTICE-->
+</body>
+</html>

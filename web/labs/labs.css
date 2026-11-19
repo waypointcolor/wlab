@@ -80,6 +80,9 @@
   .swatch { width: 150px; }
   .swatch div { height: 70px; border-radius: 8px; border: 1px solid var(--line); }
   .swatch span { display: block; font-size: 0.85rem; color: var(--quiet); margin-top: 4px; }
+  .swatches.tiles { gap: 6px; }                                    /* small two-color tiles (Lab I) */
+  .swatches.tiles .swatch { width: 46px; }
+  .swatches.tiles .swatch div { height: 46px; }
   p.said { font-weight: 600; margin-top: 10px; }
   canvas.cloud { display: block; width: 100%; touch-action: none; cursor: grab; border: 1px solid var(--line); border-radius: 8px; }
   canvas.cloud.flat { cursor: default; }

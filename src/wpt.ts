@@ -83,8 +83,24 @@ export function wptNormalizationN(
   // weighted by the light, computed once here: a normalization is built for each of N observers × M lights
   const respond = responder(obs, ill);
   const white = respond(ones);
-  const resp = base.reflectances.map(respond);
+  const { toWpt, steps } = wptMatrixOf(white, base.reflectances.map(respond), base.referencePT);
+  const wptOf = (reflectance: Spectrum): Vec3 => times(toWpt, respond(reflectance)) as Vec3;
+  return { observer: obs, light: ill, sensors: n, white, toWpt, wptOf, wlabOf: (r) => wptToWlab(wptOf(r)), steps };
+}
 
+/**
+ * The four steps of a Wpt normalization from responses alone: those of a perfect white and of the base samples (in
+ * the same units, whatever their scale), for a condition whose spectra need not be on this package's grid (a display
+ * of narrow laser lines, say, sampled every nanometre). Returns the 3 × N matrix to Wpt and its steps.
+ */
+export function wptMatrixOf(
+  white: readonly number[],
+  resp: readonly (readonly number[])[],
+  referencePT: readonly (readonly [number, number])[] = munsellBase.referencePT,
+): { toWpt: number[][]; steps: WptNormalizationN['steps'] } {
+  const n = white.length;
+  if (n < 3) throw new Error('wlab: a Wpt normalization needs at least three sensors');
+  if (resp.length !== referencePT.length) throw new Error(`wlab: ${resp.length} base responses for ${referencePT.length} reference p, t`);
   // 1. rotate white onto the first axis, one plane at a time (axes n−2 and n−1, …, then 0 and 1)
   let am: number[][] = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
   let lw = [...white];
@@ -120,14 +136,9 @@ export function wptNormalizationN(
   const others = am.slice(1);
   const q = resp.map((x) => times(others, x));
   const qqt = Array.from({ length: n - 1 }, (_, i) => Array.from({ length: n - 1 }, (_, j) => q.reduce((s, v) => s + v[i] * v[j], 0)));
-  const fit = [0, 1].map((k) => solve(qqt.map((r) => [...r]), Array.from({ length: n - 1 }, (_, i) => q.reduce((s, v, j) => s + base.referencePT[j][k] * v[i], 0))));
+  const fit = [0, 1].map((k) => solve(qqt.map((r) => [...r]), Array.from({ length: n - 1 }, (_, i) => q.reduce((s, v, j) => s + referencePT[j][k] * v[i], 0))));
   const toWpt = [am[0], ...fit.map((f) => Array.from({ length: n }, (_, c) => f.reduce((s, a, k) => s + a * am[k + 1][c], 0)))];
-
-  const wptOf = (reflectance: Spectrum): Vec3 => times(toWpt, respond(reflectance)) as Vec3;
-  return {
-    observer: obs, light: ill, sensors: n, white, toWpt, wptOf, wlabOf: (r) => wptToWlab(wptOf(r)),
-    steps: { rotation, scale, level, fit },
-  };
+  return { toWpt, steps: { rotation, scale, level, fit } };
 }
 
 /**

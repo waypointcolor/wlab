@@ -76,6 +76,11 @@ export interface ProfileOptions {
   /** the luminance of the illuminant and the surround, in cd/m² */
   luminance: number;
   copyright?: string;
+  /**
+   * The wavelengths of the observer's curves and the light, evenly spaced (this package's 380 to 780 nm by 5 nm when
+   * not given; Lab I's displays keep their own, every nanometre for laser lines). The XML writer only.
+   */
+  nm?: readonly number[];
 }
 
 /** Whether two spectra are the same, to 1 part in 10⁹ of the larger's peak. */
@@ -151,7 +156,8 @@ function dataTags(encoding: Encoding, numbers: Numbers): string {
  * index without its functions, and D50 without its spectrum.
  */
 export function encodingProfileXml(c: Converted, light: Spectrum, o: ProfileOptions): string {
-  const grid = `start="${wavelengths[0].toFixed(8)}" end="${wavelengths[wavelengths.length - 1].toFixed(8)}" steps="${wavelengths.length}"`;
+  const nm = o.nm ?? wavelengths;
+  const grid = `start="${nm[0].toFixed(8)}" end="${nm[nm.length - 1].toFixed(8)}" steps="${nm.length}"`;
   const absolute = c.white.map((v) => v * o.luminance);
   const stdObserver = standardObserverOf(c.curves), d50 = isD50(light);
   const observerFuncs = stdObserver ? '' : `

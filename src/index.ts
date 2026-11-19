@@ -21,7 +21,7 @@ export {
   categoricalObserver, categoricalObserverAges, checkCie2006Tables, cie2006, cie2006Tables, type Cie2006Tables,
 } from './cie2006.ts';
 export { munsell1600, type SampleSet } from './munsell1600.ts';
-export { munsellBase, wptNormalization, wptNormalizationN, type Base, type WptNormalization, type WptNormalizationN } from './wpt.ts';
+export { munsellBase, wptMatrixOf, wptNormalization, wptNormalizationN, type Base, type WptNormalization, type WptNormalizationN } from './wpt.ts';
 export {
   deltaELswlab, deltaEWlab, fromPolar, G0, G1, G2, LS_D0, LS_D1, LS_SCALE, lswlabToWlab, toPolar, wlabToLswlab, wlabToWpt, wptToLswlab, wptToWlab,
 } from './wlab.ts';
