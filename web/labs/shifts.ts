@@ -1,4 +1,4 @@
-// The computations of Lab C: materials (reflectances) in WLab and Wpt across many observing conditions, their shifts
+// The computations of Lab C: materials (reflectances) in Wpt and WLab across many observing conditions, their shifts
 // from a reference condition (the raw Wpt shift manifold of each material), and pairs compared condition by condition.
 // No browser code, so that the tests can use it directly.
 

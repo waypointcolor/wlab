@@ -9,7 +9,7 @@ normalization into one common representation, and the straight-line distance ΔE
 materials, wherever they were measured. A Wpt MAT carries measurements from one light and/or observer to another by
 way of the material.
 
-The method is explained, without math, in the guide *WLab and Wpt: Color Without the Fine Print*, whose Technical
+The method is explained, without math, in the guide *Wpt and WLab: Color Without the Fine Print*, whose Technical
 annex gives every equation; this package implements that annex and reproduces the guide's numbers. The guide, its
 companion package and the web pages built on `wlab` are at [github.com/waypointcolor/wpt-onramp](https://github.com/waypointcolor/wpt-onramp), and the pages
 are online at [waypointcolor.github.io/wpt-onramp](https://waypointcolor.github.io/wpt-onramp/).

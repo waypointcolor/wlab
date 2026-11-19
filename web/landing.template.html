@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Waypoint color: WLab and Wpt</title>
+<title>Waypoint color: Wpt and WLab</title>
 <!--FAVICON-->
-<meta name="description" content="WLab and Wpt describe the color of a material for every light and observer. An interactive demo, the guide, the Waypoint Labs and a robustness report.">
+<meta name="description" content="Wpt and WLab describe the color of a material for every light and observer. An opening animation, the guide, the Waypoint Labs and a robustness report.">
 <style>
   :root {
     --bg: #ffffff; --surface: #f6f7f8; --ink: #1d2125; --quiet: #5c636b; --line: #d9dde1;
@@ -71,12 +71,12 @@
 <main>
   <header>
     <div class="brand"><!--LOGO--><div>
-      <h1>Waypoint color: WLab and Wpt</h1>
+      <h1>Waypoint color: Wpt and WLab</h1>
       <div class="sub">Color without the fine print: a material's color for every light and every viewer</div>
     </div></div>
     <h2 class="question">What do color spaces tell you about a material's color when the viewer or the light changes?</h2>
     <p>Every CIELAB value comes with fine print: it holds for one light and one standard viewer. Change the light, or the
-    viewer (another person's eyes), and the same material gets different CIELAB values, as the animation
+    viewer (another person's eyes, or a camera), and the same material gets different CIELAB values, as the animation
     below shows. Wpt (pronounced "Waypoint") mostly describes the color of the material itself instead, so its values stay close
     whatever the light and whoever is looking. WLab (Waypoint Lab) reshapes Wpt so that distances read like familiar
     ΔE color differences.</p>
@@ -152,9 +152,10 @@
 
   <h2 id="about-animation">About the animation at the top</h2>
   <p>The same 99 colored samples (those used to rate how lights render colors), measured over and over, each time by a
-  different viewer under a different light. A viewer is a standard observer or one of ten typical kinds of human
-  vision; the small plots under the animation show the light and the color-matching functions that give the CIELAB
-  (for a human-vision kind, its cone sensitivities matched to XYZ, as the last bullet explains).</p>
+  different viewer under a different light. A viewer is a standard observer, one of ten typical kinds of human
+  vision, or a camera (the one, of 52 measured cameras, whose sensors come closest to the CIE 1931 observer's); the
+  small plots under the animation show the light and the color-matching functions that give the CIELAB (for a
+  human-vision kind or the camera, its sensors matched to XYZ, as the last bullet explains).</p>
   <ul class="short">
     <li>Left, WLab; right, CIELAB, each time in that viewer's own CIELAB, against its own white, as CIELAB is always
     used.</li>
@@ -170,8 +171,9 @@
     b, the yellow–blue axis. Lightness is drawn the same height in
     both plots so its moves compare by eye; a and b keep each space's own scale (CIELAB's run about twice as far as
     WLab's). The animation pauses while the pointer is over it.</li>
-    <li>To give the human-vision kinds a CIELAB, their cone sensitivities are first matched as closely as they can be
-    to the CIE 1931 observer's color-matching functions, with their white kept exact.</li>
+    <li>To give the human-vision kinds and the camera a CIELAB, their sensors are first matched as closely as they can
+    be to the CIE 1931 observer's color-matching functions, with their white kept exact. A camera's sensors are not
+    eyes, so even WLab moves a little more for it.</li>
   </ul>
 
   <h2>The robustness report</h2>
@@ -197,13 +199,13 @@ rgbToWlab([0.2, 0.6, 0.3], 'display-p3');              // a display color, throu
     <p>ΔE<sub>WLab</sub> predicts the color difference the reference observer (CIE 1931, under illuminant C) would see
     between two materials, whatever light and observer they were measured under. WLab is not a color appearance model.
     It is a material color equivalency model.</p>
-    <p>Maxim W. Derhak (PhD). Method: <i>WLab and Wpt: Color Without the Fine Print</i> and the Wpt and WLab papers
+    <p>Maxim W. Derhak (PhD). Method: <i>Wpt and WLab: Color Without the Fine Print</i> and the Wpt and WLab papers
     (Derhak and Berns, <i>Color Research &amp; Application</i> 40(6), 2015). Text and figures CC BY 4.0; code BSD
     3-Clause; CIE data CC BY-SA 4.0.</p>
     <p>The opening animation: the 99 color evaluation samples of CIE 224:2017 (those of ANSI/IES TM-30), CIE data CC
     BY-SA 4.0; the ten categorical observers of Y. Asano and M. D. Fairchild ("Categorical observers for metamerism,"
     <i>Color Research &amp; Application</i>, 2020), used with permission, computed with the CIE 2006 model (its tables
-    from Psychtoolbox-3, MIT license, whose notice is in this page's source).</p>
+    from Psychtoolbox-3, MIT license, whose notice is in this page's source); <span id="heroCredit"></span></p>
   </footer>
 </main>
 <!--APP-->

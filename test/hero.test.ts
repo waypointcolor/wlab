@@ -1,24 +1,27 @@
-// The landing page's opening animation: the fit of cone fundamentals to XYZ and the samples' places in CIELAB and WLab.
+// The landing page's opening animation: the fit of cone fundamentals and a camera's sensors to XYZ and the samples' places in CIELAB and WLab.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { illuminants, observers, responses, whiteOf } from '../src/index.ts';
 import { cmfFit, conditionOrder, place, REFERENCE, samples, toXyzFor, viewers, xyzCurves } from '../web/hero-data.ts';
 
-test('the 99 samples, and the viewers: 4 standard observers and 10 categorical observers, no cameras', () => {
+test('the 99 samples, and the viewers: 4 standard observers, 10 categorical observers and one camera', () => {
   const s = samples();
   assert.equal(s.reflectances.length, 99);
   assert.ok(s.reflectances.every((r) => r.length === 81 && r.every((v) => v >= 0 && v <= 1.2)));
   const vs = viewers();
   assert.deepEqual([vs.filter((v) => v.kind === 'standard').length, vs.filter((v) => v.kind === 'categorical').length], [4, 10]);
-  assert.equal(vs.length, 14);
+  assert.equal(vs.filter((v) => v.kind === 'camera').length, 1);
+  assert.equal(vs.length, 15);
 });
 
-test('the fit to the CIE 1931 color-matching functions: exact for the CIE 1931 observer, white kept exactly for cones', () => {
+test('the fit to the CIE 1931 color-matching functions: exact for the CIE 1931 observer, white kept exactly for cones and the camera', () => {
   const m = cmfFit(observers.cie1931);
   m.forEach((row, i) => row.forEach((v, j) => assert.ok(Math.abs(v - (i === j ? 1 : 0)) < 1e-9)));
-  const cam = viewers().find((v) => v.kind === 'categorical')!;
-  const xyz = toXyzFor(cam.observer, illuminants.A)(new Array(81).fill(1)), white = whiteOf(observers.cie1931, illuminants.A);
-  xyz.forEach((v, i) => assert.ok(Math.abs(v - white[i]) < 1e-9));
+  const white = whiteOf(observers.cie1931, illuminants.A);
+  for (const v of viewers().filter((x) => x.kind !== 'standard')) {
+    toXyzFor(v.observer, illuminants.A)(new Array(81).fill(1)).forEach((x, i) => assert.ok(Math.abs(x - white[i]) < 1e-9, v.name));
+  }
+  const cam = viewers().find((v) => v.kind === 'camera')!;
   // the curves shown for it: through the same matrix, so white under the light is in the CIE 1931 white's proportions
   const curves = xyzCurves(cam, illuminants.A);
   const w = curves.map((c) => c.reduce((s, x, i) => s + x * illuminants.A[i], 0)), k = w[1] / white[1];

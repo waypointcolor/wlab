@@ -36,7 +36,7 @@
 - the 40 Munsell colors of Value 5 and Chroma 6 that carry the Wpt normalization, and their reference p and t
   (CIE 1931 observer, illuminant C).
 
-They are written by `export_wlab_ts.py` in the build repository of the companion package of the guide *WLab and Wpt:
+They are written by `export_wlab_ts.py` in the build repository of the companion package of the guide *Wpt and WLab:
 Color Without the Fine Print*, from the same tables its Octave, Python and spreadsheet implementations use.
 `web/example.ts` holds the guide's buyer example (a Munsell red and two made-up submissions), this package's own data
 under the BSD 3-Clause License. So is `web/demo-data.ts`, the landing page's demo data: the buyer example, a made-up
@@ -101,7 +101,9 @@ and Sciences and 1 by the National Physical Laboratory. Changed here: each file'
 package's grid, put in one file and rounded to 6 significant digits (written by `tools/library/cameras_to_wlab.py` in
 the build repository). `web/labs/cameras.ts` offers them as sensors in the labs: the pages bundle only their names
 (`cameras-index.json`) and fetch `cameras.json` from the site (`labs/data/observers/`, beside its license) when a camera
-is chosen; the web build adds the license to every page that names them.
+is chosen; the web build adds the license to every page that names them. The landing page's opening animation bundles
+one of them, the Canon EOS 200D II (the one whose sensors come closest to the CIE 1931 color-matching functions), in
+`web/demo-camera.json`, written unchanged by `scripts/demo-camera.mjs`, with its credit in the page's footer.
 
 ## Measured booth lights (`web/labs/thouslite-data.ts`)
 

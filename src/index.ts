@@ -5,7 +5,7 @@
  *   const d65 = wptNormalization('cie1931', 'D65');
  *   const wlab = d65.wlabOf(reflectance);          // reflectance: 81 values, 380 to 780 nm in 5 nm steps
  *
- * The method is described in "WLab and Wpt: Color Without the Fine Print" and its Technical annex.
+ * The method is described in "Wpt and WLab: Color Without the Fine Print" and its Technical annex.
  */
 
 export type { Mat3, Vec3 } from './linalg.ts';
