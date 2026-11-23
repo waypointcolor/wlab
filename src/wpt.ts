@@ -142,6 +142,20 @@ export function wptMatrixOf(
 }
 
 /**
+ * The sensors in Wpt: the normalization's three rows applied to the sensor curves wavelength by wavelength, giving a
+ * W, a p and a t curve (how much light of each wavelength adds to each), on the package grid. They carry the same
+ * scale as the responses (white's second response 100), so that a material's Wpt under the condition's light is
+ * Σ curve(λ) · light(λ) · reflectance(λ) over the grid. Sensors that are linear mixes of one another (the CIE 2015
+ * color-matching functions and the CIE 2006 cone fundamentals they are made from) give the same curves.
+ */
+export function wptCurves(observer: Observer | ObserverName, light: Spectrum | IlluminantName): number[][] {
+  const o = observerOf(observer), l = lightOf(light);
+  const { toWpt } = wptNormalizationN(o, l);
+  const k = 100 / o.curves[1].reduce((s, v, i) => s + v * l[i], 0);
+  return toWpt.map((row) => o.curves[0].map((_, i) => k * row.reduce((s, a, c) => s + a * o.curves[c][i], 0)));
+}
+
+/**
  * Build the Wpt normalization of an observing condition with three sensors (Technical annex A.3): rotate white onto
  * the first axis, scale it to W = 100, level the 40 samples of equal Munsell Value, and fit their p, t to the
  * reference. For more sensors, `wptNormalizationN`.

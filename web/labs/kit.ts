@@ -342,16 +342,23 @@ const RAINBOW = [[0, '#4b0063'], [0.057, '#7a00c4'], [0.143, '#3f00ff'], [0.229,
   [1, '#6e0000']] as const;
 let plotId = 0;
 
-/** Curves on the package's grid (380 to 780 nm, or `nm`: another grid within it), with a spectrum bar under the axis and a legend. */
-export function spectrumPlot(title: string, series: Series[], opts: { width?: number; height?: number; nm?: readonly number[] } = {}): string {
+/**
+ * Curves on the package's grid (380 to 780 nm, or `nm`: another grid within it), with a spectrum bar under the axis
+ * and a legend. Curves that go below 0 get a darker line at 0; `marks` are wavelengths drawn as thin dashed lines.
+ */
+export function spectrumPlot(title: string, series: Series[], opts: { width?: number; height?: number; nm?: readonly number[]; marks?: readonly number[] } = {}): string {
   const grid = opts.nm ?? wavelengths;
   const W = opts.width ?? 460, H = opts.height ?? 230, l0 = 44, top = 26, pw = W - l0 - 12, ph = H - top - 56;
   const id = `rainbow${++plotId}`;
   const X = (nm: number) => l0 + ((nm - 380) / 400) * pw;
-  const ymax = Math.max(...series.flatMap((s) => s.values)) * 1.05 || 1;
-  const Y = (v: number) => top + ph - (v / ymax) * ph;
-  const step = niceStep(ymax / 4);
-  const ticks = Array.from({ length: Math.floor(ymax / step) + 1 }, (_, i) => i * step);
+  const all = series.flatMap((s) => s.values);
+  const ymax = Math.max(0, ...all) * 1.05 || 1, ymin = Math.min(0, ...all) * 1.05;
+  const Y = (v: number) => top + ph - ((v - ymin) / (ymax - ymin)) * ph;
+  const step = niceStep((ymax - ymin) / 4), first = Math.ceil(ymin / step);
+  const ticks = Array.from({ length: Math.floor(ymax / step) - first + 1 }, (_, i) => (first + i) * step);
+  const zero = ymin < 0 ? `<line x1="${l0}" x2="${l0 + pw}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--quiet)"/>` : '';
+  const marks = (opts.marks ?? []).map((m) => `<line x1="${X(m).toFixed(1)}" x2="${X(m).toFixed(1)}" y1="${top}" y2="${top + ph}"
+    stroke="var(--quiet)" stroke-dasharray="3 3"/>`).join('');
   const stops = RAINBOW.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
   const paths = series.map((s) => `<path d="${s.values.map((v, i) => `${i ? 'L' : 'M'}${X(grid[i]).toFixed(1)} ${Y(v).toFixed(1)}`).join('')}"
     fill="none" stroke="${s.color}" stroke-width="${s.width ?? 2}" stroke-dasharray="${s.dash ?? ''}" stroke-linejoin="round"/>`).join('');
@@ -365,7 +372,7 @@ export function spectrumPlot(title: string, series: Series[], opts: { width?: nu
     <rect x="${l0}" y="${top + ph + 6}" width="${pw}" height="8" fill="url(#${id})"/>
     ${[400, 500, 600, 700].map((t) => `<text x="${X(t)}" y="${top + ph + 28}" text-anchor="middle">${t}</text>`).join('')}
     <text x="${l0 + pw / 2}" y="${top + ph + 44}" text-anchor="middle">wavelength (nm)</text>
-    ${paths}</svg><div class="legend">${legend}</div>`;
+    ${zero}${marks}${paths}</svg><div class="legend">${legend}</div>`;
 }
 
 export function niceStep(raw: number): number {

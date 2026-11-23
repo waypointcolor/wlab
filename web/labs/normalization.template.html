@@ -35,6 +35,22 @@
       <div><h3>Wpt to responses</h3><div id="fromWpt"></div><button data-copy="fromWpt">Copy</button></div>
     </div>
     <p id="white" class="note"></p>
+    <h3>The sensors in Wpt</h3>
+    <p>Each row of the matrix mixes the sensors' responses. Applied to the sensor curves themselves, wavelength by
+    wavelength, the three rows give three curves: how much light of each wavelength adds to W, to p and to t. W is a
+    single hump. p and t go both ways, as the opponent curves of vision do: p runs from greenish (below 0) to reddish
+    (above 0), and t from bluish to yellowish, because the last step of the normalization (section 4) fits them to
+    the base colors' reference p and t.</p>
+    <div id="wptCurves" style="max-width: 620px"></div>
+    <p id="wptZeros" class="note"></p>
+    <p class="note">The three curves are scaled together, so that W's highest value is 1. The light enters only
+    through the matrix: the curves weigh light reaching the sensors, for the condition's light as white. The thin
+    dashed curves are the CIE 1931 observer's under the same light. Sensors that are mixes of one another give the
+    same curves: the CIE 2006 cone fundamentals and the CIE 2015 color-matching functions made from them differ by
+    less than 0.0002 (the rounding of the published tables). A light of one wavelength where p is 0 is
+    neither reddish nor greenish in Wpt; where t is 0, neither yellowish nor bluish. The hues that look that way to
+    people, the unique hues, are usually reported at about 470 to 480 nm (unique blue), 575 to 580 nm (unique
+    yellow), and over a wider range, about 490 to 560 nm, for unique green.</p>
   </div>
 
   <h2>3. The MAT to another condition</h2>

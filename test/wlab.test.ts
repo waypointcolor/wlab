@@ -7,7 +7,7 @@ import { test } from 'node:test';
 
 import {
   cat, deltaE00, deltaEWlab, illuminants, labToXyz, mat, munsellBase, mulMM, mulMV, observers, resample, responses,
-  wavelengths, whiteOf, wlabToWpt, wptNormalization, wptToWlab, xyzToLab,
+  wavelengths, whiteOf, wlabToWpt, wptCurves, wptNormalization, wptToWlab, xyzToLab,
   type Mat3, type ObserverName, type IlluminantName, type Vec3,
 } from '../src/index.ts';
 
@@ -67,6 +67,18 @@ test('MATs and CATs match Python', () => {
   close(flat(mat(wptNormalization('cie2015_10', 'D65'), nD)), flat(V.mat['cie2015_10/D65->cie1931/D65']), 1e-9, 'MAT 2015 10° to 1931');
   close(mulMV(mat(nA, nD), nA.white), nD.white, 1e-9, 'MAT maps white exactly');
   for (const m of ['bradford', 'cat02', 'xyz'] as const) close(flat(cat(nA.white, nD.white, m)), flat(V.cat[m]), 1e-10, `CAT ${m}`);
+});
+
+test('the sensors in Wpt: curves that give Wpt, the same for the CIE 2006 cones and the CIE 2015 CMFs made from them', () => {
+  const r = munsellBase.reflectances[3];
+  const c = wptCurves('cie1931', 'D65');
+  close(c.map((cv) => cv.reduce((s, v, i) => s + v * illuminants.D65[i] * r[i], 0)), wptNormalization('cie1931', 'D65').wptOf(r), 1e-12, 'Wpt from the curves');
+  for (const light of ['E', 'D65', 'A'] as const) {
+    for (const [a, b] of [['cie2006_2', 'cie2015'], ['cie2006_10', 'cie2015_10']] as const) {
+      const ca = wptCurves(a, light), cb = wptCurves(b, light), peak = Math.max(...ca[0]);
+      close(ca.flat().map((v) => v / peak), cb.flat().map((v) => v / peak), 2e-4, `${a} and ${b} under ${light}`);
+    }
+  }
 });
 
 test('resampling holds the ends and interpolates linearly', () => {

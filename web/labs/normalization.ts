@@ -3,12 +3,12 @@
 // Bundled into labs/normalization.html by scripts/build-web.mjs.
 
 import {
-  cat, deltaEWlab, mat, mulMV, munsell1600, munsellBase, observers, responses, sensorResponses, wptNormalization,
-  wptNormalizationN, wptToWlab, type Mat3, type SampleSet, type WptNormalization, type WptNormalizationN,
+  cat, deltaEWlab, mat, mulMV, munsell1600, munsellBase, observers, responses, sensorResponses, wavelengths,
+  wptCurves, wptNormalization, wptNormalizationN, wptToWlab, type Mat3, type SampleSet, type WptNormalization, type WptNormalizationN,
 } from '../../src/index.ts';
 import {
   $, conditionPicker, copy, download, escapeHtml, formatMatrix, histogram, matrixTable, MATRIX_FORMATS, scatter,
-  type Condition, type MatrixFormat,
+  spectrumPlot, type Condition, type MatrixFormat, type Series,
 } from './kit.ts';
 import { readReflectances, type Layout } from './shifts.ts';
 
@@ -31,6 +31,8 @@ const pickC = conditionPicker($('condC'), { observer: 'cie1964', light: 'A' }, s
 
 const fmtV = (v: readonly number[], d = 3) => `(${v.map((x) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d)).join(', ')})`;
 const message = (e: unknown) => (e as Error).message;
+// W, p (reddish above 0) and t (yellowish above 0)
+const CURVE_COLORS = ['var(--ink)', '#c0306a', '#b08900'];
 const times = (m: readonly (readonly number[])[], v: readonly number[]) => m.map((r) => r.reduce((s, a, i) => s + a * v[i], 0));
 
 function render(): void {
@@ -46,7 +48,7 @@ function render(): void {
   } catch (e) {
     status.className = 'error';
     status.textContent = `Cannot build the normalization: ${message(e)}.`;
-    for (const id of ['toWpt', 'fromWpt', 'white', 'step1', 'step2', 'step3', 'step4']) $(id).replaceChildren();
+    for (const id of ['toWpt', 'fromWpt', 'white', 'wptCurves', 'wptZeros', 'step1', 'step2', 'step3', 'step4']) $(id).replaceChildren();
     renderMat();
     return;
   }
@@ -66,6 +68,7 @@ function render(): void {
   }
   $('white').textContent = `White, the responses of a perfect white scaled so that the second is 100: ${fmtV(n.white, 4)}. `
     + 'In Wpt it is (100, 0, 0) for every condition.';
+  drawWptCurves(cond);
 
   // section 4: this condition's steps, side by side with a second condition's when comparing
   const shown: { cond: Condition; n: WptNormalizationN }[] = [{ cond, n }];
@@ -84,6 +87,40 @@ function render(): void {
   }
   drawSteps(shown);
   renderMat();
+}
+
+/** W, p and t curves of a condition, scaled together so that W's peak is 1. */
+function wptCurvesOf(cond: Condition): number[][] {
+  const c = wptCurves(cond.observer, cond.light);
+  const peak = Math.max(...c[0]);
+  return c.map((v) => v.map((x) => x / peak));
+}
+
+/** Where a curve crosses 0 (linear between grid points), ignoring crossings within 1% of W's peak of 0. */
+function zerosOf(values: readonly number[]): number[] {
+  const z: number[] = [];
+  for (let i = 1; i < values.length; i++) {
+    const a = values[i - 1], b = values[i];
+    if (a * b < 0 && Math.max(Math.abs(a), Math.abs(b)) > 0.01) z.push(wavelengths[i - 1] + ((wavelengths[i] - wavelengths[i - 1]) * a) / (a - b));
+  }
+  return z;
+}
+
+function drawWptCurves(cond: Condition): void {
+  const [W, p, t] = wptCurvesOf(cond);
+  const series: Series[] = [];
+  const same = cond.observer.curves.length === 3 && cond.observer.curves.every((c, i) => c.every((v, j) => v === observers.cie1931.curves[i][j]));
+  if (!same) {
+    try {
+      const ref = wptCurvesOf({ ...cond, observer: observers.cie1931 });
+      ref.forEach((values, k) => series.push({ values, color: CURVE_COLORS[k], width: 1, dash: '4 3', label: k ? '' : 'CIE 1931 (2°), same light' }));
+    } catch { /* no comparison when the light cannot be normalized for CIE 1931 */ }
+  }
+  series.push({ values: W, color: CURVE_COLORS[0], label: 'W' }, { values: p, color: CURVE_COLORS[1], label: 'p' }, { values: t, color: CURVE_COLORS[2], label: 't' });
+  const zp = zerosOf(p), zt = zerosOf(t);
+  $('wptCurves').innerHTML = spectrumPlot(`The sensors in Wpt: ${cond.label}`, series, { width: 560, height: 280, marks: [...zp, ...zt] });
+  const list = (z: number[]) => (z.length ? z.map((x) => x.toFixed(1)).join(' and ') + ' nm' : 'no wavelength');
+  $('wptZeros').textContent = `p is 0 at ${list(zp)}; t is 0 at ${list(zt)} (the dashed vertical lines).`;
 }
 
 /** What the four steps do to the base set in one condition. */
