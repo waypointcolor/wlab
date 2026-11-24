@@ -56,7 +56,8 @@ function curves(norm: WptNormalization): void {
 // ---------------------------------------------------------------------------------------------------------------
 // Section 2: the Munsell colors of one Value in WLab, LSWLab and CIELAB
 
-const SPACES = [['wl', 'WLab', 'aw', 'bw'], ['ls', 'LSWLab', 'aw', 'bw (LSWLab)'], ['lab', 'CIELAB', 'a*', 'b*']] as const;
+// CIELAB in the middle, between the two forms of WLab, so that each compares with it side by side
+const SPACES = [['wl', 'WLab', 'aw', 'bw'], ['lab', 'CIELAB', 'a*', 'b*'], ['ls', 'LSWLab', 'aw', 'bw (LSWLab)']] as const;
 type SpaceKey = (typeof SPACES)[number][0];
 // the reference condition of WLab, drawn dashed behind each plot: how far a pattern moves from it is what the tour shows
 const REFERENCE = { observer: 'cie1931' as ObserverName, light: 'C' as LightName, label: 'CIE 1931 under C, the reference (dashed)' };

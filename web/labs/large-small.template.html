@@ -12,10 +12,11 @@
 <main>
   <nav class="crumbs"><a href="../index.html">Waypoint color</a> › <a href="index.html">Labs</a> › Large and small color differences</nav>
   <div class="brand small"><!--LABS-LOGO--><h1>Large and small color differences</h1></div>
-  <p class="lead">Two colors can be judged a small step apart by one kind of judgment and a larger one by another. People
-  comparing near matches side by side, and people laying out even steps along a scale, do not agree on how far apart
-  vivid colors are. This page sets WLab, shaped for the first, beside its large-scale form, LSWLab, shaped for the
-  second, and shows where the two part.</p>
+  <p class="lead">How far apart are two colors? It depends on how the question is asked. Set two near matches side by
+  side, and a difference between vivid colors counts for less than the same difference between dull ones. Lay colors
+  out in even steps along a scale, as the Munsell system does, and the steps between vivid colors come out about the
+  same size as those between dull ones. This page sets WLab, shaped for the first kind of judgment, beside its
+  large-scale form, LSWLab, shaped for the second, and shows where the two part.</p>
   <p><a href="start.html#wlab">WLab</a> is shaped so that a straight-line distance in it, ΔE<sub>WLab</sub>, reads like
   ΔE<sub>00</sub>: the color differences of near matches. Large-scale WLab (LSWLab) keeps WLab's lightness and hue and
   changes only its chroma, so that a straight-line distance, ΔE<sub>LSWLab</sub>, reads like ΔE*<sub>ab</sub>, the
@@ -45,7 +46,7 @@
     this condition.</p>
   </div>
 
-  <h2>2. The Munsell colors in WLab, LSWLab and CIELAB</h2>
+  <h2>2. The Munsell colors in WLab, CIELAB and LSWLab</h2>
   <div class="card">
     <p>The corrected Munsell colors of one Value: each Hue's chips joined from gray outward (a spoke), each Chroma's
     chips joined round the circle (a ring). Munsell's Chromas were laid out as even steps, judged by eye, and each ring as
@@ -61,7 +62,7 @@
       <label class="check"><input type="checkbox" id="ghost" autocomplete="off" checked> <span>Show the reference condition, dashed</span></label>
     </div>
     <div id="munSummary"></div>
-    <div class="cols" id="munPlots"></div>
+    <div class="cols three" id="munPlots"></div>
     <p class="note">Rings: the RMS of each ring's chroma about its mean, in percent of the mean; 0% is a ring at one
     chroma all the way round. Steps: how evenly chroma grows from chip to chip along each Hue, the RMS of the chroma
     gained per step of Munsell Chroma, in percent of its mean; 0% is even steps. Hue: the RMS of hue angle along each
