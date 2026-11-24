@@ -20,10 +20,14 @@ $<HTMLSelectElement>('value').value = '5';
 
 // the chips placed once per condition
 const cache = new Map<string, { norm: WptNormalization; chips: Placed[] }>();
-function condition(): { norm: WptNormalization; chips: Placed[]; label: string } {
-  const o = $<HTMLSelectElement>('observer').value as ObserverName, l = $<HTMLSelectElement>('light').value as LightName, key = `${o}/${l}`;
+function placed(o: ObserverName, l: LightName): { norm: WptNormalization; chips: Placed[] } {
+  const key = `${o}/${l}`;
   if (!cache.has(key)) { const norm = wptNormalization(observers[o], LIGHTS[l]); cache.set(key, { norm, chips: placeAll(norm) }); }
-  return { ...cache.get(key)!, label: `${OBSERVER_LABEL[o]} under ${l}` };
+  return cache.get(key)!;
+}
+function condition(): { norm: WptNormalization; chips: Placed[]; label: string } {
+  const o = $<HTMLSelectElement>('observer').value as ObserverName, l = $<HTMLSelectElement>('light').value as LightName;
+  return { ...placed(o, l), label: `${OBSERVER_LABEL[o]} under ${l}` };
 }
 
 const chromaOf = (x: Vec3) => Math.hypot(x[1], x[2]);
@@ -54,10 +58,17 @@ function curves(norm: WptNormalization): void {
 
 const SPACES = [['wl', 'WLab', 'aw', 'bw'], ['ls', 'LSWLab', 'aw', 'bw (LSWLab)'], ['lab', 'CIELAB', 'a*', 'b*']] as const;
 type SpaceKey = (typeof SPACES)[number][0];
+// the reference condition of WLab, drawn dashed behind each plot: how far a pattern moves from it is what the tour shows
+const REFERENCE = { observer: 'cie1931' as ObserverName, light: 'C' as LightName, label: 'CIE 1931 under C, the reference (dashed)' };
+/** While touring, each plot's axes are fixed, to the farthest chip in any condition of the tour. */
+let tourRange: Record<SpaceKey, number> | undefined;
 
 function munsell(chips: Placed[], label: string): void {
   const value = Number($<HTMLSelectElement>('value').value);
   const at = chips.filter((p) => p.chip.value === value);
+  // the same chips, in the same order, in the reference condition
+  const ref = placed(REFERENCE.observer, REFERENCE.light).chips.filter((p) => p.chip.value === value);
+  const ghost = $<HTMLInputElement>('ghost').checked;
   const key = (h: string, c: number) => at.findIndex((p) => p.chip.hue === h && p.chip.chroma === c);
   const links: [number, number][] = [];
   for (const h of MUNSELL_HUES) {
@@ -69,12 +80,17 @@ function munsell(chips: Placed[], label: string): void {
   }
   const colors = at.map(screenColor), titles = at.map((p) => `${p.chip.hue} ${value}/${p.chip.chroma}`);
   $('munPlots').innerHTML = SPACES.map(([k, name, xl, yl]) => {
-    const coords = at.map((p) => [p[k][1], p[k][2]]), far = Math.max(10, ...coords.flat().map(Math.abs)) * 1.08;
+    const coords = at.map((p) => [p[k][1], p[k][2]]), back = ghost ? ref.map((p) => [p[k][1], p[k][2]]) : [];
+    const far = tourRange?.[k] ?? Math.max(10, ...coords.flat().map(Math.abs), ...back.flat().map(Math.abs)) * 1.08;
     return `<div>${scatter({
       xLabel: xl, yLabel: `${yl}${k === 'wl' ? ' (WLab)' : k === 'lab' ? ' (CIELAB)' : ''}`, x: [-far, far], y: [-far, far], square: true, outline: true, dot: 3,
       sets: [{ pts: coords, color: 'var(--quiet)', label: name, colors, titles }], links: links.map(([a, b]) => [...coords[a], ...coords[b]]),
+      ghostLinks: ghost ? links.map(([a, b]) => [...back[a], ...back[b]]) : undefined, ghostLabel: REFERENCE.label,
     })}</div>`;
   }).join('');
+  // how far the chips move from the reference condition, each space in its own units
+  const moved = (k: SpaceKey) => at.reduce((s, p, j) => s + Math.hypot(...p[k].map((v, d) => v - ref[j][k][d])), 0) / at.length;
+  const UNITS: Record<SpaceKey, string> = { wl: 'ΔE<sub>WLab</sub>', ls: 'ΔE<sub>LSWLab</sub>', lab: 'ΔE*<sub>ab</sub>' };
   // rings, steps and hue, at this Value and over every Value
   const measures = (v: number) => {
     const set = chips.filter((p) => p.chip.value === v);
@@ -95,6 +111,7 @@ function munsell(chips: Placed[], label: string): void {
     <td class="note">Values 2 to 9: ${SPACES.map(([k, n]) => `${n} ${f1(overAll(k, m))}${unit}`).join(', ')}</td></tr>`;
   $('munSummary').innerHTML = `<div class="table-wrap"><table class="kv"><tbody>
     <tr><th>Condition</th><td colspan="4">${escapeHtml(label)}, Value ${value}</td></tr>
+    <tr><th>Mean move of a chip from CIE 1931 under C</th>${SPACES.map(([k, n]) => `<td>${n} <span class="big">${f1(moved(k))}</span> ${UNITS[k]}</td>`).join('')}<td></td></tr>
     ${row('Rings', 'rings', '%')}${row('Steps', 'steps', '%')}${row('Hue', 'hue', '°')}</tbody></table></div>`;
 }
 
@@ -126,6 +143,44 @@ function render(): void {
   munsell(chips, label);
   differences(chips);
 }
-for (const id of ['observer', 'light']) $(id).addEventListener('input', render);
-$('value').addEventListener('input', () => { const { chips, label } = condition(); munsell(chips, label); });
+const munsellOnly = () => { const { chips, label } = condition(); munsell(chips, label); };
+
+// the tour: every light, every observer, or both, one after another with the delay chosen, the axes fixed for the tour;
+// every section follows the condition shown
+let tourTimer: ReturnType<typeof setTimeout> | undefined;
+function stopTour(): void {
+  clearTimeout(tourTimer);
+  tourTimer = undefined;
+  tourRange = undefined;
+  $('tour').textContent = 'Tour the conditions';
+  $('tourStatus').textContent = '';
+}
+function startTour(): void {
+  const obs = $<HTMLSelectElement>('observer'), light = $<HTMLSelectElement>('light'), set = $<HTMLSelectElement>('tourSet').value;
+  const lights = [...light.options].map((o) => o.value), observerKeys = [...obs.options].map((o) => o.value);
+  const list = (set === 'observers' ? observerKeys.map((o) => [o, light.value]) : set === 'lights' ? lights.map((l) => [obs.value, l])
+    : observerKeys.flatMap((o) => lights.map((l) => [o, l]))) as [ObserverName, LightName][];
+  const value = Number($<HTMLSelectElement>('value').value);
+  const far = (k: SpaceKey) => Math.max(10, ...[...list, [REFERENCE.observer, REFERENCE.light] as const]
+    .flatMap(([o, l]) => placed(o, l).chips.filter((p) => p.chip.value === value).flatMap((p) => [Math.abs(p[k][1]), Math.abs(p[k][2])]))) * 1.08;
+  tourRange = { wl: far('wl'), ls: far('ls'), lab: far('lab') };
+  // starting from the condition shown
+  let k = Math.max(0, list.findIndex(([o, l]) => o === obs.value && l === light.value));
+  $('tour').textContent = 'Stop the tour';
+  const step = () => {
+    [obs.value, light.value] = list[k];
+    $('tourStatus').textContent = `${k + 1} of ${list.length}`;
+    render();
+    k = (k + 1) % list.length;
+    // read at every step, so that a new delay takes effect at the next condition
+    tourTimer = setTimeout(step, Number($<HTMLSelectElement>('tourDelay').value) * 1000);
+  };
+  step();
+}
+$('tour').addEventListener('click', () => (tourTimer ? stopTour() : startTour()));
+$('tourSet').addEventListener('input', () => { if (tourTimer) { stopTour(); startTour(); } });
+$('ghost').addEventListener('input', munsellOnly);
+// choosing a condition or a Value by hand ends the tour
+for (const id of ['observer', 'light']) $(id).addEventListener('input', () => { if (tourTimer) stopTour(); render(); });
+$('value').addEventListener('input', () => { if (tourTimer) stopTour(); munsellOnly(); });
 render();

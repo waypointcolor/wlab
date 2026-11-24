@@ -51,6 +51,15 @@
     chips joined round the circle (a ring). Munsell's Chromas were laid out as even steps, judged by eye, and each ring as
     one color strength whatever the Hue. In WLab the rings crowd toward the outside; in LSWLab they keep their spacing.</p>
     <div class="row"><label>Value <select id="value" autocomplete="off"></select></label></div>
+    <div class="row">
+      <button id="tour" class="primary">Tour the conditions</button>
+      <label>through <select id="tourSet" autocomplete="off"><option value="lights" selected>every light, for this observer</option>
+        <option value="observers">every observer, under this light</option><option value="both">every light and every observer</option></select></label>
+      <label>each for <select id="tourDelay" autocomplete="off"><option value="1" selected>1 second</option><option value="2">2 seconds</option>
+        <option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
+      <span id="tourStatus" class="note"></span>
+      <label class="check"><input type="checkbox" id="ghost" autocomplete="off" checked> <span>Show the reference condition, dashed</span></label>
+    </div>
     <div id="munSummary"></div>
     <div class="cols" id="munPlots"></div>
     <p class="note">Rings: the RMS of each ring's chroma about its mean, in percent of the mean; 0% is a ring at one
@@ -58,6 +67,17 @@
     gained per step of Munsell Chroma, in percent of its mean; 0% is even steps. Hue: the RMS of hue angle along each
     Hue (WLab and LSWLab share hue). Each is a mean over the rings or Hues; both percentages are relative, so the spaces'
     sizes do not enter.</p>
+    <p class="note">The dashed pattern is the same chips in WLab's reference condition, CIE 1931 under C. The tour
+    steps through the conditions of the menus at the top of the page, each for the time chosen, with each plot's axes
+    fixed for the whole tour; every section of the page follows it. It goes round until it is stopped, or a condition
+    or a Value is chosen by hand.</p>
+    <h3>What the tour shows</h3>
+    <p>LSWLab is built on Wpt, as WLab is, so it carries across lights and observers in the same way: in both, the
+    pattern of chips stays close to the dashed reference in every condition, and a chip moves only as far as its color
+    really changes between the conditions. The two differ in how they space the rings, not in how steady they are. In
+    CIELAB the whole pattern shifts and changes shape from light to light, because it describes each chip's color in
+    one condition. The mean move of a chip from the reference, in the summary above, puts a number on each, in each
+    space's own units.</p>
   </div>
 
   <h2>3. Differences, from neighbors to far apart</h2>
