@@ -3,70 +3,64 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WLab Robustness Report</title>
+<title>Robustness report: will a match hold?</title>
 <!--FAVICON-->
+<meta name="description" content="Will a match hold where the product is seen? Paste the spectra of a standard and its samples, choose the lights and observers that matter, and read how far each sample is from the standard under each, as a WLab color difference. One page; nothing is sent anywhere.">
+<!--LABS-CSS-->
 <style>
-  :root {
-    --bg: #ffffff; --surface: #f6f7f8; --ink: #1d2125; --quiet: #5c636b; --line: #d9dde1;
-    --accent: #0b4f7a; --accent-soft: #e3edf4; --warn: #9a3b00;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #15181b; --surface: #1e2226; --ink: #e8eaec; --quiet: #a3abb3; --line: #343a40;
-            --accent: #7cb7de; --accent-soft: #1f3341; --warn: #f0a46c; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif; }
-  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--accent); }
-  h2 { font-size: 1.1rem; margin: 28px 0 8px; color: var(--accent); }
-  p { margin: 6px 0; }
-  .lead { color: var(--quiet); max-width: 70ch; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-  textarea { width: 100%; min-height: 150px; font: 13px/1.4 ui-monospace, Consolas, monospace; color: var(--ink);
-             background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; resize: vertical; }
-  button, select, input[type=text] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
-             border-radius: 8px; padding: 6px 12px; }
-  button { cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  @media (prefers-color-scheme: dark) { button.primary { color: #0e1215; } }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
-  .note { color: var(--quiet); font-size: 0.9rem; }
-  .error { color: var(--warn); font-weight: 600; }
+  /* the report's own: the logo beside the title, the list of conditions, the report table */
+  .brand svg.logo { flex: none; width: 64px; height: 64px; }
   ul.conditions { list-style: none; padding: 0; margin: 8px 0; }
   ul.conditions li { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
   ul.conditions li .first { color: var(--accent); font-size: 0.85rem; }
   ul.conditions li button { padding: 2px 8px; font-size: 0.85rem; }
-  .table-wrap { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-  th:first-child, td:first-child { text-align: left; }
-  thead th { border-bottom: 2px solid var(--ink); vertical-align: bottom; }
+  #report table { width: 100%; }
+  #report thead th { vertical-align: bottom; }
   tr.de00 td { color: var(--quiet); }
-  .chip { display: inline-block; width: 28px; height: 18px; border-radius: 4px; border: 1px solid var(--line); vertical-align: middle; }
-  details { margin-top: 8px; }
-  #reflPlot svg text { fill: var(--quiet); font-size: 11px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 4px; font-size: 0.9rem; }
-  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
   .legend .chip { width: 18px; height: 14px; }
-  summary { cursor: pointer; color: var(--accent); }
-  footer { margin-top: 36px; color: var(--quiet); font-size: 0.85rem; }
-  a { color: var(--accent); }
+  .row > select { min-width: 0; max-width: 100%; }      /* the long names of lights shrink to a phone's width */
+  #summary ul { margin: 6px 0; padding-left: 20px; }
+  #summary li { margin: 3px 0; }
+  ul.reading li { margin: 4px 0; max-width: 74ch; }
+  .print-only { display: none; }
+  /* printed (or saved as PDF): the report to hand on, light on paper whatever the screen's scheme, without the inputs */
+  @media print {
+    :root { --bg: #fff; --surface: #fff; --ink: #111; --quiet: #444; --line: #bbb; --accent: #0b4f7a; --accent-soft: #e3edf4; }
+    @page { margin: 16mm; }
+    body { font-size: 10.5pt; }
+    main { max-width: none; padding: 0; }
+    .no-print, nav.crumbs, button, details { display: none !important; }
+    .print-only { display: block; }
+    .chip { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .table-wrap { overflow: visible; }
+    h2 { break-after: avoid; margin-top: 18px; }
+    #report table, #summary, ul.reading li { break-inside: avoid; }
+    footer { margin-top: 18px; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>WLab robustness report</h1>
-  <p class="lead">Will a match hold where the product is actually seen? Paste the spectral reflectance of a standard and
-  its samples, choose the lights (and observers) that matter, and read how far each sample is from the standard under
-  each one, as ΔE<sub>WLab</sub>. Everything runs in this page; nothing is sent anywhere.</p>
+  <nav class="crumbs"><a href="index.html">Waypoint color</a> › Robustness report</nav>
+  <div class="brand small"><!--LOGO--><h1>Robustness report: will a match hold?</h1></div>
+  <div id="printHeader" class="print-only"></div>
+  <p class="lead no-print">A match that passes in the viewing booth can part under store or home lighting. Paste the spectral
+  reflectance of a standard and its samples, choose the lights (and observers) where the product will be seen, and read
+  how far each sample is from the standard under each one, as ΔE<sub>WLab</sub>: one table to compare submissions,
+  suppliers or formulations, or to hand to a supplier. Everything runs in this page; nothing is sent anywhere.</p>
+  <p class="no-print">For buyers and managers, with no programming needed. How to ask for it and how to read it are in the guide's
+  section "For buyers and managers" (<a href="WLab-Color-Without-the-Fine-Print.pdf"><i>Wpt and WLab: Color Without
+  the Fine Print</i></a>). For more than one standard, many lights and observers at once, and how each material moves,
+  the <a href="labs/objects.html">Materials across lights and observers</a> lab goes further.</p>
 
-  <h2>1. Spectra</h2>
-  <div class="card">
-    <p>First column wavelength in nm, then one column per material; <b>the first material is the standard</b>. Comma,
-    tab or semicolon separated, with or without a header row. Any range and interval from 380 to 780 nm; reflectance as
-    0–1 or in percent.</p>
-    <textarea id="spectra" spellcheck="false" placeholder="nm, Standard, Sample 1, Sample 2&#10;380, 0.118, 0.118, 0.118&#10;390, 0.129, 0.135, 0.223&#10;…"></textarea>
+  <h2 class="no-print">1. Spectra</h2>
+  <div class="card no-print">
+    <p>One line per material: a first line of wavelengths in nm, then a line for each material, its name first;
+    <b>the first material is the standard</b>. To add a sample, add a line; to drop one, delete its line. Comma, tab or
+    semicolon separated. Any range and interval from 380 to 780 nm; reflectance as 0–1 or in percent. A table with one
+    material per column (wavelengths down the first column) is read too; the line under the box says which way it was
+    read.</p>
+    <textarea id="spectra" class="lines" spellcheck="false" placeholder="name, 380, 390, 400, …&#10;Standard, 0.118, 0.129, 0.146, …&#10;Sample 1, 0.118, 0.135, 0.157, …&#10;Sample 2, 0.118, 0.223, 0.263, …"></textarea>
     <div class="row">
       <label><input type="file" id="spectraFile" accept=".csv,.txt,.tsv"> </label>
       <button id="example">Load the guide's example</button>
@@ -78,8 +72,8 @@
     </details>
   </div>
 
-  <h2>2. Lights and observers</h2>
-  <div class="card">
+  <h2 class="no-print">2. Lights and observers</h2>
+  <div class="card no-print">
     <p>The first condition is the reference (normally the viewing booth); the report also gives ΔE<sub>00</sub> under it.</p>
     <ul class="conditions" id="conditions"></ul>
     <div class="row">
@@ -96,10 +90,42 @@
     </details>
   </div>
 
-  <h2>3. Report</h2>
-  <div class="row"><button class="primary" id="run">Make the report</button><button id="download" disabled>Download CSV</button></div>
+  <h2><span class="no-print">3. </span>Report</h2>
+  <div class="row"><button class="primary" id="run">Make the report</button><button id="download" disabled>Download CSV</button>
+    <button id="print" disabled>Print or save as PDF</button></div>
   <div id="report" class="table-wrap"></div>
   <p class="note" id="reportNote"></p>
+  <div id="summary"></div>
+  <p class="note no-print">"Print or save as PDF" lays the report out to hand on: the materials and conditions, the
+  table, the summary and how to read it, without the inputs above. "Load the guide's example" and then print gives an
+  example report.</p>
+
+  <h2><span class="no-print">4. </span>How to read this report</h2>
+  <ul class="reading">
+    <li><b>The first row</b> is ΔE<sub>00</sub> between each sample and the standard under the reference condition,
+    normally the viewing booth: the familiar check, as an instrument in the booth reports it.</li>
+    <li><b>Every other row</b> is ΔE<sub>WLab</sub> between each sample and the standard under that light (and
+    observer, where one is named; otherwise the CIE 1931 standard observer). Read each number like a ΔE: they are
+    designed to be similar in size, and 0 means the sample and the standard give the same color values there.</li>
+    <li><b>Look for patterns more than single numbers.</b> A sample that stays small under every light holds its match.
+    A sample that is small in the booth and jumps under one kind of light is a metamerism risk under that light: the two
+    materials match only where they were matched. Compare the samples row by row, under the lights the product will
+    really meet.</li>
+    <li><b>There are no built-in tolerances</b>, just as ΔE<sub>00</sub> and ΔE*<sub>ab</sub> tolerances differ from one
+    industry to the next. Let experience with your own products set the limits, and keep your booth ΔE<sub>00</sub>
+    specification as it is.</li>
+    <li><b>What it does not say.</b> ΔE<sub>WLab</sub> is a difference between materials: the color difference the
+    reference observer (CIE 1931, under illuminant C) would see between them, whatever light and observer they were
+    measured under. It is not a prediction of how the two will look to someone standing in the store; that is the job
+    of a color appearance model.</li>
+    <li><b>Standard lights stand in for real ones.</b> A "D50" booth only approximates D50, and store lights vary. For
+    the lights that matter most, add their measured spectra on the report's page, or choose the measured booth
+    simulators in its list of lights.
+    If viewers of different ages matter, add a second observer, such as the CIE 1964 (10°) one.</li>
+    <li><b>Next steps.</b> Use it to choose between submissions, suppliers or formulations that all pass in the booth,
+    to know in advance which lights are likely to bring complaints, and to ask for spectra of production samples, not
+    only of the approved submission.</li>
+  </ul>
 
   <footer>
     <p>ΔE<sub>WLab</sub> predicts the color difference the reference observer (CIE 1931, under illuminant C) would see

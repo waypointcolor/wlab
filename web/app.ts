@@ -71,6 +71,37 @@ function sub(text: string): HTMLElement {
   return s;
 }
 
+/** A condition's short name for running text: the light's name before its description, and the observer if not CIE 1931. */
+const shortName = (c: Condition) => `${c.lightName.split(',')[0]}${c.observer === 'cie1931' ? '' : ` (${OBSERVER_LABEL[c.observer]})`}`;
+const WLAB = 'ΔE<sub>WLab</sub>', E00 = 'ΔE<sub>00</sub>';
+
+/** The numbers of the table in words, sample by sample: no verdicts, since there are no tolerances. */
+function summaryOf(names: string[], de00: number[], wl: { c: Condition; values: number[] }[]): string {
+  const f = (v: number) => v.toFixed(1);
+  const lines = names.map((name, k) => {
+    const ranked = wl.map((r) => ({ c: r.c, v: r.values[k] })).sort((a, b) => b.v - a.v);
+    const top = ranked[0], next = ranked[1], low = ranked[ranked.length - 1];
+    return `<li><b>${escapeHtml(name)}</b>: ${E00} ${f(de00[k])} under the reference (${escapeHtml(shortName(wl[0].c))}); ${WLAB} at most
+      ${f(top.v)}, under ${escapeHtml(shortName(top.c))}${next ? `, then ${f(next.v)} under ${escapeHtml(shortName(next.c))}` : ''}${ranked.length > 2
+      ? `; at least ${f(low.v)}, under ${escapeHtml(shortName(low.c))}` : ''}.</li>`;
+  });
+  let big = { v: -1, k: 0, c: wl[0].c };
+  for (const r of wl) r.values.forEach((v, k) => { if (v > big.v) big = { v, k, c: r.c }; });
+  return `<h3>Summary</h3><ul>${lines.join('')}</ul>
+    <p class="note">The largest ${WLAB} in the table: ${f(big.v)}, ${escapeHtml(names[big.k])} under ${escapeHtml(shortName(big.c))}.</p>`;
+}
+
+/** What the printed report says first: the materials, the conditions, and when it was made. */
+function printHeaderOf(names: string[], spectra: Spectrum[]): string {
+  const sw = (s: Spectrum) => `<span class="chip" style="background:${chip(s)}"></span>`;
+  return `<table class="kv"><tbody>
+    <tr><th>Standard</th><td>${sw(spectra[0])} ${escapeHtml(names[0])}</td></tr>
+    <tr><th>Samples</th><td>${names.slice(1).map((n, k) => `${sw(spectra[k + 1])} ${escapeHtml(n)}`).join('; ')}</td></tr>
+    <tr><th>Conditions</th><td>${conditions.map((c, i) => escapeHtml(c.label) + (i ? '' : ' (the reference)')).join('; ')}</td></tr>
+    <tr><th>Made</th><td>${new Date().toISOString().slice(0, 10)}, with the Wpt and WLab robustness report
+      (waypointcolor.github.io/wpt-onramp)</td></tr></tbody></table>`;
+}
+
 function button(text: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button');
   b.textContent = text;
@@ -84,11 +115,36 @@ function fillSelects(): void {
 }
 
 /** Parse a table of numbers: first column wavelength, then one column per series; header row optional. */
-function parseTable(text: string): { names: string[]; nm: number[]; columns: number[][] } {
+const isNum = (c: string | undefined) => c !== undefined && c !== '' && !Number.isNaN(Number(c));
+
+/**
+ * Whether a table holds one material per row: its first row is a run of increasing wavelengths (after an optional
+ * cell naming the column of names). Otherwise it holds one per column, wavelengths down the first column.
+ */
+function byRows(cells: string[][]): boolean {
+  const head = cells[0], wl = isNum(head[0]) ? head : head.slice(1);
+  if (wl.length < 3 || !wl.every(isNum)) return false;
+  const v = wl.map(Number);
+  return v.every((x, i) => !i || x > v[i - 1]) && v[0] >= 300 && v[v.length - 1] <= 830;
+}
+
+/** A table with one material per row, turned to one per column (a header of names, then a row per wavelength). */
+function rowsToColumns(cells: string[][]): string[][] {
+  const [head, ...body] = cells;
+  const wl = isNum(head[0]) ? head : head.slice(1);
+  const named = body.some((r) => !isNum(r[0]));
+  const names = body.map((r, k) => (named && r[0] ? r[0] : k ? `Sample ${k}` : 'Standard'));
+  const values = body.map((r) => (named ? r.slice(1) : r));
+  return [['nm', ...names], ...wl.map((w, i) => [w, ...values.map((v) => v[i] ?? '')])];
+}
+
+function parseTable(text: string, rowsAllowed = false): { names: string[]; nm: number[]; columns: number[][]; rows: boolean } {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
   if (lines.length < 2) throw new Error('paste at least two rows');
   const sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
-  const cells = lines.map((l) => l.split(sep).map((c) => c.trim().replace(/^"|"$/g, '')));
+  const given = lines.map((l) => l.split(sep).map((c) => c.trim().replace(/^"|"$/g, '')));
+  const rows = rowsAllowed && byRows(given);
+  const cells = rows ? rowsToColumns(given) : given;
   const hasHeader = Number.isNaN(Number(cells[0][0]));
   const body = hasHeader ? cells.slice(1) : cells;
   const width = Math.max(...body.map((r) => r.length));
@@ -97,24 +153,26 @@ function parseTable(text: string): { names: string[]; nm: number[]; columns: num
   const columns: number[][] = names.map(() => []);
   for (const r of body) {
     const v = r.map(Number);
-    if (v.some((x) => Number.isNaN(x)) || v.length < width) throw new Error(`not a number in the row starting "${r[0]}"`);
+    if (v.some((x) => Number.isNaN(x)) || v.length < width) {
+      throw new Error(rows ? `not a number at ${r[0]} nm, or a row shorter than the row of wavelengths` : `not a number in the row starting "${r[0]}"`);
+    }
     nm.push(v[0]);
     v.slice(1).forEach((x, k) => columns[k].push(x));
   }
-  for (let i = 1; i < nm.length; i++) if (nm[i] <= nm[i - 1]) throw new Error('wavelengths must increase down the first column');
+  for (let i = 1; i < nm.length; i++) if (nm[i] <= nm[i - 1]) throw new Error(`wavelengths must increase ${rows ? 'along the first row' : 'down the first column'}`);
   if (nm[0] > 420 || nm[nm.length - 1] < 680) throw new Error(`the wavelengths run from ${nm[0]} to ${nm[nm.length - 1]} nm; cover at least 420 to 680 nm`);
-  return { names, nm, columns };
+  return { names, nm, columns, rows };
 }
 
 function readSpectra(): { names: string[]; spectra: Spectrum[]; note: string; nm: number[]; values: number[][] } {
-  const t = parseTable($<HTMLTextAreaElement>('spectra').value);
+  const t = parseTable($<HTMLTextAreaElement>('spectra').value, true);
   if (t.columns.length < 2) throw new Error('give a standard and at least one sample');
   const max = Math.max(...t.columns.flat());
   const percent = max > 1.5;
   const values = percent ? t.columns.map((c) => c.map((x) => x / 100)) : t.columns;
   const spectra = values.map((c) => resample(t.nm, c));
-  const note = `${t.columns.length - 1} sample${t.columns.length > 2 ? 's' : ''}, ${t.nm[0]}–${t.nm[t.nm.length - 1]} nm`
-    + (percent ? ', read as percent' : '');
+  const note = `The standard and ${t.columns.length - 1} sample${t.columns.length > 2 ? 's' : ''}, ${t.nm[0]}–${t.nm[t.nm.length - 1]} nm, `
+    + `read as one material per ${t.rows ? 'row' : 'column'}${percent ? ', in percent' : ''}.`;
   return { names: t.names, spectra, note, nm: t.nm, values };
 }
 
@@ -184,6 +242,7 @@ function run(): void {
     const { names, spectra } = readSpectra();
     const [std, ...samples] = spectra;
     const rows: { label: string; values: number[]; de00?: boolean }[] = [];
+    const wl: { c: Condition; values: number[] }[] = [];
     conditions.forEach((c, i) => {
       const n = wptNormalization(c.observer, c.light);
       if (i === 0) {
@@ -191,7 +250,9 @@ function run(): void {
         rows.push({ label: `${c.label}, ΔE00`, values: samples.map((s) => deltaE00(lab(std), lab(s))), de00: true });
       }
       const w0 = n.wlabOf(std);
-      rows.push({ label: c.label, values: samples.map((s) => deltaEWlab(w0, n.wlabOf(s))) });
+      const values = samples.map((s) => deltaEWlab(w0, n.wlabOf(s)));
+      rows.push({ label: c.label, values });
+      wl.push({ c, values });
     });
     const head = ['Light (observer)', ...names.slice(1)];
     const table = document.createElement('table');
@@ -226,15 +287,21 @@ function run(): void {
     out.replaceChildren(table);
     note.className = 'note';
     note.replaceChildren('All values are ΔE', sub('WLab'), ' against the standard, except the ΔE', sub('00'),
-      ' row. Read them like ΔE values; look for samples that stay small under every light, and for lights where one jumps.');
+      ' row. How to read them is below, after the summary.');
     lastCsv = [['condition', ...names.slice(1)], ...rows.map((r) => [r.de00 ? r.label : `${r.label}, ΔE_WLab`, ...r.values.map((v) => v.toFixed(2))])]
       .map((r) => r.map((c) => (/[",]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
     $<HTMLButtonElement>('download').disabled = false;
+    $('summary').innerHTML = summaryOf(names.slice(1), rows[0].values, wl);
+    $('printHeader').innerHTML = printHeaderOf(names, spectra);
+    $<HTMLButtonElement>('print').disabled = false;
   } catch (e) {
     out.replaceChildren();
+    $('summary').replaceChildren();
+    $('printHeader').replaceChildren();
     note.className = 'error';
     note.textContent = `Cannot make the report: ${(e as Error).message}.`;
     $<HTMLButtonElement>('download').disabled = true;
+    $<HTMLButtonElement>('print').disabled = true;
   }
 }
 
@@ -285,6 +352,7 @@ function init(): void {
     }
   });
   $('run').addEventListener('click', run);
+  $('print').addEventListener('click', () => window.print());
   $('download').addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([lastCsv], { type: 'text/csv' }));
